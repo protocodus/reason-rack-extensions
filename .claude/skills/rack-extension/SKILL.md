@@ -70,14 +70,14 @@ Miss one and it silently does nothing.
 
 ## What to version-control
 
-Master what you author; the SDK is a download and generated assets are reproducible. For YouKnow
-that is 54 files / 1.5 MB.
+Master what you author plus everything the build consumes; only the SDK and true build outputs
+are droppable. For YouKnow that is 182 files / ~14 MB.
 
 | Ignore | Why |
 | --- | --- |
 | `/Tools/`, `/API/`, `/Documentation/`, `/Licenses/`, `/version.txt`, other `Examples/*` | the SDK download |
 | `Output/`, `Intermediate-llvm/`, `Release/`, `*.plist`, `validatere-*.log` | build outputs |
-| whatever a script in the project regenerates | see below |
+| `Examples/*/Output/` | the build's own tree — anchor it, see the `GUI/Output` trap below |
 
 **Never commit the SDK.** `Tools/LLVM/Mac` alone is 1.3 GB, and `clang`, `clang++`, `opt`, `llc`
 and `lli` each exceed GitHub's 100 MB per-file hard limit, so the push is rejected outright.
@@ -99,12 +99,29 @@ GUI/Output/*
 !GUI/Output/gui.lua
 ```
 
-**Generated assets: ignore them, but pin the generator's inputs.** YouKnow renders every
-`GUI2D/*.png` and `GUI/Output/HD/*.png` from `Design/render_panels.py`, and all
-`Resources/Public/*.repatch` from `Design/generate_presets.py`. That renderer needs Pillow, the
-SDK's `Examples/SimpleInstrument/GUI2D` stock art, and three macOS system fonts — whose exact
-SHA-256 hashes are recorded in `Docs/ASSET_PROVENANCE.md` so the render reproduces. Without that
-pinning the panels drift between machines, so either record it or keep the art mastered.
+**Do not assume an asset script is a clean-room generator.** It is tempting to ignore anything a
+`Design/` script emits, but YouKnow's scripts are in-place *refiners*: they read the existing
+files back and re-emit them, so those files hold source state that exists nowhere else.
+
+- `generate_presets.py` writes the presets defined inline, then loops
+  `for path in PUBLIC.rglob("*.repatch"): values, types = read_values(path)` — re-emitting the
+  original sounds from their own stored parameter values. Delete them and they are gone.
+- `Resources/Public/Init.repatch` is the seed: `read_values()` takes the property name→type table
+  from it and every other patch is written using that table. Both scripts fail without it.
+- `render_panels.py` composites `GUI2D/PatchBrowseGroup.png`, which nothing generates.
+
+So master `GUI2D/`, `GUI/Output/` and `Resources/Public/` wholesale. Verify the claim rather than
+trusting it — clone to a temp dir, run the scripts, and check `git status` is empty:
+
+```bash
+git clone <repo> /tmp/fresh && cd /tmp/fresh/Examples/YouKnow
+JUKEBOX_SDK_DIR=/path/to/SDK python3 Design/render_panels.py && python3 Design/generate_presets.py
+git status --porcelain    # empty = committed assets match a regeneration
+```
+
+The renderer also needs Pillow, the SDK's `Examples/SimpleInstrument/GUI2D` stock art, and three
+macOS system fonts whose SHA-256 hashes are pinned in `Docs/ASSET_PROVENANCE.md` — a Linux CI box
+cannot reproduce the panels, which is a second reason to keep them committed.
 
 The exception is a frozen artifact whose generator lives **outside** the repo: `DSP/*.inc` holds
 host-built lookup tables as hex doubles, is not reproducible here, and stays committed under
