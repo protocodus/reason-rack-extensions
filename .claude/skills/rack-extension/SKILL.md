@@ -5,8 +5,11 @@ description: Use when creating or modifying a Reason Rack Extension (RE) in this
 
 # Rack Extension development (Jukebox SDK 5.0)
 
-This repo IS the SDK. `Examples/` holds 11 working devices — they are the reference,
-read them before writing anything. Docs:
+This repo masters **only the extension source**. The SDK is a download: unzip the release named
+in `version.txt` (`JukeboxSDK_500_028`) over this checkout and `API/`, `Tools/`, `Documentation/`
+and `Examples/` appear alongside it — everything below assumes that tree is present.
+`Examples/` holds 11 working devices — they are the reference, read them before writing anything.
+Docs:
 [SDK overview](https://developer.reasonstudios.com/discover/rack-extension-sdk) ·
 [Jukebox readme](https://developer.reasonstudios.com/documentation/rack-extension-sdk/5.0.0/jukebox-readme) ·
 [Get started](https://developer.reasonstudios.com/learning-and-support/get-started)
@@ -26,8 +29,10 @@ Then, in order:
    build/install name**, so `cz.protocodus.MyDevice` → `MyDevice`. Also set `long_name`/`medium_name`/
    `short_name` (40/20/10 char limits), `device_type`, `device_height_ru`.
    Changing this file requires restarting Reason/Recon.
-2. **`build45.py`** — only `JUKEBOX_SDK_DIR` (`"../.."` from `Examples/*`) and `SOURCE_FILES`.
-   Outside `Examples/`, fix the relative path.
+2. **`build45.py`** — only `JUKEBOX_SDK_DIR` and `SOURCE_FILES`. It defaults to `"../.."`
+   (correct inside `Examples/*`) but honours a `JUKEBOX_SDK_DIR` env var, which is how you build a
+   standalone extension repo against an SDK checkout elsewhere. It hard-asserts the SDK release —
+   `version.txt` must start `JukeboxSDK_500_` and contain `TargetVersion=5.0`.
 3. **`Resources/Public/*.repatch`** — these are XML and hard-code the _original_ device's identity:
    `deviceProductID` and `<DeviceNameInEnglish>`. Leave them and Reason refuses the device with
    **"Patch/song format error: The patch and the Rack Extension have different product IDs"**.
@@ -62,6 +67,48 @@ grep -rn "SimpleInstrument\|Simple Instrument" --include="*.cpp" --include="*.h"
 A parameter is not one edit — it is three: property in `motherboard_def.lua`, widget in
 `hdgui_2D.lua` (+ its `device_2D.lua` node and a PNG in `GUI2D/`), and DSP that reads it.
 Miss one and it silently does nothing.
+
+## What to version-control
+
+Master what you author; the SDK is a download and generated assets are reproducible. For YouKnow
+that is 54 files / 1.5 MB.
+
+| Ignore | Why |
+| --- | --- |
+| `/Tools/`, `/API/`, `/Documentation/`, `/Licenses/`, `/version.txt`, other `Examples/*` | the SDK download |
+| `Output/`, `Intermediate-llvm/`, `Release/`, `*.plist`, `validatere-*.log` | build outputs |
+| whatever a script in the project regenerates | see below |
+
+**Never commit the SDK.** `Tools/LLVM/Mac` alone is 1.3 GB, and `clang`, `clang++`, `opt`, `llc`
+and `lli` each exceed GitHub's 100 MB per-file hard limit, so the push is rejected outright.
+`.gitignore` cannot fix it once the blobs are committed — they must come out of history with
+`git filter-branch --index-filter 'git rm -r --cached --ignore-unmatch Tools/LLVM'` (or
+`git-filter-repo`), and note `filter-branch` also deletes the path from the working tree, so copy
+the toolchain aside first (`cp -Rc` is instant on APFS). `Tools/LLVM/Jukebox` is only 4.4 MB of
+target libc/libc++ bitcode, but it still ships with the SDK — ignore it too.
+
+**`GUI/Output` is a build _input_, despite the name.** `Tools/Build/build.py` reads it at the end
+of a `local45` build and copies it into the install dir, warning `No HD GUI folder called
+'GUI/Output'` when it is missing. A blanket `Output/` rule silently swallows the HD art and the
+device installs without a panel. Re-include what you author:
+
+```gitignore
+Output/
+!GUI/Output/
+GUI/Output/*
+!GUI/Output/gui.lua
+```
+
+**Generated assets: ignore them, but pin the generator's inputs.** YouKnow renders every
+`GUI2D/*.png` and `GUI/Output/HD/*.png` from `Design/render_panels.py`, and all
+`Resources/Public/*.repatch` from `Design/generate_presets.py`. That renderer needs Pillow, the
+SDK's `Examples/SimpleInstrument/GUI2D` stock art, and three macOS system fonts — whose exact
+SHA-256 hashes are recorded in `Docs/ASSET_PROVENANCE.md` so the render reproduces. Without that
+pinning the panels drift between machines, so either record it or keep the art mastered.
+
+The exception is a frozen artifact whose generator lives **outside** the repo: `DSP/*.inc` holds
+host-built lookup tables as hex doubles, is not reproducible here, and stays committed under
+`Tests/FrozenTableContract.cpp`.
 
 ## C++ entry points (`API/Jukebox.h`)
 
