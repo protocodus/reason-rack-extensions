@@ -1,0 +1,1237 @@
+{
+  "Files": [
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Bass - Rubber Pulse.repatch",
+      "Tags": [],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Bass",
+          "Sub": "Synth"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Bass Short and Hard.repatch",
+      "Tags": [],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Bass",
+          "Sub": "Synth"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Bass/Acid Lantern.repatch",
+      "Tags": [
+        "Analog",
+        "Dirty",
+        "Punchy"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Bass",
+          "Sub": "Synth"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Bass/Clean Pulse Bass.repatch",
+      "Tags": [
+        "Clean",
+        "Mellow",
+        "Tight"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Bass",
+          "Sub": "Synth"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Bass/Octave Floor Bass.repatch",
+      "Tags": [
+        "Deep",
+        "Fat",
+        "Sub"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Bass",
+          "Sub": "Synth"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Bass/Picked Pulse Bass.repatch",
+      "Tags": [
+        "Percussive",
+        "Punchy",
+        "Tight"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Bass",
+          "Sub": "Synth"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Bass/Punchy Dual Bass.repatch",
+      "Tags": [
+        "Analog",
+        "Fat",
+        "Punchy"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Bass",
+          "Sub": "Synth"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Bass/Rounded Sub Bass.repatch",
+      "Tags": [
+        "Deep",
+        "Mellow",
+        "Sub"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Bass",
+          "Sub": "Synth"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Bass/Soft Mono Bass.repatch",
+      "Tags": [
+        "Mellow",
+        "Soft",
+        "Warm"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Bass",
+          "Sub": "Synth"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Bass/Solid Saw Bass.repatch",
+      "Tags": [
+        "Analog",
+        "Punchy",
+        "Tight"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Bass",
+          "Sub": "Synth"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Bass/Steady Poly Bass.repatch",
+      "Tags": [
+        "Analog",
+        "Deep",
+        "Warm"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Bass",
+          "Sub": "Synth"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Bass/Sub Current.repatch",
+      "Tags": [
+        "Analog",
+        "Deep",
+        "Sub"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Bass",
+          "Sub": "Synth"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Bass/Wide Dub.repatch",
+      "Tags": [
+        "Deep",
+        "Mellow",
+        "Wide"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Bass",
+          "Sub": "Synth"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Bass/Wire Pluck.repatch",
+      "Tags": [
+        "Bright",
+        "Percussive",
+        "Tight"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Bass",
+          "Sub": "Synth"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Brass - Bright Stab.repatch",
+      "Tags": [],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Synth",
+          "Sub": "Poly"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Brass - Soft Ensemble.repatch",
+      "Tags": [],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Synth",
+          "Sub": "Poly"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Brass/Classic Poly Brass.repatch",
+      "Tags": [
+        "Analog",
+        "Punchy",
+        "Warm"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Wind",
+          "Sub": "Brass"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Brass/Mono Brass.repatch",
+      "Tags": [
+        "Analog",
+        "Monophonic",
+        "Warm"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Wind",
+          "Sub": "Brass"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Brass/Muted Circuit.repatch",
+      "Tags": [
+        "Mellow",
+        "Soft",
+        "Synthetic"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Wind",
+          "Sub": "Brass"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Brass/Open Brass.repatch",
+      "Tags": [
+        "Bright",
+        "Punchy",
+        "Synthetic"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Wind",
+          "Sub": "Brass"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Brass/Rounded Brass.repatch",
+      "Tags": [
+        "Mellow",
+        "Soft",
+        "Warm"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Wind",
+          "Sub": "Brass"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Brass/Short Brass Stab.repatch",
+      "Tags": [
+        "Bright",
+        "Punchy",
+        "Short"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Wind",
+          "Sub": "Brass"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Brass/Slow Fanfare.repatch",
+      "Tags": [
+        "Long",
+        "Soft",
+        "Warm"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Wind",
+          "Sub": "Brass"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Brass/Soft Brass.repatch",
+      "Tags": [
+        "Soft",
+        "Warm",
+        "Wide"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Wind",
+          "Sub": "Brass"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Brass/Solo Copper.repatch",
+      "Tags": [
+        "Analog",
+        "Organic",
+        "Warm"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Wind",
+          "Sub": "Brass"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Brass/Stadium Stack.repatch",
+      "Tags": [
+        "Fat",
+        "Punchy",
+        "Wide"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Wind",
+          "Sub": "Brass"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Brass/Wide Brass Ensemble.repatch",
+      "Tags": [
+        "Fat",
+        "Lush",
+        "Wide"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Wind",
+          "Sub": "Brass"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Effects - Rising Voltage.repatch",
+      "Tags": [],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "FX",
+          "Sub": "Synth FX"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Effects - Storm Signal.repatch",
+      "Tags": [],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "FX",
+          "Sub": "Sound FX"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Effects/Broken Telemetry.repatch",
+      "Tags": [
+        "Glitchy",
+        "Noisy",
+        "Weird"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "FX",
+          "Sub": "Sound FX"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Effects/Circuit Rain.repatch",
+      "Tags": [
+        "Atmospheric",
+        "Evolving",
+        "Noisy"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "FX",
+          "Sub": "Textures"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Effects/Falling Star.repatch",
+      "Tags": [
+        "Evolving",
+        "Glide",
+        "Long"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "FX",
+          "Sub": "Synth FX"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Effects/Gravity Well.repatch",
+      "Tags": [
+        "Atmospheric",
+        "Dark",
+        "Glide"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "FX",
+          "Sub": "Synth FX"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Glass Pad.repatch",
+      "Tags": [],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Synth",
+          "Sub": "Pads"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Hollow Fifths.repatch",
+      "Tags": [],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Synth",
+          "Sub": "Pads"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Init.repatch",
+      "Tags": [],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Misc",
+          "Sub": "Templates"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Keys - Plucked Keys.repatch",
+      "Tags": [],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Synth",
+          "Sub": "Plucks"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Keys - Velvet Electric.repatch",
+      "Tags": [],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Keys",
+          "Sub": "Electric Piano"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Keys/Bell Current.repatch",
+      "Tags": [
+        "Bright",
+        "Glassy",
+        "Percussive"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Mallets",
+          "Sub": "Bells & Vibes"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Keys/Midnight Tines.repatch",
+      "Tags": [
+        "Mellow",
+        "Percussive",
+        "Warm"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Keys",
+          "Sub": "Electric Piano"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Keys/Percussive Mallet.repatch",
+      "Tags": [
+        "Organic",
+        "Percussive",
+        "Short"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Mallets",
+          "Sub": "Misc"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Keys/Warm Poly.repatch",
+      "Tags": [
+        "Analog",
+        "Warm",
+        "Wide"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Keys",
+          "Sub": "Misc"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Leads/Copper Reed.repatch",
+      "Tags": [
+        "Analog",
+        "Organic",
+        "Warm"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Synth",
+          "Sub": "Leads"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Leads/Laser Thread.repatch",
+      "Tags": [
+        "Bright",
+        "Fast",
+        "Glide"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Synth",
+          "Sub": "Leads"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Leads/Neon Glide.repatch",
+      "Tags": [
+        "Analog",
+        "Glide",
+        "Wide"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Synth",
+          "Sub": "Leads"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Leads/Pulse Whistle.repatch",
+      "Tags": [
+        "Bright",
+        "Glassy",
+        "Monophonic"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Synth",
+          "Sub": "Leads"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Organ.repatch",
+      "Tags": [],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Synth",
+          "Sub": "Poly"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Pads - Lunar Drift.repatch",
+      "Tags": [],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Synth",
+          "Sub": "Pads"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Pads/Aurora Veil.repatch",
+      "Tags": [
+        "Airy",
+        "Atmospheric",
+        "Evolving"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Synth",
+          "Sub": "Pads"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Pads/Bright Air Pad.repatch",
+      "Tags": [
+        "Airy",
+        "Bright",
+        "Spacious"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Synth",
+          "Sub": "Pads"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Pads/Dark Motion Pad.repatch",
+      "Tags": [
+        "Dark",
+        "Evolving",
+        "Spacious"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Synth",
+          "Sub": "Pads"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Pads/Drifting Organ.repatch",
+      "Tags": [
+        "Analog",
+        "Evolving",
+        "Lush"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Synth",
+          "Sub": "Pads"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Pads/Moon Choir.repatch",
+      "Tags": [
+        "Airy",
+        "Long",
+        "Spacious"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Synth",
+          "Sub": "Pads"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Pads/Simple Saw Pad.repatch",
+      "Tags": [
+        "Analog",
+        "Clean",
+        "Warm"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Synth",
+          "Sub": "Pads"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Pads/Slow String Pad.repatch",
+      "Tags": [
+        "Long",
+        "Lush",
+        "Soft"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Synth",
+          "Sub": "Pads"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Pads/Soft Choir Pad.repatch",
+      "Tags": [
+        "Airy",
+        "Long",
+        "Soft"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Synth",
+          "Sub": "Pads"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Pads/Soft PWM Pad.repatch",
+      "Tags": [
+        "Lush",
+        "Soft",
+        "Wide"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Synth",
+          "Sub": "Pads"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Pads/Warm Analog Pad.repatch",
+      "Tags": [
+        "Analog",
+        "Lush",
+        "Warm"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Synth",
+          "Sub": "Pads"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Pads/Warm Horizon.repatch",
+      "Tags": [
+        "Lush",
+        "Spacious",
+        "Warm"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Synth",
+          "Sub": "Pads"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Percussive Comb.repatch",
+      "Tags": [],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Synth",
+          "Sub": "Plucks"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Self-Oscillating Sine.repatch",
+      "Tags": [],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Synth",
+          "Sub": "Leads"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Slow Sweep.repatch",
+      "Tags": [],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Synth",
+          "Sub": "Pads"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Strings - Dark Bowed.repatch",
+      "Tags": [],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Strings",
+          "Sub": "Ensemble"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Strings - PWM Ensemble.repatch",
+      "Tags": [],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Strings",
+          "Sub": "Ensemble"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Strings/Bright String Ensemble.repatch",
+      "Tags": [
+        "Bright",
+        "Lush",
+        "Wide"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Strings",
+          "Sub": "Ensemble"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Strings/Cello Current.repatch",
+      "Tags": [
+        "Dark",
+        "Organic",
+        "Warm"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Strings",
+          "Sub": "Solo"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Strings/Dark String Ensemble.repatch",
+      "Tags": [
+        "Dark",
+        "Lush",
+        "Warm"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Strings",
+          "Sub": "Ensemble"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Strings/Frozen Harmonics.repatch",
+      "Tags": [
+        "Airy",
+        "Glassy",
+        "Long"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Strings",
+          "Sub": "Synth"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Strings/Shimmer String Ensemble.repatch",
+      "Tags": [
+        "Airy",
+        "Bright",
+        "Wide"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Strings",
+          "Sub": "Ensemble"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Strings/Short Bow.repatch",
+      "Tags": [
+        "Analog",
+        "Short",
+        "Synthetic"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Strings",
+          "Sub": "Synth"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Strings/Short String Section.repatch",
+      "Tags": [
+        "Analog",
+        "Short",
+        "Tight"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Strings",
+          "Sub": "Ensemble"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Strings/Silk Section.repatch",
+      "Tags": [
+        "Lush",
+        "Soft",
+        "Wide"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Strings",
+          "Sub": "Ensemble"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Strings/Slow String Section.repatch",
+      "Tags": [
+        "Long",
+        "Soft",
+        "Wide"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Strings",
+          "Sub": "Ensemble"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Strings/Soft String Section.repatch",
+      "Tags": [
+        "Lush",
+        "Soft",
+        "Warm"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Strings",
+          "Sub": "Ensemble"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Strings/Solo Low Strings.repatch",
+      "Tags": [
+        "Dark",
+        "Organic",
+        "Warm"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Strings",
+          "Sub": "Solo"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Strings/Warm String Ensemble.repatch",
+      "Tags": [
+        "Lush",
+        "Warm",
+        "Wide"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Strings",
+          "Sub": "Ensemble"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Vibrato Lead.repatch",
+      "Tags": [],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Synth",
+          "Sub": "Leads"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    }
+  ]
+}

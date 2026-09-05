@@ -1,0 +1,491 @@
+{
+  "adjustments": {
+    "Effects/Circuit Rain.repatch": {
+      "aging": 0.5,
+      "gain_change_db": -1.563312706254132,
+      "method": "Retain baseline Aging 0% measurements; attenuate only stored presetGain to the largest nine-decimal value whose float32 calibration-chord peak is at most 0.18 at Aging 50%.",
+      "next_stored_step_peak": 0.18000000715255737,
+      "observed_peak_before": 0.21549546718597412,
+      "observed_rms_before": 0.027587216,
+      "predicted_peak_after": 0.17999999225139618,
+      "preset_gain_after": 0.95672323,
+      "preset_gain_before": 1.0,
+      "target_peak": 0.18
+    }
+  },
+  "format": 1,
+  "gain_range_db": [
+    -18.0618,
+    18.0618
+  ],
+  "measurement_aging": 0.0,
+  "measurements": {
+    "Bass - Rubber Pulse.repatch": {
+      "gain_db": -8.5069,
+      "raw_peak": 0.479309,
+      "raw_rms": 0.067044
+    },
+    "Bass Short and Hard.repatch": {
+      "gain_db": -4.1103,
+      "raw_peak": 0.288928,
+      "raw_rms": 0.033435
+    },
+    "Bass/Acid Lantern.repatch": {
+      "gain_db": 1.1354,
+      "raw_peak": 0.157943,
+      "raw_rms": 0.027399
+    },
+    "Bass/Clean Pulse Bass.repatch": {
+      "gain_db": 2.2684,
+      "raw_peak": 0.138628,
+      "raw_rms": 0.017699
+    },
+    "Bass/Octave Floor Bass.repatch": {
+      "gain_db": -0.3024,
+      "raw_peak": 0.186378,
+      "raw_rms": 0.041126
+    },
+    "Bass/Picked Pulse Bass.repatch": {
+      "gain_db": 9.3438,
+      "raw_peak": 0.061388,
+      "raw_rms": 0.003033
+    },
+    "Bass/Punchy Dual Bass.repatch": {
+      "gain_db": -2.1888,
+      "raw_peak": 0.231585,
+      "raw_rms": 0.016114
+    },
+    "Bass/Rounded Sub Bass.repatch": {
+      "gain_db": -4.7212,
+      "raw_peak": 0.261375,
+      "raw_rms": 0.068884
+    },
+    "Bass/Soft Mono Bass.repatch": {
+      "gain_db": -7.9692,
+      "raw_peak": 0.314813,
+      "raw_rms": 0.10012
+    },
+    "Bass/Solid Saw Bass.repatch": {
+      "gain_db": 0.0952,
+      "raw_peak": 0.178038,
+      "raw_rms": 0.021242
+    },
+    "Bass/Steady Poly Bass.repatch": {
+      "gain_db": -0.1468,
+      "raw_peak": 0.151652,
+      "raw_rms": 0.040682
+    },
+    "Bass/Sub Current.repatch": {
+      "gain_db": -17.219,
+      "raw_peak": 0.55218,
+      "raw_rms": 0.29041
+    },
+    "Bass/Wide Dub.repatch": {
+      "gain_db": -6.8108,
+      "raw_peak": 0.394289,
+      "raw_rms": 0.080012
+    },
+    "Bass/Wire Pluck.repatch": {
+      "gain_db": 6.7066,
+      "raw_peak": 0.083165,
+      "raw_rms": 0.001964
+    },
+    "Brass - Bright Stab.repatch": {
+      "gain_db": -0.2849,
+      "raw_peak": 0.186001,
+      "raw_rms": 0.01725
+    },
+    "Brass - Soft Ensemble.repatch": {
+      "gain_db": -4.7673,
+      "raw_peak": 0.269344,
+      "raw_rms": 0.069251
+    },
+    "Brass/Classic Poly Brass.repatch": {
+      "gain_db": 1.653,
+      "raw_peak": 0.148806,
+      "raw_rms": 0.03082
+    },
+    "Brass/Mono Brass.repatch": {
+      "gain_db": -4.7841,
+      "raw_peak": 0.216484,
+      "raw_rms": 0.069385
+    },
+    "Brass/Muted Circuit.repatch": {
+      "gain_db": 6.702,
+      "raw_peak": 0.083209,
+      "raw_rms": 0.006817
+    },
+    "Brass/Open Brass.repatch": {
+      "gain_db": 1.3422,
+      "raw_peak": 0.154227,
+      "raw_rms": 0.014819
+    },
+    "Brass/Rounded Brass.repatch": {
+      "gain_db": 0.0794,
+      "raw_peak": 0.16814,
+      "raw_rms": 0.039636
+    },
+    "Brass/Short Brass Stab.repatch": {
+      "gain_db": 2.558,
+      "raw_peak": 0.134082,
+      "raw_rms": 0.00477
+    },
+    "Brass/Slow Fanfare.repatch": {
+      "gain_db": -2.3907,
+      "raw_peak": 0.219787,
+      "raw_rms": 0.052674
+    },
+    "Brass/Soft Brass.repatch": {
+      "gain_db": -3.7594,
+      "raw_peak": 0.23533,
+      "raw_rms": 0.061664
+    },
+    "Brass/Solo Copper.repatch": {
+      "gain_db": -6.7194,
+      "raw_peak": 0.238601,
+      "raw_rms": 0.086702
+    },
+    "Brass/Stadium Stack.repatch": {
+      "gain_db": -9.405,
+      "raw_peak": 0.417982,
+      "raw_rms": 0.118117
+    },
+    "Brass/Wide Brass Ensemble.repatch": {
+      "gain_db": -2.5903,
+      "raw_peak": 0.199935,
+      "raw_rms": 0.053898
+    },
+    "Effects - Rising Voltage.repatch": {
+      "gain_db": -4.8932,
+      "raw_peak": 0.316179,
+      "raw_rms": 0.065389
+    },
+    "Effects - Storm Signal.repatch": {
+      "gain_db": 18.0618,
+      "raw_peak": 0.006933,
+      "raw_rms": 0.000394
+    },
+    "Effects/Broken Telemetry.repatch": {
+      "gain_db": 14.9954,
+      "raw_peak": 0.032026,
+      "raw_rms": 0.003762
+    },
+    "Effects/Circuit Rain.repatch": {
+      "gain_db": 18.0618,
+      "raw_peak": 0.022025,
+      "raw_rms": 0.002817
+    },
+    "Effects/Falling Star.repatch": {
+      "gain_db": 5.7829,
+      "raw_peak": 0.092497,
+      "raw_rms": 0.019731
+    },
+    "Effects/Gravity Well.repatch": {
+      "gain_db": 9.1597,
+      "raw_peak": 0.047448,
+      "raw_rms": 0.013934
+    },
+    "Glass Pad.repatch": {
+      "gain_db": 0.8486,
+      "raw_peak": 0.159374,
+      "raw_rms": 0.036277
+    },
+    "Hollow Fifths.repatch": {
+      "gain_db": 8.2703,
+      "raw_peak": 0.069464,
+      "raw_rms": 0.00885
+    },
+    "Init.repatch": {
+      "gain_db": 2.7831,
+      "raw_peak": 0.106688,
+      "raw_rms": 0.029034
+    },
+    "Keys - Plucked Keys.repatch": {
+      "gain_db": 4.0281,
+      "raw_peak": 0.113206,
+      "raw_rms": 0.002805
+    },
+    "Keys - Velvet Electric.repatch": {
+      "gain_db": 0.7439,
+      "raw_peak": 0.165225,
+      "raw_rms": 0.024366
+    },
+    "Keys/Bell Current.repatch": {
+      "gain_db": 11.8862,
+      "raw_peak": 0.04581,
+      "raw_rms": 0.001301
+    },
+    "Keys/Midnight Tines.repatch": {
+      "gain_db": 5.0462,
+      "raw_peak": 0.100684,
+      "raw_rms": 0.011553
+    },
+    "Keys/Percussive Mallet.repatch": {
+      "gain_db": 6.1499,
+      "raw_peak": 0.08867,
+      "raw_rms": 0.002303
+    },
+    "Keys/Warm Poly.repatch": {
+      "gain_db": -3.0626,
+      "raw_peak": 0.236199,
+      "raw_rms": 0.05691
+    },
+    "Leads/Copper Reed.repatch": {
+      "gain_db": -3.9266,
+      "raw_peak": 0.238972,
+      "raw_rms": 0.062862
+    },
+    "Leads/Laser Thread.repatch": {
+      "gain_db": 4.7547,
+      "raw_peak": 0.088738,
+      "raw_rms": 0.023138
+    },
+    "Leads/Neon Glide.repatch": {
+      "gain_db": -9.1773,
+      "raw_peak": 0.491748,
+      "raw_rms": 0.11506
+    },
+    "Leads/Pulse Whistle.repatch": {
+      "gain_db": 12.1981,
+      "raw_peak": 0.032355,
+      "raw_rms": 0.009821
+    },
+    "Organ.repatch": {
+      "gain_db": -7.6047,
+      "raw_peak": 0.352745,
+      "raw_rms": 0.096005
+    },
+    "Pads - Lunar Drift.repatch": {
+      "gain_db": 10.0967,
+      "raw_peak": 0.056291,
+      "raw_rms": 0.011717
+    },
+    "Pads/Aurora Veil.repatch": {
+      "gain_db": 4.7324,
+      "raw_peak": 0.104388,
+      "raw_rms": 0.021241
+    },
+    "Pads/Bright Air Pad.repatch": {
+      "gain_db": 5.5946,
+      "raw_peak": 0.094524,
+      "raw_rms": 0.01858
+    },
+    "Pads/Dark Motion Pad.repatch": {
+      "gain_db": 0.7212,
+      "raw_peak": 0.13264,
+      "raw_rms": 0.036813
+    },
+    "Pads/Drifting Organ.repatch": {
+      "gain_db": -1.6684,
+      "raw_peak": 0.162081,
+      "raw_rms": 0.048471
+    },
+    "Pads/Moon Choir.repatch": {
+      "gain_db": 5.0261,
+      "raw_peak": 0.100918,
+      "raw_rms": 0.018556
+    },
+    "Pads/Simple Saw Pad.repatch": {
+      "gain_db": 3.4497,
+      "raw_peak": 0.094769,
+      "raw_rms": 0.026889
+    },
+    "Pads/Slow String Pad.repatch": {
+      "gain_db": -1.9131,
+      "raw_peak": 0.224351,
+      "raw_rms": 0.042808
+    },
+    "Pads/Soft Choir Pad.repatch": {
+      "gain_db": 6.957,
+      "raw_peak": 0.076264,
+      "raw_rms": 0.017956
+    },
+    "Pads/Soft PWM Pad.repatch": {
+      "gain_db": 1.8768,
+      "raw_peak": 0.122193,
+      "raw_rms": 0.032227
+    },
+    "Pads/Warm Analog Pad.repatch": {
+      "gain_db": -2.6657,
+      "raw_peak": 0.183465,
+      "raw_rms": 0.054368
+    },
+    "Pads/Warm Horizon.repatch": {
+      "gain_db": -2.4322,
+      "raw_peak": 0.203543,
+      "raw_rms": 0.052926
+    },
+    "Percussive Comb.repatch": {
+      "gain_db": 7.872,
+      "raw_peak": 0.072723,
+      "raw_rms": 0.002005
+    },
+    "Self-Oscillating Sine.repatch": {
+      "gain_db": 3.1869,
+      "raw_peak": 0.067747,
+      "raw_rms": 0.027715
+    },
+    "Slow Sweep.repatch": {
+      "gain_db": 18.0618,
+      "raw_peak": 0.019893,
+      "raw_rms": 0.002402
+    },
+    "Strings - Dark Bowed.repatch": {
+      "gain_db": -1.6228,
+      "raw_peak": 0.216976,
+      "raw_rms": 0.044442
+    },
+    "Strings - PWM Ensemble.repatch": {
+      "gain_db": 1.9943,
+      "raw_peak": 0.139086,
+      "raw_rms": 0.031794
+    },
+    "Strings/Bright String Ensemble.repatch": {
+      "gain_db": -1.0153,
+      "raw_peak": 0.195365,
+      "raw_rms": 0.04496
+    },
+    "Strings/Cello Current.repatch": {
+      "gain_db": -2.1832,
+      "raw_peak": 0.231436,
+      "raw_rms": 0.049876
+    },
+    "Strings/Dark String Ensemble.repatch": {
+      "gain_db": -1.1053,
+      "raw_peak": 0.167417,
+      "raw_rms": 0.045428
+    },
+    "Strings/Frozen Harmonics.repatch": {
+      "gain_db": 5.4519,
+      "raw_peak": 0.09609,
+      "raw_rms": 0.009441
+    },
+    "Strings/Shimmer String Ensemble.repatch": {
+      "gain_db": 4.6561,
+      "raw_peak": 0.101758,
+      "raw_rms": 0.023402
+    },
+    "Strings/Short Bow.repatch": {
+      "gain_db": -1.2224,
+      "raw_peak": 0.191964,
+      "raw_rms": 0.046045
+    },
+    "Strings/Short String Section.repatch": {
+      "gain_db": -1.5404,
+      "raw_peak": 0.214928,
+      "raw_rms": 0.042154
+    },
+    "Strings/Silk Section.repatch": {
+      "gain_db": -3.253,
+      "raw_peak": 0.261772,
+      "raw_rms": 0.056264
+    },
+    "Strings/Slow String Section.repatch": {
+      "gain_db": -2.3517,
+      "raw_peak": 0.228387,
+      "raw_rms": 0.052438
+    },
+    "Strings/Soft String Section.repatch": {
+      "gain_db": 1.3846,
+      "raw_peak": 0.132756,
+      "raw_rms": 0.034106
+    },
+    "Strings/Solo Low Strings.repatch": {
+      "gain_db": -1.8228,
+      "raw_peak": 0.219476,
+      "raw_rms": 0.04934
+    },
+    "Strings/Warm String Ensemble.repatch": {
+      "gain_db": -1.0829,
+      "raw_peak": 0.192592,
+      "raw_rms": 0.045311
+    },
+    "Vibrato Lead.repatch": {
+      "gain_db": -0.1085,
+      "raw_peak": 0.128399,
+      "raw_rms": 0.040503
+    }
+  },
+  "method": "fixed C3/G3/C4 chord, 3 s, 48 kHz; cap peak and RMS",
+  "preset_gain": {
+    "Bass - Rubber Pulse.repatch": 0.264506813,
+    "Bass Short and Hard.repatch": 0.386214481,
+    "Bass/Acid Lantern.repatch": 0.531432151,
+    "Bass/Clean Pulse Bass.repatch": 0.562796371,
+    "Bass/Octave Floor Bass.repatch": 0.491627555,
+    "Bass/Picked Pulse Bass.repatch": 0.758661389,
+    "Bass/Punchy Dual Bass.repatch": 0.439409183,
+    "Bass/Rounded Sub Bass.repatch": 0.36930518,
+    "Bass/Soft Mono Bass.repatch": 0.279390285,
+    "Bass/Solid Saw Bass.repatch": 0.502635285,
+    "Bass/Steady Poly Bass.repatch": 0.495934899,
+    "Bass/Sub Current.repatch": 0.023330129,
+    "Bass/Wide Dub.repatch": 0.311457241,
+    "Bass/Wire Pluck.repatch": 0.685658084,
+    "Brass - Bright Stab.repatch": 0.492114421,
+    "Brass - Soft Ensemble.repatch": 0.368027516,
+    "Brass/Classic Poly Brass.repatch": 0.545760701,
+    "Brass/Mono Brass.repatch": 0.367562699,
+    "Brass/Muted Circuit.repatch": 0.685530903,
+    "Brass/Open Brass.repatch": 0.537156925,
+    "Brass/Rounded Brass.repatch": 0.502198104,
+    "Brass/Short Brass Stab.repatch": 0.570813555,
+    "Brass/Slow Fanfare.repatch": 0.433818163,
+    "Brass/Soft Brass.repatch": 0.395928587,
+    "Brass/Solo Copper.repatch": 0.313989121,
+    "Brass/Stadium Stack.repatch": 0.239642548,
+    "Brass/Wide Brass Ensemble.repatch": 0.42829471,
+    "Effects - Rising Voltage.repatch": 0.364542559,
+    "Effects - Storm Signal.repatch": 1.0,
+    "Effects/Broken Telemetry.repatch": 0.915113564,
+    "Effects/Circuit Rain.repatch": 0.95672323,
+    "Effects/Falling Star.repatch": 0.660086404,
+    "Effects/Gravity Well.repatch": 0.753565089,
+    "Glass Pad.repatch": 0.523490808,
+    "Hollow Fifths.repatch": 0.728943252,
+    "Init.repatch": 0.577042776,
+    "Keys - Plucked Keys.repatch": 0.611507747,
+    "Keys - Velvet Electric.repatch": 0.520594152,
+    "Keys/Bell Current.repatch": 0.82904374,
+    "Keys/Midnight Tines.repatch": 0.639693745,
+    "Keys/Percussive Mallet.repatch": 0.670246488,
+    "Keys/Warm Poly.repatch": 0.415219637,
+    "Leads/Copper Reed.repatch": 0.391301971,
+    "Leads/Laser Thread.repatch": 0.631622639,
+    "Leads/Neon Glide.repatch": 0.245947588,
+    "Leads/Pulse Whistle.repatch": 0.837676361,
+    "Organ.repatch": 0.289481743,
+    "Pads - Lunar Drift.repatch": 0.779503454,
+    "Pads/Aurora Veil.repatch": 0.631006839,
+    "Pads/Bright Air Pad.repatch": 0.654874053,
+    "Pads/Dark Motion Pad.repatch": 0.519964113,
+    "Pads/Drifting Organ.repatch": 0.453813026,
+    "Pads/Moon Choir.repatch": 0.639135564,
+    "Pads/Simple Saw Pad.repatch": 0.595497316,
+    "Pads/Slow String Pad.repatch": 0.447039882,
+    "Pads/Soft Choir Pad.repatch": 0.692589,
+    "Pads/Soft PWM Pad.repatch": 0.551955018,
+    "Pads/Warm Analog Pad.repatch": 0.42620704,
+    "Pads/Warm Horizon.repatch": 0.432670563,
+    "Percussive Comb.repatch": 0.717918881,
+    "Self-Oscillating Sine.repatch": 0.588222165,
+    "Slow Sweep.repatch": 1.0,
+    "Strings - Dark Bowed.repatch": 0.455076906,
+    "Strings - PWM Ensemble.repatch": 0.555207578,
+    "Strings/Bright String Ensemble.repatch": 0.471892994,
+    "Strings/Cello Current.repatch": 0.439563935,
+    "Strings/Dark String Ensemble.repatch": 0.469403035,
+    "Strings/Frozen Harmonics.repatch": 0.650923117,
+    "Strings/Shimmer String Ensemble.repatch": 0.628894695,
+    "Strings/Short Bow.repatch": 0.466159249,
+    "Strings/Short String Section.repatch": 0.457357244,
+    "Strings/Silk Section.repatch": 0.409947686,
+    "Strings/Slow String Section.repatch": 0.43489789,
+    "Strings/Soft String Section.repatch": 0.538329073,
+    "Strings/Solo Low Strings.repatch": 0.449540381,
+    "Strings/Warm String Ensemble.repatch": 0.470023111,
+    "Vibrato Lead.repatch": 0.496995205
+  },
+  "target_peak": 0.18,
+  "target_rms": 0.04
+}

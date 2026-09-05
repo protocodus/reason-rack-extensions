@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+.DS_Store
+/Intermediate-llvm/
+/Output/
+/Release/
+/validatere-*.log
+/recon.log
+*.plist
