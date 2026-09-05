@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<JukeboxPatch version="1.0">
+    <DeviceNameInEnglish>YouKnow Circuit-Modelled Synth</DeviceNameInEnglish>
+    <Properties deviceProductID="cz.protocodus.YouKnow" deviceVersion="1.0.0f9">
+        <Object name="custom_properties">
+            <Value property="volume" type="number">0.59</Value>
+            <Value property="presetGain" type="number">0.570813555</Value>
+            <Value property="benderDco" type="number">0.26</Value>
+            <Value property="benderVcf" type="number">0.24</Value>
+            <Value property="benderLfo" type="number">0.00</Value>
+            <Value property="portamento" type="number">0.00</Value>
+            <Value property="keyMode" type="number">1</Value>
+            <Value property="lfoRate" type="number">0.42</Value>
+            <Value property="lfoDelay" type="number">0.00</Value>
+            <Value property="dcoLfo" type="number">0.00</Value>
+            <Value property="pwm" type="number">0.42</Value>
+            <Value property="pwmMode" type="number">1</Value>
+            <Value property="range" type="number">1</Value>
+            <Value property="saw" type="boolean">true</Value>
+            <Value property="pulse" type="boolean">true</Value>
+            <Value property="sub" type="number">0.00</Value>
+            <Value property="noise" type="number">0.01</Value>
+            <Value property="highPass" type="number">2</Value>
+            <Value property="cutoff" type="number">0.45</Value>
+            <Value property="resonance" type="number">0.18</Value>
+            <Value property="envPolarity" type="number">0</Value>
+            <Value property="vcfEnv" type="number">0.76</Value>
+            <Value property="vcfLfo" type="number">0.00</Value>
+            <Value property="keyFollow" type="number">0.54</Value>
+            <Value property="vcaMode" type="number">0</Value>
+            <Value property="vcaLevel" type="number">0.70</Value>
+            <Value property="attack" type="number">0.00</Value>
+            <Value property="decay" type="number">0.21</Value>
+            <Value property="sustain" type="number">0.08</Value>
+            <Value property="release" type="number">0.12</Value>
+            <Value property="chorus" type="number">0</Value>
+            <Value property="transpose" type="number">12</Value>
+            <Value property="masterTune" type="number">0.50</Value>
+            <Value property="velocity" type="number">0.52</Value>
+            <Value property="calibration" type="number">0.50</Value>
+            <Value property="chorusNoise" type="number">0.29858038</Value>
+            <Value property="polyphony" type="number">5</Value>
+        </Object>
+    </Properties>
+</JukeboxPatch>
