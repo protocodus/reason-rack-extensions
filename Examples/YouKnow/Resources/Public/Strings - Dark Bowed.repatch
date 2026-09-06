@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <JukeboxPatch version="1.0">
-    <DeviceNameInEnglish>YouKnow Circuit-Modelled Synth</DeviceNameInEnglish>
+    <DeviceNameInEnglish>YouKnow</DeviceNameInEnglish>
     <Properties deviceProductID="cz.protocodus.YouKnow" deviceVersion="1.0.0f9">
         <Object name="custom_properties">
             <Value property="volume" type="number">0.69</Value>

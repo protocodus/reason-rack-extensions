@@ -4,7 +4,7 @@
 
 - Product: YouKnow
 - Long title: Legend of 1984 (14 characters)
-- Device name: YouKnow Circuit-Modelled Synth
+- Device name: YouKnow
 - Manufacturer: Protocodus
 - Product ID: `cz.protocodus.YouKnow`
 - Candidate: `1.0.0f9`

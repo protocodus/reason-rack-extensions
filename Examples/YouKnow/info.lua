@@ -1,7 +1,7 @@
 format_version = "2.0"
 
-long_name = "YouKnow Circuit-Modelled Synth"
-medium_name = "YouKnow Synth"
+long_name = "YouKnow"
+medium_name = "YouKnow"
 short_name = "YouKnow"
 
 product_id = "cz.protocodus.YouKnow"
