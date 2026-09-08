@@ -2,7 +2,22 @@
 
 Notable customer-facing changes to YouKnow are recorded here.
 
-## 1.0.0f12 - Unreleased
+## 1.0.0f13 - Unreleased
+
+- Added clearance below control labels in the first two front rows and moved
+  the Bend and Mod wheels down six pixels.
+- Moved front group titles closer to their left edges and removed decorative
+  screws from the front, rear, and both folded panels.
+- Centered the maker and instrument names on a shared header axis, with the
+  blue maker lettering printed directly on the plastic.
+- Gave QUALITY and the readouts a subtle separate strip aligned with the
+  first control caption, and simplified tiny icons to blue and yellow bars.
+- Relabelled the lowest HPF position as 0, retaining its existing bass-boost
+  behavior.
+- Updated the candidate version; DSP, control behavior, and all patch sound
+  values remain unchanged.
+
+## 1.0.0f12 - Earlier candidate
 
 - Synced DSP from the original YouKnow project at `72e1d448`, including the
   updated VCA, SUB, filter calibration, PWM, and chorus models. Preserved Rack

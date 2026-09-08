@@ -1,7 +1,7 @@
 # YouKnow Rack Extension
 
 YouKnow is a native circuit-modelled polysynth for Reason 14 and later.
-Production candidate `1.0.0f12` includes 93 original Protocodus patches, up to
+Production candidate `1.0.0f13` includes 93 original Protocodus patches, up to
 16 voices, stereo chorus, eight CV inputs, and 41 automatable custom controls
 alongside Reason's pitch wheel, modulation wheel, and sustain support.
 

@@ -1,6 +1,6 @@
 # YouKnow user guide
 
-Version 1.0.0f12
+Version 1.0.0f13
 
 YouKnow is a circuit-modelled analogue polysynth from Protocodus for Reason 14
 and later. It combines subtractive synthesis, stereo chorus, up to 16 voices,
@@ -27,8 +27,8 @@ Synth** under Instruments in the device palette.
 
 **LFO** sets modulation rate and delayed onset. **Oscillator** selects octave
 range, PWM source and depth, and oscillator modulation. **Mixer** contains the
-pulse/saw switches and sub/noise levels. **High Pass** provides four positions,
-including bass boost.
+pulse/saw switches and sub/noise levels. **High Pass** provides four positions;
+the lowest, labelled 0, retains the bass-boost setting.
 
 **Filter** controls cutoff (CUT), resonance (RES), envelope polarity (POL, +/−)
 and amount (ENV), LFO amount (LFO), and keyboard tracking (TRACK). At high

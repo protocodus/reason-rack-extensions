@@ -1,4 +1,42 @@
-# YouKnow 1.0.0f12 candidate
+# YouKnow 1.0.0f13 candidate
+
+Validated 2026-09-08 with `JukeboxSDK_500_028`, target 5.0, for the refined
+front panel and a distinct U45 build. The first two control rows gain space
+below their labels, Bend and Mod move down six pixels, and group titles sit
+closer to their left edges. All four faces omit decorative screws. The maker and instrument names share a
+centerline in the header, with the blue maker lettering directly on the
+plastic. QUALITY and the readouts sit in a subtle separate strip aligned with
+the first control caption; tiny icons use a blue and yellow two-bar mark.
+The lowest HPF legend becomes 0 while its bass-boost behavior remains.
+
+The candidate updates version metadata and all 93 patch headers. All 28
+baseline audio/property inputs match `1.0.0f12`; every patch is byte-identical
+after normalizing its version attribute. Both native libraries and all four
+universal chip binaries are identical to that candidate. The retained native
+audio, automation, sanitizer, bank, and timing evidence below still applies.
+
+Current records are under `Release/validation/1.0.0f13`.
+
+| Check | Result |
+| --- | --- |
+| Metadata and GUI | PASS: full renderer spacing, mappings, and stock assets; portable validation covers 74 widgets across four panels, 78 nodes, 18 image paths, and 14 artwork twins; all 93 patches pass and regenerate byte-identically |
+| Visual review | PASS: final shipped front/back artwork matches the reviewed previews pixel-for-pixel; small icons visually reviewed |
+| Local45 Deployment | PASS: 118 source-file matches, 93 patches, and two valid Mach-O libraries matching the completed build |
+| Universal45 | PASS: ZIP integrity, 143 members, 138 source-file matches, 93 patches, and four Testing/Deployment 32/64-bit binaries with valid LLVM bitcode headers |
+| Compatibility | PASS: 28 unchanged audio/property files, 93 version-only patch changes, and unchanged native/universal audio binaries |
+
+The final package is `Output/Universal45/YouKnow.u45`, with an identical
+preserved copy at `Release/1.0.0f13/YouKnow-1.0.0f13.u45`.
+Size: 19,829,510 bytes. SHA-256:
+`edf44a7642bda9dda7228ad0c9888ad6078184d782e18e82e210cf97c0adc19e`.
+`archive.json`, `installed.json`, and `compatibility.json` record the payload
+comparisons and retained audio identity.
+
+No fresh compatible SDK 5 host creation test or cloud acceptance was performed
+for this iteration. The results above verify source, artwork, local payload,
+and U45 packaging.
+
+## Retained 1.0.0f12 candidate
 
 Prepared 2026-09-08 for the `main` source update and a distinct U45 build.
 The candidate carries the validated DSP and reference-based plastic artwork

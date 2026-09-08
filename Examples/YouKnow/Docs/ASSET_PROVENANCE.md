@@ -1,6 +1,6 @@
 # YouKnow asset and SDK provenance inventory
 
-Updated 2026-09-08 CEST for the YouKnow `1.0.0f12` production candidate. This
+Updated 2026-09-08 CEST for the YouKnow `1.0.0f13` production candidate. This
 is an engineering traceability record, not a legal conclusion, ownership
 opinion, or grant of rights. Commercial permission and distribution scope stay
 subject to the open owner/legal and Reason Studios release gates.
@@ -160,10 +160,15 @@ recorded licensing and deployment evidence belongs to the support-site history.
   The front uses the original YouKnow ABS material below, with a warm charcoal
   surround, darker textured recesses, and subdued edge highlights, following
   the supplied plastic references. Front sections carry a stage-coloured rule;
-  rear rules share one neutral ink. The rear settings sit above the sockets
-  to keep downward cable runs clear. Control positions are
-  derived from each control's own caption, tick ladder and scale legend, and
-  `Design/sync_panel_lua.py` stamps the resulting coordinates and cap-art paths
+  rear rules share one neutral ink. Decorative screws are omitted on all
+  faces, and the blue maker mark is printed directly on the plastic. Maker and
+  instrument names share a header centerline; a subtle separate readout strip
+  starts at the first control caption. Tiny icons use a blue and yellow two-bar
+  mark. The front controls leave more space below their labels, with tighter
+  group-title insets. Rear settings sit above the sockets to keep downward
+  cable runs clear. Control positions are derived from each control's caption,
+  tick ladder and scale legend. `Design/sync_panel_lua.py` stamps those
+  coordinates and cap-art paths
   into `GUI2D/device_2D.lua` and `GUI/Output/gui.lua`.
 - `Design/Assets/used-charcoal-plastic.png` is copied byte-for-byte from
   `/Users/vojta/Dev/virtual-instrument-youknow/Assets/used-charcoal-plastic.png`.
@@ -176,7 +181,7 @@ recorded licensing and deployment evidence belongs to the support-site history.
   is a build asset; only the resulting panel/browser images ship in the U45.
 - The single `Fader` strip that preceded the four stage-coloured strips is no
   longer generated or shipped.
-- The `1.0.0f12` rear CV grid and automation indications are implemented in the
+- The `1.0.0f13` rear CV grid and automation indications are implemented in the
   project renderer and GUI Lua sources. All eight CV sockets reuse the listed
   SDK CV jack input; this change introduces no new external artwork or fonts.
   CV behavior and control metadata are defined in the Rack adapter and
