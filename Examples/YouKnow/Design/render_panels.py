@@ -1327,6 +1327,62 @@ def render_previews(front, back, folded_front, folded_back):
     atlas.save(HD / "DeviceIcon.png", optimize=True)
 
 
+PANEL_SIZES = {
+    "front": (WIDTH, HEIGHT), "back": (WIDTH, HEIGHT),
+    "folded_front": (WIDTH, FOLDED_HEIGHT), "folded_back": (WIDTH, FOLDED_HEIGHT),
+}
+# Frame counts the device_2D helpers bake in, so a widget's drawn height is its
+# strip height divided by its frames.
+HELPER_FRAMES = {"fader": 32, "toggle": 2, "knob": 63, "lamp": 2,
+                 "momentary_overlay": 2, "wheel": 64}
+
+
+def check_panel_bounds(device):
+    """No widget may fall outside the panel that declares it.
+
+    The folded panels are one rack unit tall and declare some of the same node
+    names as the full front. A rewrite that is not panel-aware moves the folded
+    copy to the front's coordinates, which puts it off its own panel -- valid
+    Lua, passes a node-set check, and fails the cloud GUI build with nothing but
+    "an internal error occurred". This is the check that catches it here.
+    """
+    for name, (width, height) in PANEL_SIZES.items():
+        match = re.search(rf"^{name} = \{{", device, re.M)
+        if not match:
+            continue
+        rest = device[match.end():]
+        others = [re.search(rf"^{other} = \{{", rest, re.M)
+                  for other in PANEL_SIZES if other != name]
+        ends = [found.start() for found in others if found]
+        body = rest[:min(ends)] if ends else rest
+
+        for node, helper, args in re.findall(
+                r"(S_[A-Za-z0-9_]+)\s*=\s*(\w+)\(([^)]*)\)", body):
+            fields = [field.strip().strip('"') for field in args.split(",")]
+            try:
+                x, y = float(fields[0]), float(fields[1])
+            except (ValueError, IndexError):
+                continue
+            if helper == "widget":
+                path, frames = fields[2], int(fields[3])
+            else:
+                frames = HELPER_FRAMES.get(helper)
+                path = {"toggle": "Toggle", "knob": "Knob", "lamp": "Lamp",
+                        "momentary_overlay": "MomentaryOverlay"}.get(helper)
+                if path is None and len(fields) > 2:
+                    path = fields[2]
+            if not path or frames is None:
+                continue
+            image = Image.open(OUT / f"{path}.png")
+            assert image.height % frames == 0, (
+                f"{name}/{node}: {path} height {image.height} is not {frames} frames")
+            frame_w = image.width / Q
+            frame_h = image.height / frames / Q
+            assert 0 <= x and 0 <= y and x + frame_w <= width and y + frame_h <= height, (
+                f"{name}/{node}: {path} at ({x}, {y}) sized {frame_w}x{frame_h} "
+                f"falls outside the {width}x{height} {name} panel")
+
+
 def check_layout():
     """The silkscreen and both panel definitions must agree on every node.
 
@@ -1363,7 +1419,13 @@ def check_layout():
     # through one of the helper calls, so it needs its own pattern -- and it
     # must be read from the front panel alone, because folded_front declares
     # the very same node names at its own coordinates.
+    check_panel_bounds(device)
     front_only = device[device.index("front = "):device.index("folded_front")]
+    # Nodes the folded panels re-declare must be read from the front, or the
+    # folded copy wins by appearing later and the front goes unchecked. Both
+    # declaration forms need this, not just the offset one.
+    placed.update({node: (float(x), float(y)) for node, x, y in re.findall(
+        r"(S_[A-Za-z0-9_]+)\s*=\s*\w+\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)", front_only)})
     placed.update({node: (float(x), float(y)) for node, x, y in re.findall(
         r"(S_[A-Za-z0-9_]+)\s*=\s*\{\s*\n\s*offset\s*=\s*"
         r"\{\s*(-?[\d.]+)\s*\*\s*Q\s*,\s*(-?[\d.]+)\s*\*\s*Q\s*\}", front_only)})

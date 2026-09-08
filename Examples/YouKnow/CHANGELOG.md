@@ -2,7 +2,18 @@
 
 Notable customer-facing changes to YouKnow are recorded here.
 
-## 1.0.0f10 - Unreleased
+## 1.0.0f11 - Unreleased
+
+Fixes the cloud `render_gui` failure in `1.0.0f10`. The folded front panel's
+Note lamp had been moved to the full front panel's coordinates, `(724, 51)`,
+which is off the bottom of a panel one rack unit tall. `Design/sync_panel_lua.py`
+confined its offset-form rewrites to the front panel but not its helper-call
+rewrites, and `S_note_on` is declared by both panels. `check_layout()` could not
+see it: it read positions from the whole file, so the folded copy overwrote the
+front one and the two identical wrong values matched.
+
+`check_panel_bounds()` now asserts every widget in every panel fits the panel
+that declares it, which fails this exact case locally instead of in the cloud.
 
 Version bumped from `1.0.0f9`: that build exists as an installed Rack
 Extension, and a product id may carry a given version only once, so the

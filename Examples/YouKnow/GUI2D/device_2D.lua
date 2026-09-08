@@ -123,7 +123,7 @@ folded_front = {
 			offset = { 600 * Q, 8 * Q },
 			{ path = "TapeHorz" },
 		},
-		S_note_on = lamp(724, 51),
+		S_note_on = lamp(690, 10),
 	},
 }
 

@@ -48,6 +48,14 @@ def in_front_only(text, rewrite):
     return text[:start] + rewrite(text[start:end]) + text[end:]
 
 
+# Declared in more than one panel at different coordinates. Every rewrite keyed
+# on these names must be confined to the front panel; a whole-file substitution
+# silently drags the folded copy to the front's position, which puts the folded
+# Note lamp outside its own 30-unit-tall panel and fails the cloud GUI build.
+SHARED_HEADER_NODES = {
+    "S_patch_name", "S_patch_browse_group", "S_device_name", "S_note_on",
+}
+
 PROPERTY_NODES = {
     "pitchBend": "S_pitch_wheel",
     "modWheel": "S_mod_wheel",
@@ -80,15 +88,20 @@ def sync_device_2d(placed):
     text = DEVICE_2D.read_text()
     seen = set()
 
-    def call(match):
+    def call(match, front=False):
         node, helper, x, y = match.groups()
         if node not in placed:
+            return match.group(0)
+        # Outside the front panel, leave the shared header nodes alone.
+        if node in SHARED_HEADER_NODES and not front:
             return match.group(0)
         seen.add(node)
         return f"{node} = {helper}({placed[node][0]}, {placed[node][1]}"
 
-    text = re.sub(r"(S_[A-Za-z0-9_]+) = (\w+)\((-?[\d.]+), (-?[\d.]+)",
-                  call, text)
+    pattern = r"(S_[A-Za-z0-9_]+) = (\w+)\((-?[\d.]+), (-?[\d.]+)"
+    text = re.sub(pattern, call, text)
+    text = in_front_only(text, lambda chunk: re.sub(
+        pattern, lambda m: call(m, front=True), chunk))
 
     def offset(match):
         node, x, y = match.groups()
