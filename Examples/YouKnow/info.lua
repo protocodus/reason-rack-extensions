@@ -6,7 +6,7 @@ short_name = "YouKnow"
 
 product_id = "cz.protocodus.YouKnow"
 manufacturer = "Protocodus"
-version_number = "1.0.0f9"
+version_number = "1.0.0f10"
 device_type = "instrument"
 device_categories = { "Synth" }
 supports_patches = true

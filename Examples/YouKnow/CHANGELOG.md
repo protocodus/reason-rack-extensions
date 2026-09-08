@@ -2,7 +2,13 @@
 
 Notable customer-facing changes to YouKnow are recorded here.
 
-## 1.0.0f9 - Unreleased
+## 1.0.0f10 - Unreleased
+
+Version bumped from `1.0.0f9`: that build exists as an installed Rack
+Extension, and a product id may carry a given version only once, so the
+panel, bank and automation work below could not keep sharing its number.
+An installed `1.0.0f9` also shadows a development build declaring the same
+version, which is why the reworked panel did not appear in Reason.
 
 - Added rear Cutoff, Resonance, Volume, Amp, Sub, and Noise CV inputs beside
   Note and Gate, arranged in a labelled two-row grid. Cutoff and Resonance add
