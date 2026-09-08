@@ -2,7 +2,14 @@
 
 Notable customer-facing changes to YouKnow are recorded here.
 
-## 1.0.0f14 - Unreleased
+## 1.0.0f15 - Unreleased
+
+- Balance the stacked PROTOCODUS/YOUKNOW logo with equal visible padding
+  above and below the nameplate on both full panels.
+- Extend the quality-strip separator to both panel edges, preserving the
+  control-aligned readout inset.
+
+## 1.0.0f14 - Earlier candidate
 
 - Start simultaneous Note/Gate CV updates at the new pitch regardless of
   same-frame socket notification order, while preserving gate retriggers.

@@ -7,12 +7,13 @@
 - Device name: YouKnow
 - Manufacturer: Protocodus
 - Product ID: `cz.protocodus.YouKnow`
-- Candidate: `1.0.0f14`
+- Candidate: `1.0.0f15`
+  Local visual/package checks pass; upload and acceptance are pending.
 - Requirement: Reason 14 or later
 - Category: Instrument / Synth
 - Support URL: <https://protocodus.cz/product/youknow/>
 - Support email: [protocodus+support@proton.me](mailto:protocodus+support@proton.me)
-- Article: `PENDING` - select `1.0.0f14` after Reason Studios acceptance
+- Article: `PENDING` - select `1.0.0f15` after Reason Studios acceptance
 - Price category: `PENDING`
 - Upgrade price category: `0` - free updates, no special upgrade price
 - Tags: Type `Synth`; Character `Analog / Vintage` and `Hardware emulation`.
@@ -76,14 +77,20 @@ The 16-voice/4x combination has the highest CPU cost. Choose processing quality
 and polyphony to suit the rest of your rack. YouKnow requires Reason 14 or
 later and Rack Extension SDK 5 support.
 
-## Saved Shop draft
+## Saved Shop draft (historical copy)
 
 The unpublished [Shop text draft](https://www.reasonstudios.com/shop/my_page/page/33752/)
-was saved and reopened on 2026-09-08. It contains the tagline, three features,
-product/support URLs, description, and the tags above. Product association is
-still empty because the selector offered no accepted product. The draft has
-no images/PDF uploaded and no publication or price selection. The portal
-currently lists f11 as testing; f14 still needs an authorized cloud upload.
+was saved and reopened on 2026-09-08. It retains the version-neutral tagline,
+three features, product/support URLs, description, and the tags above. At that
+review, product association was empty because the selector offered no accepted
+product; no images/PDF, publication, or price selection had been submitted.
+The portal listed f11 as testing. This saved text is historical draft evidence,
+not an uploaded or accepted f15 listing.
+
+The requested panel refinement supersedes the reviewed f14 artifact. The
+unanswered f14 upload request does not authorize the new f15 package: f15 upload is
+pending approval. Retain the existing draft text,
+then attach the matching f15 images/PDF and accepted Article when ready.
 
 ## Portal assets and submission
 

@@ -1,4 +1,44 @@
-# YouKnow 1.0.0f14 candidate
+# YouKnow 1.0.0f15 candidate
+
+Validated on 2026-09-08 for the requested header refinement. Actual
+PROTOCODUS/YOUKNOW glyph ink spans y6–38 in the 44-pixel nameplate, giving
+six pixels of visible plastic above and below on both full panels. The quality
+background and its separator reach both panel edges, while the readouts keep
+their established alignment with the first control caption.
+
+Independent code and visual reviews found no defects. The full-panel bodies
+below y70, both folded panels, and the tiny blue/yellow icons remain unchanged.
+Larger browser previews reflect the new nameplate. The current-version validator
+now checks each document's current declaration while allowing dated historical
+evidence; 16 focused fixtures verify stale and missing declarations are rejected.
+
+| Check | Result |
+| --- | --- |
+| GUI and patch validation | PASS: 74 widgets, 78 nodes, 18 image paths, 14 GUI asset twins, 184 text keys, and 93 patches with deterministic trims |
+| Visual review | PASS: both full panels, folded panels, header geometry, and edge-to-edge quality strip; records under `Release/ui-review/1.0.0f15` |
+| Local45 Deployment | PASS: 118 source-backed byte matches, 93 patches, and both native libraries match the completed build |
+| Universal45 | PASS: ZIP integrity, 143 members, 138 source-backed byte matches, 93 patches, and four valid LLVM chip binaries |
+| Audio compatibility | PASS: all 28 audio/property inputs, both native libraries, and all four universal chips are byte-identical to f14; all 93 patches differ only in their version attribute |
+
+The verified package is `Release/1.0.0f15/YouKnow-1.0.0f15.u45`,
+19,851,411 bytes. SHA-256:
+`5668207cdea7adbed1a047a98004c2b53eedf1cf035342fce9a9dfe0733936f3`.
+Detailed build, source, binary, and payload records are under
+`Release/validation/1.0.0f15`.
+
+The matching six-page manual, three Shop PNGs, and support-site WebPs pass
+fresh visual review. The candidate folder contains these files, a verified
+recursive `SHA256SUMS`, the build manifest, and a host acceptance worksheet.
+Its seven-file support-site patch applies cleanly to the retained deployed
+source `d36663e4311427a5914fd9d3efb932d32b4d7610`; the website checkout and
+live site remain unchanged. Historical f14 evidence is labelled separately.
+
+The retained f14 engine, wrapper, and sanitizer results apply to the identical
+audio binaries. Its wall-clock timing qualification remains open. No fresh host
+creation test, cloud upload, or publication was performed for f15; the earlier
+unanswered f14 upload request does not authorize this revised artifact.
+
+## Retained 1.0.0f14 candidate
 
 Final code review on 2026-09-08 corrected four reproduced playback/reset bugs:
 

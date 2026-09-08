@@ -135,9 +135,11 @@ HEADER_LEFT_INSET = 40
 WORDMARK_X = HEADER_LEFT_INSET
 FOLDED_WORDMARK_X = HEADER_LEFT_INSET
 FOLDED_MAKER_X = FOLDED_WORDMARK_X + 81
-MAKER_Y = 13
+# Actual glyph ink spans y=6..38 in the 44px nameplate: six pixels of
+# plastic above and below the two-line logo, with the same spacing on both faces.
+MAKER_Y = 10.2
 MAKER_SIZE = 11.5
-WORDMARK_Y = 32
+WORDMARK_Y = 29.2
 WORDMARK_SIZE = 24.0
 VERSION_Y = 51          # rear only: the build the panel was made for
 VERSION_SIZE = 9.5
@@ -938,8 +940,7 @@ def status_plate(image, draw):
     bounds = px((0, STATUS_STRIP_TOP, WIDTH, FRONT_HEADER_BOTTOM))
     strip = image.crop(bounds).point(lambda channel: round(channel * 0.84))
     image.paste(strip, (bounds[0], bounds[1]))
-    draw.line(px((STATUS_LEFT_MARGIN, STATUS_STRIP_TOP,
-                  WIDTH - STATUS_RIGHT_MARGIN, STATUS_STRIP_TOP)),
+    draw.line(px((0, STATUS_STRIP_TOP, WIDTH, STATUS_STRIP_TOP)),
               fill=(95, 96, 92), width=px(0.4))
 
 

@@ -1,7 +1,8 @@
 # YouKnow asset and SDK provenance inventory
 
-Updated 2026-09-08 CEST for the YouKnow `1.0.0f14` production candidate. This
-is an engineering traceability record, not a legal conclusion, ownership
+Current candidate: YouKnow `1.0.0f15`, with local artifact validation complete.
+The dated `1.0.0f14` audits and hashes below retain their historical scope.
+This is an engineering traceability record, not a legal conclusion, ownership
 opinion, or grant of rights. Commercial permission and distribution scope stay
 subject to the open owner/legal and Reason Studios release gates.
 

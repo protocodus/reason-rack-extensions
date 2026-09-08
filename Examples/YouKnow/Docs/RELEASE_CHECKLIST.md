@@ -1,8 +1,14 @@
-# YouKnow 1.0.0f14 release checklist
+# YouKnow 1.0.0f15 release checklist
 
 Current results and retained failures are recorded in
 [RELEASE_EVIDENCE.md](RELEASE_EVIDENCE.md).
 Product support: https://protocodus.cz/product/youknow/
+
+The requested panel refinement creates a new f15 candidate. Completed DSP and
+patch-state checks below retain the f14 evidence for byte-identical audio
+binaries. The f15 panels and both local packages pass validation. The unanswered
+f14 upload request is stale for the revised artifact; f15 upload remains pending
+approval.
 
 ## Engineering
 
@@ -11,19 +17,20 @@ Product support: https://protocodus.cz/product/youknow/
 - [x] Add six modulation CV sockets and seven previously missing automation mappings.
 - [x] Keep Aging 50%, all 93 patch states, and calibrated patch gains.
 - [x] Remove unused design inputs and document current behavior and test commands.
-- [x] Pass final localization/patch metadata and both GUI layout/asset checks.
+- [x] Pass final f15 localization/patch metadata and both GUI layout/asset checks.
 - [x] Pass timed automation/CV, reset, disconnection, sample-rate, and sanitizer contracts.
 - [x] Render all 93 patches at the shipped Aging 50% default.
 - [ ] Qualify current wall-clock timing without background contention; paired
   native CPU results and deadline failures are recorded in the release evidence.
-- [x] Build local45 Deployment and inspect installed source-backed payload bytes.
-- [x] Build universal45 and verify ZIP, four chips, source bytes, and SHA-256.
+- [x] Build f15 local45 Deployment and inspect installed source-backed payload bytes.
+- [x] Build f15 universal45 and verify ZIP, four chips, source bytes, and SHA-256.
 - [ ] Create this candidate in a fresh SDK 5-compatible host and record its identity.
-- [x] Generate and visually inspect matching PDF and Shop materials; panel previews are current.
-- [x] Assemble the candidate handoff with a verified SHA256SUMS manifest.
+- [x] Generate and visually inspect matching f15 PDF and Shop materials.
+- [x] Assemble the f15 handoff with a verified SHA256SUMS manifest.
 - [x] Recheck all 93 shipped patch states and pin the material/source provenance.
-- [x] Prepare the f14 support-site patch against the deployed website source.
-- [x] Save reviewed Shop text and verified tags in an unpublished draft.
+- [x] Retain the prepared f14 support-site patch as historical handoff evidence.
+- [x] Update the support-site handoff for the final f15 materials.
+- [x] Retain reviewed, version-neutral Shop text and tags in the saved unpublished draft.
 
 ## Host and publication acceptance
 
@@ -37,7 +44,7 @@ Product support: https://protocodus.cz/product/youknow/
 - [x] Confirm the existing developer product identity and current submission requirements.
 - [ ] Confirm owner-controlled distribution agreement, business/tax and payment details.
 - [ ] Complete shipped-content, branding, and customer-terms review.
-- [ ] Upload the reviewed U45 and archive Reason Studios validation/acceptance.
+- [ ] Review and approve the final f15 U45, then upload and archive Reason Studios acceptance.
 - [ ] Select accepted Article, price and Shop tags; submit matching copy/images/PDF.
 - [ ] Update support materials and publish only after acceptance; tag accepted source.
 

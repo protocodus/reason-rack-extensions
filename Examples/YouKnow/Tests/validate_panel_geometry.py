@@ -155,25 +155,32 @@ def check_gui_twins(failures):
 
 
 def check_version_consistency(failures):
-    """Prose that names a version must name the one info.lua declares."""
+    """Current declarations match info.lua; dated historical evidence may differ."""
     info = (PROJECT / "info.lua").read_text(encoding="utf-8")
     match = re.search(r'^version_number\s*=\s*"([^"]+)"', info, re.M)
     if not match:
         failures.append("info.lua has no version_number")
         return None
     version = match.group(1)
-    documents = ["README.md", "Docs/SHOP_COPY.md", "Docs/USER_GUIDE.md",
-                 "Docs/RELEASE_CHECKLIST.md", "Docs/ASSET_PROVENANCE.md"]
-    for relative in documents:
+    version_pattern = r"(\d+\.\d+\.\d+[bdf]\d+)"
+    documents = {
+        "README.md": rf"^Production candidate `{version_pattern}`",
+        "Docs/SHOP_COPY.md": rf"^- Candidate: `{version_pattern}`",
+        "Docs/USER_GUIDE.md": rf"^Version {version_pattern}\s*$",
+        "Docs/RELEASE_CHECKLIST.md": rf"^# YouKnow {version_pattern} release checklist$",
+        "Docs/ASSET_PROVENANCE.md": rf"^Current candidate: YouKnow `{version_pattern}`",
+    }
+    for relative, pattern in documents.items():
         path = PROJECT / relative
         if not path.is_file():
+            failures.append(f"{relative}: missing current-version document")
             continue
-        stale = {found for found in re.findall(r"1\.0\.0[bdf]\d+",
-                                               path.read_text(encoding="utf-8"))
-                 if found != version}
-        if stale:
+        declared = re.search(pattern, path.read_text(encoding="utf-8"), re.M)
+        if not declared:
+            failures.append(f"{relative}: missing current-version declaration")
+        elif declared.group(1) != version:
             failures.append(
-                f"{relative}: names {', '.join(sorted(stale))} but info.lua "
+                f"{relative}: declares {declared.group(1)} but info.lua "
                 f"declares {version}")
     return version
 

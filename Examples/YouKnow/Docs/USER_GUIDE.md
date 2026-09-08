@@ -1,6 +1,6 @@
 # YouKnow user guide
 
-Version 1.0.0f14
+Version 1.0.0f15
 
 YouKnow is a circuit-modelled analogue polysynth from Protocodus for Reason 14
 and later. It combines subtractive synthesis, stereo chorus, up to 16 voices,
