@@ -220,28 +220,26 @@ cat validatere-re.log                          # per-RE results; one line only =
 grep -iE "error|fail|exception|not a rack" validatere-test.log | head -30
 ```
 
-> **Do not run the RESDK4 Recon against this SDK. It deletes installed Rack Extensions.**
-> The only Recon on this machine is `Reason Recon 14 RESDK4 Logging` (14.0.2d7 build 20275),
-> an RE **SDK 4** host; this SDK is 5.0 and devices declare `format_version = "2.0"`. It cannot
-> parse an SDK 5 device: it throws `Dir is not a rack-extension`
-> (`JukeboxDeviceFileSystem.cpp:3674`) within a millisecond of "Start scanning rack extension
-> folders", before reaching the device under test, then stops the NSApplication. It fails the
-> same way against a directory containing only the device, so the message says nothing about
-> your build.
+> **Do not run the installed Recon in this shared user profile.**
+> On 2026-09-08 a Recon run after moving the installed-RE index aside was
+> associated with deletion of `RackExtensions/cz.protocodus.YouKnow.1.0.0f9`.
+> Preserve that observed failure; its cause was not established. Never move
+> or delete the installed-RE index or broad Reason cache folders for validation.
 >
-> On 2026-09-08 a run of it **hard-deleted** `RackExtensions/cz.protocodus.YouKnow.1.0.0f9`
-> (authorizer counted 158 REs at 14:20; the folder was down to 157 dirs by 14:25). The trigger
-> was moving `RackExtensions/<hash>.cache` — the installed-RE index — aside: absent that index,
-> the SDK4 host rebuilt it and pruned the entry it could not parse. Never move or delete that
-> file, and never point a mismatched host at the real folder; copy it first.
+> The earlier attribution to an SDK 4-only host was incorrect. Read-only
+> inspection of `Reason Recon 14 RESDK4 Logging` (14.0.2d7 build 20275) found
+> SDK 5 native drawing APIs and an explicit `kJukeboxTargetVersion50` assertion.
+> It is signed by Reason Studios AB. The official SDK 5 readme still uses
+> RESDK4-labelled example paths, so the filename does not establish capability.
+> `Examples/YouKnow/Release/validation/production-audit/host-inventory.json`
+> records binary hashes, versions, signature identity, and the observed signals.
 >
-> Two separate startup blockers were also found and fixed, worth checking if Recon dies before
-> device registration: `~/Library/Caches/Reason Recon/GraphicsCache` had been replaced with a
-> symlink to an unmounted volume, so `mkdir` returned `error 17 (File exists)` and startup
-> aborted. Clearing `~/Library/Caches/Reason Recon/` resolves that class of failure.
->
-> Automated validation therefore needs a Recon build matching **RE SDK 5**, from the developer
-> site. Until then, work the manual checklist against a cloud-built upload.
+> SDK 5 hosting code is present, but exact-candidate creation and runtime
+> acceptance remain unverified. Use an authorized cloud-built candidate in
+> retail Reason, or establish a separate test profile/VM before local Recon
+> validation. Do not treat copying the app or changing its name as isolation.
+> A previous broken GraphicsCache symlink also interrupted startup; inspect
+> exact failures without clearing the user's caches as a shortcut.
 
 Manual acceptance: **[`Documentation/acceptance_testing_checklist.txt`](../../../Documentation/acceptance_testing_checklist.txt)**.
 Read it and walk the boxes — don't paraphrase it from memory. Two checklists in that file:

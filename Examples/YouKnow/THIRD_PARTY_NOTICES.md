@@ -15,6 +15,14 @@ Font files are not shipped. Reason supplies the native patch/status text.
 Exact inputs, hashes, mappings, and adapted sample scaffolding are recorded in
 `Docs/ASSET_PROVENANCE.md`.
 
+## Generated faceplate material
+
+Front-panel artwork incorporates a charcoal-plastic texture generated for
+YouKnow with OpenAI built-in image generation in new-image mode. The Rack
+renderer filters and composites it into panel and browser images; the loose
+texture is not shipped in the U45. `Docs/ASSET_PROVENANCE.md` records the pinned
+source image, SHA-256, upstream notice, and generation prompt.
+
 ## Modelling references
 
 YouKnow is an independent implementation informed by published virtual-analog

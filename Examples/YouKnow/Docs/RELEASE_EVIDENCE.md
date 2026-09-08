@@ -61,6 +61,50 @@ and a verified `SHA256SUMS`. `archive.json`, `installed.json`, and
 `compatibility.json` record the detailed source and payload comparisons.
 No fresh compatible SDK 5 host creation test or cloud acceptance was performed.
 
+## Production host and portal audit
+
+Read-only inspection on 2026-09-08 found SDK 5 hosting code in the installed
+Recon 14.0.2d7, build 20275, despite its legacy RESDK4 filename. Its binary
+contains the SDK 5 native drawing APIs and an explicit target-version-5.0
+assertion. Retail Reason 14.1d100, build 20457, also contains those APIs;
+both are signed by Reason Studios AB. Binary hashes and identity evidence
+are in `Release/validation/production-audit/host-inventory.json`.
+The [official SDK 5 readme](https://developer.reasonstudios.com/documentation/rack-extension-sdk/5.0.0/jukebox-readme)
+still uses RESDK4-labelled Recon paths. Earlier claims that the filename
+proved SDK 4-only support were incorrect.
+
+This establishes available SDK 5 code, not f14 runtime acceptance. The prior
+shared-profile pruning incident remains a separate reason not to launch
+Recon in the current user profile. No host was launched for this audit.
+
+The authenticated Developer Portal confirms the existing
+`cz.protocodus.YouKnow` product. Its latest listed build is f11 Deployment,
+with a successful cloud build and product status `testing`; f14 is not yet
+uploaded or accepted. The reviewed f14 archive is ready for an authorized
+cloud build. Acceptance, representative-song timing, and publication remain
+open for this exact candidate.
+
+An unpublished Shop text draft was saved and reopened at page `33752`, with
+reviewed copy, support links, and the available Synth / Analog / Vintage /
+Hardware emulation tags. The Product selector offered no accepted product;
+association, images/PDF, price, acceptance, and publication remain incomplete.
+The public support URL loads successfully, but its downloadable manual is
+f3 with 77 patches. A separate website update is prepared against deployed commit
+`d36663e4311427a5914fd9d3efb932d32b4d7610`; neither website checkout nor the
+live page has been changed. The candidate folder includes the seven-file
+support-site patch and an exact-candidate host acceptance worksheet.
+
+The fresh provenance audit covers all 93 source/U45 patch states against the
+hash-pinned 128-state reference corpus. It finds zero exact or quantized
+matches across 24 tone fields, with at least 10 fields differing in every
+quantized comparison. This is an exact-state comparison, not an ownership
+or perceptual-similarity conclusion. The material's source, generation mode,
+and prompt are pinned to resolvable upstream history. The manual includes
+the generated-material notice and remains six pages; pages 1-5 are pixel-
+identical to the earlier reviewed f14 manual, and revised page 6 passes visual
+review. These documentation changes leave the U45 and all runtime assets
+unchanged.
+
 ## Retained 1.0.0f13 candidate
 
 Validated 2026-09-08 with `JukeboxSDK_500_028`, target 5.0, for the refined

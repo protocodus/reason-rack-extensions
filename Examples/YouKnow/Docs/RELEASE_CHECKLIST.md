@@ -21,6 +21,9 @@ Product support: https://protocodus.cz/product/youknow/
 - [ ] Create this candidate in a fresh SDK 5-compatible host and record its identity.
 - [x] Generate and visually inspect matching PDF and Shop materials; panel previews are current.
 - [x] Assemble the candidate handoff with a verified SHA256SUMS manifest.
+- [x] Recheck all 93 shipped patch states and pin the material/source provenance.
+- [x] Prepare the f14 support-site patch against the deployed website source.
+- [x] Save reviewed Shop text and verified tags in an unpublished draft.
 
 ## Host and publication acceptance
 
@@ -31,7 +34,8 @@ Product support: https://protocodus.cz/product/youknow/
   routing, full/folded UI, and multiple instances.
 - [ ] Measure the authorized Deployment candidate in representative songs,
   including default and maximum-voice/quality workloads.
-- [ ] Confirm the existing developer product/account and distribution requirements.
+- [x] Confirm the existing developer product identity and current submission requirements.
+- [ ] Confirm owner-controlled distribution agreement, business/tax and payment details.
 - [ ] Complete shipped-content, branding, and customer-terms review.
 - [ ] Upload the reviewed U45 and archive Reason Studios validation/acceptance.
 - [ ] Select accepted Article, price and Shop tags; submit matching copy/images/PDF.

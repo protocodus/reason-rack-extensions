@@ -15,8 +15,8 @@
 - Article: `PENDING` - select `1.0.0f14` after Reason Studios acceptance
 - Price category: `PENDING`
 - Upgrade price category: `0` - free updates, no special upgrade price
-- Tags: `PENDING` exact portal choices; target Synthesizer, Analog, Polyphonic,
-  Vintage, and Chorus where available
+- Tags: Type `Synth`; Character `Analog / Vintage` and `Hardware emulation`.
+  These exact choices were verified in the Shop editor on 2026-09-08.
 - Publish on approval: No - review the approved page before publishing
 
 Use the existing `cz.protocodus.YouKnow` product association in the Developer
@@ -75,6 +75,15 @@ Highlights:
 The 16-voice/4x combination has the highest CPU cost. Choose processing quality
 and polyphony to suit the rest of your rack. YouKnow requires Reason 14 or
 later and Rack Extension SDK 5 support.
+
+## Saved Shop draft
+
+The unpublished [Shop text draft](https://www.reasonstudios.com/shop/my_page/page/33752/)
+was saved and reopened on 2026-09-08. It contains the tagline, three features,
+product/support URLs, description, and the tags above. Product association is
+still empty because the selector offered no accepted product. The draft has
+no images/PDF uploaded and no publication or price selection. The portal
+currently lists f11 as testing; f14 still needs an authorized cloud upload.
 
 ## Portal assets and submission
 

@@ -73,13 +73,17 @@ and are not copied into the clean release source.
 
 ## Historical visual-reference lineage
 
-The prior SDK-tree engineering history at commit `5782a5a` records a generated
-visual-direction reference in the device's former Design/References directory,
-identified by SHA-256
+The provenance record imported into `protocodus/reason-rack-extensions` at
+`7995caaed859d8f8260e0f47e775331078e07b9d`, in
+`Examples/YouKnow/Docs/ASSET_PROVENANCE.md`, reports a former SDK-tree commit
+`5782a5a` containing a generated visual-direction reference in the device's
+former Design/References directory, identified by SHA-256
 `c28fc9315c2f735a04e05abcb2692a4f67efa974214bedfac50dd91195c94512`.
-Its adjacent prompt calls an unnamed “current panel” Image 1 the layout input
-and asks to retain the same sections and approximate geometry while avoiding
-exact Roland/Juno trade dress.
+That imported record describes an adjacent prompt using an unnamed “current
+panel” Image 1 as the layout input while avoiding exact Roland/Juno trade dress.
+The earlier SDK-tree commit does not resolve in the current Rack repository;
+the imported description is the available historical record, not a fresh
+verification of the former image or prompt.
 
 Neither file is shipped in the clean source or U45. The provider/model/date,
 applicable generation terms, and the exact origin and permission record for
@@ -89,37 +93,70 @@ trade-dress and shipped-content review; this history is not treated as approval.
 
 ## Patch bank provenance
 
-The production bank contains 93 Protocodus patches, including Init:
+The production bank contains 93 Protocodus patches, including Init. These
+source records resolve in the identified repositories:
 
-- Init and 18 featured sounds entered the Rack source in commit `5782a5a`,
-  before the historical factory-bank importer was introduced. Their established
-  musical parameters remain unchanged; Init's chorus-noise default and the
-  subsequent panel-less preset level trims are separately maintained. The
-  featured plucked-keys patch later received its current descriptive name.
-  The initial Rack catalog identifies ten featured patches as original Rack
-  designs. The other eight follow the VST's original sound-design recipes:
+- In `protocodus/reason-rack-extensions`, the source import
+  `7995caaed859d8f8260e0f47e775331078e07b9d` contains
+  `Examples/YouKnow/Design/generate_presets.py`: its 19-path featured catalog
+  comprises Init and 18 sounds; its `PRESETS` and `UNIVERSAL_PRESETS` contain
+  28 and 30 explicit parameter recipes. Commit
+  `9068e27c5801e6f4850a06ff4cee240b4d98503c` then tracks the 77 patch files in
+  `Examples/YouKnow/Resources/Public`. The audit report retains their paths,
+  Git blob identifiers, and SHA-256 hashes.
+- The imported provenance record identifies ten featured sounds as original
+  Rack designs and eight as adaptations of original VST sound-design recipes:
   Glass Pad, Bass Short and Hard, Hollow Fifths, Vibrato Lead, Slow Sweep,
-  Organ, Percussive Comb, and Self-Oscillating Sine. Those recipes are recorded
-  in the VST device's `Presets/README.md` at upstream commit
-  `732bbf116145b5497e958e94901f7be6c4d4f840` and explicitly distinguished there
-  from its historical program bank.
-- The 28 categorized patches are explicit parameter overrides authored in
-  `Design/generate_presets.py` at commit `3d9b284`.
-- The 30 universal expansion patches are explicit parameter overrides added
-  in commit `662809a`. That commit also removed all 128 historical A/B factory
-  patches, their source tone corpus, and the importer.
-- Sixteen further numbered patches are explicit parameter overrides in
-  `CLASSIC_PRESETS` and `STRING_PRESETS` in `Design/generate_presets.py`.
+  Organ, Percussive Comb, and Self-Oscillating Sine. The recipe document resolves
+  in **`voho/vst-instruments`**, at commit
+  `732bbf116145b5497e958e94901f7be6c4d4f840`, path
+  `youknow106/Presets/README.md` (SHA-256
+  `42b7d45908a733d5db217da2af00487d01891036a43aefb8b7e39cf369d753e4`).
+  It distinguishes these original recipes from the historical program bank.
+  This commit belongs to the earlier monorepo, not the standalone upstream.
+- The 16 numbered additions resolve in Rack commit
+  `a45fef7e81ae3433205b8de8f8d02e00ed165065`, in `CLASSIC_PRESETS` and
+  `STRING_PRESETS` in `Examples/YouKnow/Design/generate_presets.py`.
 
-The 2026-09-05 audit compared the then-current 77 patch states with the 128 deleted
-factory states from commit `3d9b284`. None matched across the 16 continuous
-tone parameters and eight waveform, range, filter, envelope, VCA, and chorus
-switches. The deleted tone corpus has SHA-256
-`394ae874da33aa63fa4833932fbf415546d2ad66b1b6b9a36315601799eeec21`,
-which also identifies the factory corpus still present in the nominated VST
-checkout. That corpus and its archival labels are excluded from this Rack
-release. The comparison establishes absence of exact tone-state copies;
-source history supplies the separate authorship record.
+The imported record also cites earlier SDK-tree commits `5782a5a`, `3d9b284`,
+and `662809a` for the initial port, categorized expansion, and universal
+expansion/factory-bank removal. These short identifiers do not resolve in the
+current Rack repository. They are retained as reported pre-import history;
+the full commits above identify the source and bank that can be verified now.
+
+The historical **2026-09-05 audit covered 77 patches** and reported no exact
+matches against 128 removed factory states across 16 continuous parameters and
+eight switches. The following fresh audit extends the comparison to all 93
+shipped patches; it does not retroactively change that historical scope.
+
+The **2026-09-08 audit of `1.0.0f14`** reads the 128-state reference corpus from
+`protocodus/virtual-instrument-youknow` commit
+`72e1d4482324465993c8e62609fa345e848d3b70`, path
+`Source/DSP/YouKnowPresets.cpp`, and pins the switch mapping to that commit's
+`Source/DSP/YouKnowSysEx.cpp` and `.h`. The 2,304 decoded bytes have SHA-256
+`394ae874da33aa63fa4833932fbf415546d2ad66b1b6b9a36315601799eeec21`.
+This comparison corpus remains external to the Rack source and U45.
+
+- All 93 source patch files are byte-identical to their `Public/` members in
+  the 143-member U45, SHA-256
+  `e93bb2a07bed3b6571ca9272dbcc3355f86df4ee801550961fc7062bd891676a`.
+- No patch matches any reference state across the 16 continuous tone controls
+  and eight waveform/range/filter/envelope/VCA/chorus switches, either using
+  exact normalized values or rounding continuous values to the nearest 7-bit
+  step. Chorus I+II remains a distinct switch value. Every comparison differs
+  in at least 10 of these 24 fields after quantization.
+- Performance settings, extension controls, and level trims outside those
+  24 tone fields are excluded from the comparison. The result establishes
+  absence of exact tone-state copies under these two representations; it is
+  not a perceptual-similarity or ownership conclusion.
+
+Reproduce from the YouKnow directory with
+`python3 Release/validation/production-audit/audit_provenance.py`. The ignored
+validation directory retains the script, `patch-material-provenance.json`,
+and pinned authored recipe/material-notice extracts. The script accepts local
+clone paths through `--upstream` and `--monorepo`, records immutable source
+identifiers and hashes, checks the U45 against all 93 source files, and does
+not write the factory corpus into the report.
 
 The generator and patch validator require the exact reviewed 93-path catalog,
 rejecting additional or renamed files even if the total patch count stays the
@@ -173,11 +210,21 @@ recorded licensing and deployment evidence belongs to the support-site history.
   coordinates and cap-art paths
   into `GUI2D/device_2D.lua` and `GUI/Output/gui.lua`.
 - `Design/Assets/used-charcoal-plastic.png` is copied byte-for-byte from
-  `/Users/vojta/Dev/virtual-instrument-youknow/Assets/used-charcoal-plastic.png`.
+  `protocodus/virtual-instrument-youknow` commit
+  `72e1d4482324465993c8e62609fa345e848d3b70`, path
+  `Assets/used-charcoal-plastic.png`, also verified against the nominated local
+  checkout at `/Users/vojta/Dev/virtual-instrument-youknow`.
   SHA-256: `cfcdd00f5d885eff061ebee8e3b120dd619a704849e128999bf08ac5feb6b920`.
-  Upstream `THIRD_PARTY_NOTICES.md` records it as an original 1024px material
-  generated with OpenAI image generation for this instrument: fine mould
+  At the same commit, `THIRD_PARTY_NOTICES.md` (SHA-256
+  `17d3aba48f0abbaa53b8f2f2a29e5015dd979b56bf1a92ace30c1959e4246549`),
+  under “Generated UI assets / Faceplate material tile,” records the full
+  prompt and generation mode: OpenAI built-in image generation, new image
+  rather than an edit. It describes a 1024-by-1024 material with fine mould
   pores, soft satin wear, and sparse hairline scuffs on maintained charcoal ABS.
+  The notice does not give a generation date for this material; repository
+  dates are not substituted for one. The production audit retains the exact
+  notice section as `upstream-faceplate-material-notice.md` and verifies the
+  image dimensions and byte identity.
   The Rack renderer fits one continuous, aspect-preserved piece across the
   front, softly filters it, and composites it at low contrast. The loose input
   is a build asset; only the resulting panel/browser images ship in the U45.
