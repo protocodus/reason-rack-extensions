@@ -1,4 +1,47 @@
-# YouKnow 1.0.0f16 candidate
+# YouKnow 1.0.0f17 candidate
+
+The bank expands from 93 to exactly 100 original presets. Seven new recipes
+explore pulse-width modulation, inverted filter envelopes, noise percussion,
+portamento and the sub oscillator. Existing patch states, level trims, permanent
+properties and DSP remain unchanged from f16. Local validation passes.
+
+The f16 inline header and equal edge margins are retained. The f17 rear version
+label and matching manual identify the expanded candidate. Fresh host qualification
+and cloud acceptance remain open; earlier failures below retain their original scope.
+
+The additions are Reverse Clav, Glass Loom, Resonant Woodblock, Steam Hat,
+Amber Ribbon, Gated Undertow and Afterimage. [PRESETS.md](../PRESETS.md)
+describes their signal paths and playing suggestions. Only these seven patches
+were calibrated; the earlier gain measurements and manual adjustments are intact.
+
+| Check | Result |
+| --- | --- |
+| Bank and metadata | PASS: exactly 100 unique patch states, 100 browser entries and 100 calibrated trims; schema, categories, tags, identity and both GUI formats valid |
+| Default audio render | PASS: 100/100 audible, finite, bounded and deterministic at Aging 50%; reference-chord maximum peak 0.184990 and maximum RMS 0.040939 |
+| Six-note stress | PASS: all 100 at low and high registers; maximum peaks 0.413066 and 0.435990, below full scale |
+| New-patch calibration | PASS: only seven new measurements/trims; the additions pass at Aging 0% and 50% |
+| Musical demos | PASS: seven unnormalized stereo WAVs with articulation, velocity and note-off tails; no clipping, nonfinite samples or lingering voices; maximum peak 0.219133 |
+| Preservation | PASS: all 93 earlier patch files differ only in version; prior gain/measurement/adjustment and metadata entries unchanged; all 28 audio/property files unchanged |
+| Local45 Deployment | PASS: 125 source-backed byte matches, 100 patches and both completed native libraries |
+| Universal45 | PASS: ZIP integrity, 150 members, 145 source-backed byte matches, 100 patches and four LLVM chips |
+| Audio binary identity | PASS: both native libraries and all four universal chips are byte-identical to f16 |
+| Materials | PASS: six-page manual and three Shop PNGs reviewed; front/thumbnail unchanged, rear changes confined to the version glyph |
+
+The verified package is `Release/1.0.0f17/YouKnow-1.0.0f17.u45`,
+19,854,668 bytes. SHA-256:
+`1bddf8240e11d7f9b2685e9bca93e4d7b1bc194e21984aa69844d1d37c447f9f`.
+The manual SHA-256 is
+`38b5e31d1d9c0223e6619feac160b917183dd82777c9ca10825c25ac52ac7861`.
+
+The candidate folder includes the U45, manual, product images, seven WAV demos,
+their playing guide, a build manifest and verified `SHA256SUMS`.
+Detailed records, the seven-only calibration driver and native audition harness
+are in `Release/validation/1.0.0f17`. Demo checks are measured native renders;
+auditory listening and fresh Reason host qualification have not been performed.
+No f17 cloud upload or acceptance is claimed. The prior browser file-selection
+rejection remains recorded under f16 below.
+
+# Retained YouKnow 1.0.0f16 candidate
 
 The full-panel branding now reads YOUKNOW followed by a smaller blue
 “by Protocodus” on one line. The full front balances that signature, the complete

@@ -1,10 +1,10 @@
 # YouKnow user guide
 
-Version 1.0.0f16
+Version 1.0.0f17
 
 YouKnow is a circuit-modelled analogue polysynth from Protocodus for Reason 14
 and later. It combines subtractive synthesis, stereo chorus, up to 16 voices,
-93 original patches, and eight rear CV inputs.
+100 original patches, and eight rear CV inputs.
 
 ## Install and first sound
 
@@ -15,7 +15,7 @@ in the device palette.
 1. Create YouKnow and play MIDI notes. The Init patch loads by default, and
    Reason creates a sequencer track and routes stereo audio when a suitable
    destination is available.
-2. Use the patch display and browse controls to explore the 93 original
+2. Use the patch display and browse controls to explore the 100 original
    patches. Categories include Bass, Leads, Keys, Brass, Pads, Strings, and
    Effects.
 3. Shape the sound on the front. Flip the rack to adjust processing quality,
@@ -117,7 +117,7 @@ setting. It reports a fixed 41-sample latency at every Quality setting.
 
 ## Patches
 
-The supplied bank contains 93 original Protocodus patches, including Init.
+The supplied bank contains 100 original Protocodus patches, including Init.
 Internal level trims keep browsing levels balanced without moving the visible
 Volume control. Reason's categories and tags help find sounds by type and
 character.

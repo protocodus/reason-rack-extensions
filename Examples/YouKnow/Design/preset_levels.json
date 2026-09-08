@@ -164,6 +164,11 @@
       "raw_peak": 0.138628,
       "raw_rms": 0.017699
     },
+    "Bass/Gated Undertow.repatch": {
+      "gain_db": 1.1777,
+      "raw_peak": 0.083574,
+      "raw_rms": 0.034928
+    },
     "Bass/Octave Floor Bass.repatch": {
       "gain_db": -0.3024,
       "raw_peak": 0.186378,
@@ -324,6 +329,16 @@
       "raw_peak": 0.047448,
       "raw_rms": 0.013934
     },
+    "Effects/Resonant Woodblock.repatch": {
+      "gain_db": 18.0618,
+      "raw_peak": 0.009661,
+      "raw_rms": 0.000746
+    },
+    "Effects/Steam Hat.repatch": {
+      "gain_db": 18.0618,
+      "raw_peak": 0.0126,
+      "raw_rms": 0.000378
+    },
     "Glass Pad.repatch": {
       "gain_db": 0.8486,
       "raw_peak": 0.159374,
@@ -374,6 +389,11 @@
       "raw_peak": 0.08867,
       "raw_rms": 0.002303
     },
+    "Keys/Reverse Clav.repatch": {
+      "gain_db": 9.1623,
+      "raw_peak": 0.062684,
+      "raw_rms": 0.012645
+    },
     "Keys/Warm Poly.repatch": {
       "gain_db": -3.0626,
       "raw_peak": 0.236199,
@@ -383,6 +403,11 @@
       "gain_db": -8.366,
       "raw_peak": 0.422051,
       "raw_rms": 0.1048
+    },
+    "Leads/Amber Ribbon.repatch": {
+      "gain_db": 13.4139,
+      "raw_peak": 0.038422,
+      "raw_rms": 0.008123
     },
     "Leads/Copper Reed.repatch": {
       "gain_db": -3.9266,
@@ -418,6 +443,11 @@
       "gain_db": 0.8971,
       "raw_peak": 0.140516,
       "raw_rms": 0.036075
+    },
+    "Pads/Afterimage.repatch": {
+      "gain_db": 13.535,
+      "raw_peak": 0.03719,
+      "raw_rms": 0.00842
     },
     "Pads/Aurora Veil.repatch": {
       "gain_db": 4.7324,
@@ -554,6 +584,11 @@
       "raw_peak": 0.09609,
       "raw_rms": 0.009441
     },
+    "Strings/Glass Loom.repatch": {
+      "gain_db": 4.6565,
+      "raw_peak": 0.105305,
+      "raw_rms": 0.020728
+    },
     "Strings/Shimmer String Ensemble.repatch": {
       "gain_db": 4.6561,
       "raw_peak": 0.101758,
@@ -608,6 +643,7 @@
     "Bass/8424 Bass Pluck.repatch": 0.777580429,
     "Bass/Acid Lantern.repatch": 0.531432151,
     "Bass/Clean Pulse Bass.repatch": 0.562796371,
+    "Bass/Gated Undertow.repatch": 0.532602661,
     "Bass/Octave Floor Bass.repatch": 0.491627555,
     "Bass/Picked Pulse Bass.repatch": 0.758661389,
     "Bass/Punchy Dual Bass.repatch": 0.439409183,
@@ -640,6 +676,8 @@
     "Effects/Circuit Rain.repatch": 0.95672323,
     "Effects/Falling Star.repatch": 0.660086404,
     "Effects/Gravity Well.repatch": 0.753565089,
+    "Effects/Resonant Woodblock.repatch": 1.0,
+    "Effects/Steam Hat.repatch": 1.0,
     "Glass Pad.repatch": 0.523490808,
     "Hollow Fifths.repatch": 0.728943252,
     "Init.repatch": 0.577042776,
@@ -650,8 +688,10 @@
     "Keys/Bell Current.repatch": 0.82904374,
     "Keys/Midnight Tines.repatch": 0.639693745,
     "Keys/Percussive Mallet.repatch": 0.670246488,
+    "Keys/Reverse Clav.repatch": 0.75363796,
     "Keys/Warm Poly.repatch": 0.415219637,
     "Leads/8432 Lead.repatch": 0.268405531,
+    "Leads/Amber Ribbon.repatch": 0.871332064,
     "Leads/Copper Reed.repatch": 0.391301971,
     "Leads/Laser Thread.repatch": 0.631622639,
     "Leads/Neon Glide.repatch": 0.245947588,
@@ -659,6 +699,7 @@
     "Organ.repatch": 0.289481743,
     "Pads - Lunar Drift.repatch": 0.747979361,
     "Pads/8441 Pad.repatch": 0.524833434,
+    "Pads/Afterimage.repatch": 0.874684644,
     "Pads/Aurora Veil.repatch": 0.631006839,
     "Pads/Bright Air Pad.repatch": 0.654874053,
     "Pads/Dark Motion Pad.repatch": 0.513484928,
@@ -686,6 +727,7 @@
     "Strings/Cello Current.repatch": 0.439563935,
     "Strings/Dark String Ensemble.repatch": 0.460559836,
     "Strings/Frozen Harmonics.repatch": 0.650923117,
+    "Strings/Glass Loom.repatch": 0.628903828,
     "Strings/Shimmer String Ensemble.repatch": 0.628894695,
     "Strings/Short Bow.repatch": 0.466159249,
     "Strings/Short String Section.repatch": 0.457357244,

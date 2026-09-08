@@ -7,14 +7,14 @@
 - Device name: YouKnow
 - Manufacturer: Protocodus
 - Product ID: `cz.protocodus.YouKnow`
-- Candidate: `1.0.0f16`
-  Local visual/package checks pass; the browser rejected file selection for
-  the authorized upload. Host and Reason Studios acceptance remain pending.
+- Candidate: `1.0.0f17`
+  Local audio/package checks for the 100-preset bank pass.
+  Host and Reason Studios acceptance remain pending.
 - Requirement: Reason 14 or later
 - Category: Instrument / Synth
 - Support URL: <https://protocodus.cz/product/youknow/>
 - Support email: [protocodus+support@proton.me](mailto:protocodus+support@proton.me)
-- Article: `PENDING` - select `1.0.0f16` after Reason Studios acceptance
+- Article: `PENDING` - select `1.0.0f17` after Reason Studios acceptance
 - Price category: `PENDING`
 - Upgrade price category: `0` - free updates, no special upgrade price
 - Tags: Type `Synth`; Character `Analog / Vintage` and `Hardware emulation`.
@@ -29,7 +29,7 @@ Portal. Its permanent identity must remain unchanged.
 Each line is within the 50-character Shop limit.
 
 - Circuit-modelled analogue character (35 characters)
-- 93 original level-calibrated patches (36 characters)
+- 100 original level-calibrated patches (37 characters)
 - Eight CV inputs and 41 automated controls (41 characters)
 
 ## Short description
@@ -46,7 +46,7 @@ pulse, sub, and noise, shape them with a resonant filter and shared envelope,
 and add Chorus I, II, or the dedicated narrow I+II combination. Velocity,
 glide, key modes, and up to 16 voices support expressive playing.
 
-Explore 93 original Protocodus patches with balanced browsing levels, then
+Explore 100 original Protocodus patches with balanced browsing levels, then
 make them your own on a readable 8RU panel. The rear Unit Character control
 varies circuit tolerances and saves with your patch. Aging models service
 drift and noise changes, starts at 50%, and saves with the song. Set Aging to
@@ -68,7 +68,7 @@ Highlights:
 
 - Circuit-modelled oscillator, resonant filter, VCA, envelope, and stereo BBD
   chorus behavior
-- 93 original patches with Reason browser categories and tags
+- 100 original patches with Reason browser categories and tags
 - Up to 16-voice MIDI, eight rear CV inputs, and stereo auto-routing
 - 41 automatable custom controls plus standard performance controllers
 - Fixed 41-sample latency across every Quality setting
@@ -92,8 +92,9 @@ The later f15 upload consumed version `1.0.0f15`; cloud build
 `8d852fdd-c51b-419d-882a-e216c23b3228` ended with status `error`. The portal
 reported “Unknown error” without a diagnostic. The f16 header refinement is a
 new candidate, with no demonstrated fix for that cloud failure. Retain the
-existing version-neutral draft text, then attach the matching f16 images/PDF
-and accepted Article when ready.
+version-neutral draft wording, update its bank count to 100, then attach the
+matching f17 images/PDF and accepted Article when ready. The local copy is
+updated; the saved portal draft still reflects the earlier bank.
 
 ## Portal assets and submission
 

@@ -2,7 +2,13 @@
 
 Notable customer-facing changes to YouKnow are recorded here.
 
-## 1.0.0f16 - Unreleased
+## 1.0.0f17 - Unreleased
+
+- Expand the bank to 100 original presets with seven new PWM, inverted-filter,
+  percussion, glide and sub-bass sounds.
+- Retain every existing sound and its level trim; calibrate the new additions.
+
+## 1.0.0f16 - Earlier candidate
 
 - Set YOUKNOW followed by a smaller blue “by Protocodus” on one line, and
   balance the branding, preset selector, and device-name label with equal

@@ -12,6 +12,7 @@ PUBLIC = PROJECT / "Resources" / "Public"
 LEVELS_PATH = PROJECT / "Design" / "preset_levels.json"
 PRODUCT_ID = "cz.protocodus.YouKnow"
 CHORUS_NOISE_DEFAULT = 0.29858038
+EXPECTED_PATCH_COUNT = 100
 STEPPED = {
     "keyMode", "pwmMode", "range", "highPass", "envPolarity", "vcaMode",
     "chorus", "transpose", "polyphony",
@@ -799,11 +800,98 @@ STRING_PRESETS = (
     ),
 )
 
-ALL_PRESETS = PRESETS + UNIVERSAL_PRESETS + CLASSIC_PRESETS + STRING_PRESETS
+# Seven original additions explore separate signal paths rather than variations
+# on the ensemble bank: negative ENV with a gated VCA, brisk raw-LFO PWM,
+# noise-excited resonance, filtered noise alone, one-voice solo assignment,
+# the sub oscillator alone, and a negative-envelope saw swell. All controls are
+# the exposed Rack parameters; no additional oscillator, sync or modulation
+# source is implied. Performance notes live in PRESETS.md.
+EXPLORATION_PRESETS = (
+    (
+        "Keys/Reverse Clav.repatch", ("Keys", "Misc"),
+        ("Analog", "Rhythmic", "Snappy"),
+        dict(volume=.61, benderDco=.17, benderVcf=.30, keyMode=1,
+             pwm=.68, pwmMode=1, range=1, saw=False, pulse=True,
+             sub=.00, noise=.00, highPass=2, cutoff=.67, resonance=.42,
+             envPolarity=1, vcfEnv=.34, keyFollow=.66, vcaMode=1,
+             vcaLevel=.70, attack=.00, decay=.27, sustain=.00,
+             release=.10, chorus=0, velocity=.38, calibration=.44),
+    ),
+    (
+        "Strings/Glass Loom.repatch", ("Strings", "Synth"),
+        ("Bright", "Evolving", "Wide"),
+        dict(volume=.58, benderDco=.18, benderVcf=.10, benderLfo=.22,
+             lfoRate=.40, lfoDelay=.00, dcoLfo=.00, pwm=.86, pwmMode=0,
+             range=1, saw=False, pulse=True, sub=.00, noise=.00,
+             highPass=2, cutoff=.62, resonance=.12, vcfEnv=.12,
+             keyFollow=.58, vcaLevel=.68, attack=.30, decay=.52,
+             sustain=.88, release=.58, chorus=3, velocity=.24,
+             calibration=.56),
+    ),
+    (
+        "Effects/Resonant Woodblock.repatch", ("Percussion", "Electronic"),
+        ("Organic", "Percussive", "Short"),
+        dict(volume=.54, benderDco=.00, benderVcf=.26, keyMode=1,
+             saw=False, pulse=False, sub=.00, noise=.18, highPass=1,
+             cutoff=.38, resonance=.94, vcfEnv=.18, vcfLfo=.00,
+             keyFollow=.78, vcaLevel=.64, attack=.00, decay=.14,
+             sustain=.00, release=.11, chorus=0, velocity=.62,
+             calibration=.38),
+    ),
+    (
+        "Effects/Steam Hat.repatch", ("Percussion", "Electronic"),
+        ("Bright", "Noisy", "Tight"),
+        dict(volume=.50, benderDco=.00, benderVcf=.18, keyMode=1,
+             saw=False, pulse=False, sub=.00, noise=.86, highPass=3,
+             cutoff=.83, resonance=.14, vcfEnv=.12, vcfLfo=.00,
+             keyFollow=.00, vcaLevel=.62, attack=.00, decay=.10,
+             sustain=.00, release=.07, chorus=0, velocity=.70,
+             calibration=.40),
+    ),
+    (
+        "Leads/Amber Ribbon.repatch", ("Synth", "Leads"),
+        ("Glide", "Monophonic", "Warm"),
+        dict(volume=.63, benderDco=.20, benderVcf=.26, benderLfo=.34,
+             portamento=.32, keyMode=2, polyphony=0, lfoRate=.52,
+             lfoDelay=.46, dcoLfo=.08, pwm=.72, pwmMode=1,
+             saw=False, pulse=True, sub=.04, cutoff=.48, resonance=.32,
+             vcfEnv=.28, keyFollow=.72, vcaLevel=.74, attack=.06,
+             decay=.45, sustain=.78, release=.26, chorus=0,
+             velocity=.28, calibration=.42),
+    ),
+    (
+        "Bass/Gated Undertow.repatch", ("Bass", "Synth"),
+        ("Deep", "Rhythmic", "Sub"),
+        dict(volume=.62, benderDco=.24, benderVcf=.22, keyMode=1,
+             lfoRate=.18, range=1, saw=False, pulse=False, sub=.94,
+             noise=.00, highPass=1, cutoff=.24, resonance=.42,
+             vcfEnv=.54, vcfLfo=.08, keyFollow=.38, vcaMode=1,
+             vcaLevel=.72, attack=.00, decay=.29, sustain=.22,
+             release=.12, chorus=0, velocity=.35, calibration=.48),
+    ),
+    (
+        "Pads/Afterimage.repatch", ("Synth", "Pads"),
+        ("Atmospheric", "Evolving", "Long"),
+        dict(volume=.56, benderDco=.18, benderVcf=.28, benderLfo=.18,
+             lfoRate=.06, lfoDelay=.20, dcoLfo=.00, saw=True, pulse=False,
+             sub=.00, noise=.05, highPass=2, cutoff=.75, resonance=.50,
+             envPolarity=1, vcfEnv=.45, vcfLfo=.08, keyFollow=.48,
+             vcaLevel=.66, attack=.52, decay=.66, sustain=.44,
+             release=.78, chorus=2, velocity=.12, calibration=.58),
+    ),
+)
+
+ALL_PRESETS = (PRESETS + UNIVERSAL_PRESETS + CLASSIC_PRESETS + STRING_PRESETS
+               + EXPLORATION_PRESETS)
 
 ORIGINAL_PATCH_PATHS = FEATURED_PATCHES | {
     relative for relative, _, _, _ in ALL_PRESETS
 }
+assert len(EXPLORATION_PRESETS) == 7, "the exploration expansion contains seven sounds"
+assert (len(FEATURED_PATCHES) + len(ALL_PRESETS)
+        == len(ORIGINAL_PATCH_PATHS) == EXPECTED_PATCH_COUNT), (
+    "the original catalog must contain exactly 100 unique patches"
+)
 
 
 def info_value(name):
@@ -883,6 +971,7 @@ def main():
         write_patch(path, ordered, init_types, version)
 
     all_patches = sorted(PUBLIC.rglob("*.repatch"))
+    assert len(all_patches) == EXPECTED_PATCH_COUNT, "public bank must contain 100 patches"
     assert {
         path.relative_to(PUBLIC).as_posix() for path in all_patches
     } == ORIGINAL_PATCH_PATHS, "public bank differs from the original patch catalog"

@@ -1,7 +1,7 @@
 # YouKnow Preset Catalog
 
-`Resources/Public` contains 93 original Protocodus patches: Init, 18 featured
-sounds at the browser root, and 74 more organized into seven category folders.
+`Resources/Public` contains 100 original Protocodus patches: Init, 18 featured
+sounds at the browser root, and 81 more organized into seven category folders.
 The generator and validator require this exact catalog. The provenance audit
 and historical factory-bank removal are recorded in
 [ASSET_PROVENANCE.md](Docs/ASSET_PROVENANCE.md#patch-bank-provenance).
@@ -157,6 +157,33 @@ Sixteen further sounds are stored in the same category folders:
 - **Effects:** 8474 Sweep.
 - **Strings:** 8414 Str Brass, 8415 Str Octave, 8416 Strings, 8417 Str Vibrato,
   8418 Str Marcato, 8425 Str Wash, 8426 Str Tremolo.
+
+## Circuit explorations
+
+Seven further original sounds use the instrument's existing signal paths in
+contrasting ways. The two percussion sounds live in the Effects folder.
+
+- **Reverse Clav** — narrow pulse keys with an inverted filter envelope and
+  Gate VCA. Hold rhythmic chords to hear the dark attack open out; releasing
+  the keys cuts the sound. Harder strikes deepen the initial filter dip.
+- **Glass Loom** — pulse-only strings with brisk PWM and I+II chorus. Sustain
+  open upper-register chords for moving harmonics without automatic pitch
+  vibrato; the mod wheel adds vibrato when wanted.
+- **Resonant Woodblock** — a short, noise-excited resonant filter strike with
+  saw, pulse, and sub switched off. Play single midrange notes at varied
+  velocities; keyboard tracking changes the body pitch.
+- **Steam Hat** — dry, high-pass noise percussion with no pitched oscillator.
+  Short repeated notes and velocity accents make tight hat patterns; longer
+  notes still decay rather than sustaining.
+- **Amber Ribbon** — dry, single-voice pulse lead with glide and delayed
+  vibrato. Play connected melodies, use the mod wheel for extra vibrato, and
+  bend notes to move both pitch and filter brightness.
+- **Gated Undertow** — sub-oscillator-only bass with a percussive filter contour
+  over a held Gate VCA. Alternate clipped low notes and longer holds to expose
+  the quiet filter movement; note length controls the ending.
+- **Afterimage** — saw-and-noise pad whose inverted envelope darkens the swell
+  and opens the fading release. Hold sparse chords, then leave space for the
+  brighter tail and chorus II to spread.
 
 Every shipped patch has a panel-less Preset Level trim calibrated from a
 deterministic three-second reference chord. It is smoothed during patch changes

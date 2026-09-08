@@ -12,7 +12,7 @@ python3 Tests/validate_patches.py
 python3 Design/render_panels.py
 ```
 
-The metadata check covers localization, all 93 authored patches, ranges,
+The metadata check covers localization, all 100 authored patches, ranges,
 versions, identity, level trims, permanent automation IDs, socket order, and CV
 notifications. The renderer checks both GUI formats, property bindings,
 widget geometry, stock sprites, asset inventory, and readable label spacing.

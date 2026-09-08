@@ -1,6 +1,6 @@
 # YouKnow asset and SDK provenance inventory
 
-Current candidate: YouKnow `1.0.0f16`, with local artifact validation passed;
+Current candidate: YouKnow `1.0.0f17`, with local artifact validation passed;
 host and Reason Studios acceptance remain pending.
 The dated `1.0.0f14` audits and hashes below retain their historical scope.
 This is an engineering traceability record, not a legal conclusion, ownership
@@ -95,7 +95,7 @@ trade-dress and shipped-content review; this history is not treated as approval.
 
 ## Patch bank provenance
 
-The production bank contains 93 Protocodus patches, including Init. These
+The production bank contains 100 Protocodus patches, including Init. These
 source records resolve in the identified repositories:
 
 - In `protocodus/reason-rack-extensions`, the source import
@@ -120,6 +120,12 @@ source records resolve in the identified repositories:
   `a45fef7e81ae3433205b8de8f8d02e00ed165065`, in `CLASSIC_PRESETS` and
   `STRING_PRESETS` in `Examples/YouKnow/Design/generate_presets.py`.
 
+Seven new f17 recipes are independently authored in the current generator,
+with no imported patch data. Their descriptions and playing suggestions are
+in [PRESETS.md](../PRESETS.md). The earlier 93 sound states and level trims
+are retained; only the new patches receive new calibration measurements.
+The following historical comparison remains scoped to its recorded 93 patches.
+
 The imported record also cites earlier SDK-tree commits `5782a5a`, `3d9b284`,
 and `662809a` for the initial port, categorized expansion, and universal
 expansion/factory-bank removal. These short identifiers do not resolve in the
@@ -128,7 +134,7 @@ the full commits above identify the source and bank that can be verified now.
 
 The historical **2026-09-05 audit covered 77 patches** and reported no exact
 matches against 128 removed factory states across 16 continuous parameters and
-eight switches. The following fresh audit extends the comparison to all 93
+eight switches. The retained f14 audit below extended the comparison to its 93
 shipped patches; it does not retroactively change that historical scope.
 
 The **2026-09-08 audit of `1.0.0f14`** reads the 128-state reference corpus from
@@ -152,7 +158,8 @@ This comparison corpus remains external to the Rack source and U45.
   absence of exact tone-state copies under these two representations; it is
   not a perceptual-similarity or ownership conclusion.
 
-Reproduce from the YouKnow directory with
+The retained f14 audit can be reproduced against its recorded source and archive
+from the YouKnow directory with
 `python3 Release/validation/production-audit/audit_provenance.py`. The ignored
 validation directory retains the script, `patch-material-provenance.json`,
 and pinned authored recipe/material-notice extracts. The script accepts local
@@ -160,7 +167,7 @@ clone paths through `--upstream` and `--monorepo`, records immutable source
 identifiers and hashes, checks the U45 against all 93 source files, and does
 not write the factory corpus into the report.
 
-The generator and patch validator require the exact reviewed 93-path catalog,
+The generator and patch validator require the exact authored 100-path catalog,
 rejecting additional or renamed files even if the total patch count stays the
 same. Revalidating these source records does not confer rights to unrelated
 third-party banks or replace the remaining release approvals.

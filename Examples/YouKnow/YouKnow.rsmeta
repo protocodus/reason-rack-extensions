@@ -95,6 +95,23 @@
       "Author": "Protocodus"
     },
     {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Bass/Gated Undertow.repatch",
+      "Tags": [
+        "Deep",
+        "Rhythmic",
+        "Sub"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Bass",
+          "Sub": "Synth"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
       "URL": "rackext:/cz.protocodus.YouKnow/Public/Bass/Octave Floor Bass.repatch",
       "Tags": [
         "Deep",
@@ -623,6 +640,40 @@
       "Author": "Protocodus"
     },
     {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Effects/Resonant Woodblock.repatch",
+      "Tags": [
+        "Organic",
+        "Percussive",
+        "Short"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Percussion",
+          "Sub": "Electronic"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Effects/Steam Hat.repatch",
+      "Tags": [
+        "Bright",
+        "Noisy",
+        "Tight"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Percussion",
+          "Sub": "Electronic"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
       "URL": "rackext:/cz.protocodus.YouKnow/Public/Glass Pad.repatch",
       "Tags": [],
       "Categories": [
@@ -773,6 +824,23 @@
       "Author": "Protocodus"
     },
     {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Keys/Reverse Clav.repatch",
+      "Tags": [
+        "Analog",
+        "Rhythmic",
+        "Snappy"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Keys",
+          "Sub": "Misc"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
       "URL": "rackext:/cz.protocodus.YouKnow/Public/Keys/Warm Poly.repatch",
       "Tags": [
         "Analog",
@@ -795,6 +863,23 @@
         "Analog",
         "Bright",
         "Monophonic"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Synth",
+          "Sub": "Leads"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Leads/Amber Ribbon.repatch",
+      "Tags": [
+        "Glide",
+        "Monophonic",
+        "Warm"
       ],
       "Categories": [
         {
@@ -906,6 +991,23 @@
         "Lush",
         "Spacious",
         "Warm"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Synth",
+          "Sub": "Pads"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Pads/Afterimage.repatch",
+      "Tags": [
+        "Atmospheric",
+        "Evolving",
+        "Long"
       ],
       "Categories": [
         {
@@ -1345,6 +1447,23 @@
         "Airy",
         "Glassy",
         "Long"
+      ],
+      "Categories": [
+        {
+          "ContentType": "instrument_patch",
+          "Primary": "Strings",
+          "Sub": "Synth"
+        }
+      ],
+      "Excluded": false,
+      "Author": "Protocodus"
+    },
+    {
+      "URL": "rackext:/cz.protocodus.YouKnow/Public/Strings/Glass Loom.repatch",
+      "Tags": [
+        "Bright",
+        "Evolving",
+        "Wide"
       ],
       "Categories": [
         {
