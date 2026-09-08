@@ -38,26 +38,50 @@ PANEL_FILES = {
 }
 
 FONT_DIR = Path("/System/Library/Fonts/Supplemental")
-# Reserve condensed lettering for the instrument wordmark. Operational text
-# uses regular Arial, with bold Arial for section titles and the maker mark,
-# so the 5x artwork stays readable in Reason's 1x rack view.
+# DIN is the industrial lettering standard actual instrument panels are
+# silkscreened in, so the whole panel speaks one typographic language: the
+# condensed cut carries the wordmark and section titles, the alternate cut
+# carries every operational legend. Both stay legible at Reason's 1x rack view
+# because DIN was drawn for small engraved plate lettering in the first place.
 DISPLAY_FONT = FONT_DIR / "DIN Condensed Bold.ttf"
-LABEL_FONT = FONT_DIR / "Arial.ttf"
-SECTION_FONT = FONT_DIR / "Arial Bold.ttf"
+LABEL_FONT = FONT_DIR / "DIN Alternate Bold.ttf"
+SECTION_FONT = FONT_DIR / "DIN Condensed Bold.ttf"
 
-# Matte blue-grey surfaces with clear white legends and coral/ice accents.
-# Keep decoration quiet so controls remain distinct at actual rack size.
-INK = (238, 241, 241)
-MUTED = (184, 196, 202)
+# A brushed graphite chassis with white silkscreen. The neutral-warm grey reads
+# as painted aluminium rather than a dark user-interface surface, and leaves
+# the accent hues below as the only saturated colour on the panel.
+INK = (240, 242, 240)
+MUTED = (176, 182, 180)
 DIM = (119, 125, 122)
-RED = (225, 119, 92)
-ICE = (110, 193, 212)
-PANEL = (39, 47, 53)
-PANEL_DARK = (21, 28, 33)
-EDGE_HIGHLIGHT = (76, 89, 96)
-CAPTION = (235, 240, 242)
-SCALE_INK = (192, 205, 211)
-TICK_INK = (111, 130, 140)
+RED = (216, 96, 66)
+ICE = (126, 198, 214)
+PANEL = (54, 56, 56)
+PANEL_DARK = (28, 30, 31)
+EDGE_HIGHLIGHT = (94, 97, 96)
+CAPTION = (238, 240, 238)
+SCALE_INK = (198, 202, 200)
+TICK_INK = (139, 144, 142)
+
+# --- Signal-flow accent system ----------------------------------------------
+# Real panels colour-code by function, not by section, so four restrained
+# families carry the whole layout: what makes tone, what shapes it, what
+# sweetens it, and what the player touches. Section rules, fader caps and
+# switch caps all draw from the same family, so a glance at a cap colour says
+# which stage of the instrument a control belongs to.
+FAMILY = {
+    "source":  {"rule": (206, 150, 68),  "cap": (198, 142, 62),  "capTop": (233, 186, 112)},
+    "shape":   {"rule": (86, 143, 190),  "cap": (78, 132, 178),  "capTop": (132, 180, 218)},
+    "effect":  {"rule": (104, 164, 120), "cap": (94, 152, 110),  "capTop": (146, 196, 158)},
+    "play":    {"rule": (168, 172, 172), "cap": (176, 180, 179), "capTop": (222, 226, 224)},
+}
+SECTION_FAMILY = {
+    "LFO": "source", "DCO": "source", "MIXER": "source", "HPF": "source",
+    "VCF": "shape", "VCA": "shape", "ENV": "shape",
+    "CHORUS": "effect",
+    "PERFORMANCE": "play", "KEYBOARD": "play",
+}
+# Which accent a control's cap wears, resolved from the section it sits in.
+CONTROL_FAMILY = {}
 
 
 # --- Control geometry, in logical (1x) units --------------------------------
@@ -86,19 +110,27 @@ TITLE_OPTICAL_OFFSET = 0.5
 HEAD_DY = 34          # caption above the control
 BODY_H = 102
 BOX_GAP = 10
-GROUP_PADDING = 10
-LABEL_GAP = 16
+GROUP_PADDING = 13
+LABEL_GAP = 17
+# Minimum clear space between two neighbouring controls' reserved slots. The
+# auto-layout below never packs tighter than this, so no caption, tick ladder
+# or scale legend can end up shoulder to shoulder with its neighbour.
+CONTROL_GAP = 17
+MAX_CONTROL_EXTRA = 15
+ROUNDING_GUARD = 0.75
 FRONT_HEADER_BOTTOM = 70
+REAR_HEADER_BOTTOM = 66
 
 # Type sizes are logical (1x) pixels. Control captions stay at a uniform size;
 # spacing checks reject crowded text instead of shrinking labels. Section
 # titles and small scale legends retain bounded fitting for their own slots.
-TITLE_SIZE = 12.0     # section title
-CAPTION_SIZE = 10.5   # the word above a control
-SCALE_SIZE = 9.0      # numbers and switch positions beside a fader
-RADIO_SIZE = 9.5      # the word beside a radio button
-CAPTION_FLOOR = 9.5
-SCALE_FLOOR = 8.5
+TITLE_SIZE = 14.0     # section title
+CAPTION_SIZE = 12.5   # the word above a control
+SCALE_SIZE = 10.5     # numbers and switch positions beside a fader
+RADIO_SIZE = 11.5     # the word beside a radio button
+STATUS_SIZE = 10.0    # engine readout captions in the header
+CAPTION_FLOOR = 11.5
+SCALE_FLOOR = 9.5
 
 SIZES = {
     "fader": FADER_SIZE,
@@ -107,6 +139,17 @@ SIZES = {
     "toggle": (TOGGLE_SIZE, TOGGLE_SIZE),
     "wave_stack": (62, 52),
 }
+
+# Offsets the silkscreen prints at, named so the placement engine reserves
+# exactly the room the drawing routines go on to use.
+SCALE_OFFSET = 10.4          # scale legend's right edge, left of a fader centre
+SCALE_TICK_X = 8.7           # tick ladder's left end, left of a fader centre
+RADIO_CAPTION_OFFSET = 32    # Key Mode caption centre, right of the button
+RADIO_LABEL_GAP = 4          # button to its word
+WAVE_LABEL_GAP = 5           # waveform button to its word
+KEY_MODE_LABELS = ("POLY 1", "POLY 2", "UNISON")
+RADIO_PITCH = 31
+RADIO_HIT_MARGIN = 1
 
 
 def px(value):
@@ -120,7 +163,24 @@ def font(size, display=False, strong=False):
                               px(size))
 
 
-def label(draw, xy, value, size, colour=INK, *, display=False, strong=False, anchor="mm"):
+# Silkscreened panel legends are letterspaced; set solid they read as software
+# text. Tracking is in logical units per gap and is included in every width
+# measurement, so the spacing checks below police the real drawn extent.
+TRACK_TITLE = 1.15
+TRACK_CAPTION = 0.55
+TRACK_SCALE = 0.3
+
+
+def tracked_width(value, face, track):
+    """Advance width in device pixels, including inter-letter tracking."""
+    if not value:
+        return 0.0
+    return (sum(face.getlength(char) for char in value)
+            + px(track) * (len(value) - 1))
+
+
+def label(draw, xy, value, size, colour=INK, *, display=False, strong=False,
+          anchor="mm", track=0.0):
     face = font(size, display, strong)
     target_x, target_y = px(xy)
     bounds = draw.textbbox((0, 0), value, font=face, anchor=anchor)
@@ -129,14 +189,28 @@ def label(draw, xy, value, size, colour=INK, *, display=False, strong=False, anc
     # true visual middle inside their headers and control slots.
     ink_x = (bounds[0] + bounds[2]) / 2
     ink_y = (bounds[1] + bounds[3]) / 2
-    draw_x = target_x - ink_x if anchor[0] == "m" else target_x
     draw_y = target_y - ink_y if anchor[1] == "m" else target_y
-    draw.text((draw_x, draw_y), value, fill=colour, font=face, anchor=anchor)
+    if not track:
+        draw_x = target_x - ink_x if anchor[0] == "m" else target_x
+        draw.text((draw_x, draw_y), value, fill=colour, font=face, anchor=anchor)
+        return
+    # Tracked runs are set glyph by glyph, so the left edge has to be resolved
+    # from the tracked width rather than from Pillow's own anchor handling.
+    width = tracked_width(value, face, track)
+    if anchor[0] == "m":
+        pen = target_x - width / 2
+    elif anchor[0] == "r":
+        pen = target_x - width
+    else:
+        pen = target_x
+    for char in value:
+        draw.text((pen, draw_y), char, fill=colour, font=face, anchor="l" + anchor[1])
+        pen += face.getlength(char) + px(track)
 
 
-def text_width(value, size, display=False):
-    """Rendered width in logical units."""
-    return font(size, display).getlength(value) / Q
+def text_width(value, size, display=False, strong=False, track=0.0):
+    """Rendered width in logical units, tracking included."""
+    return tracked_width(value, font(size, display, strong), track) / Q
 
 
 def contrast_ratio(foreground, background):
@@ -169,113 +243,257 @@ def span(low, mid, high):
 TEN = span("0", "5", "10")
 
 
-def control(kind, name, x, caption, scale=None, ticks=5):
-    return {"kind": kind, "name": name, "x": x, "caption": caption,
+def control(kind, name, caption, scale=None, ticks=5):
+    return {"kind": kind, "name": name, "x": None, "caption": caption,
             "scale": scale, "ticks": ticks}
 
 
-def fader(name, x, caption, scale=TEN, ticks=9):
-    return control("fader", name, x, caption, scale, ticks)
+def fader(name, caption, scale=TEN, ticks=9):
+    return control("fader", name, caption, scale, ticks)
 
 
-def selector(name, x, caption, *labels):
-    return control("fader", name, x, caption, detents(*labels), len(labels))
+def selector(name, caption, *labels):
+    return control("fader", name, caption, detents(*labels), len(labels))
 
 
-def wave_stack(x):
+def wave_stack():
     return {
-        "kind": "wave_stack", "name": "waveforms", "x": x,
+        "kind": "wave_stack", "name": "waveforms", "x": None,
         "caption": "", "scale": None, "ticks": 0,
         "properties": ("pulse", "saw"), "labels": ("PULSE", "SAW"),
     }
 
 
-def fitted(text, room, ceiling, floor, display=False):
+def fitted(text, room, ceiling, floor, display=False, strong=False, track=0.0):
     """The largest size at or below `ceiling` that fits `room`."""
     size = ceiling
-    while size > floor and text_width(text, size, display) > room:
+    while size > floor and text_width(text, size, display, strong, track) > room:
         size -= 0.25
     return size
+
+
+# --- Automatic control placement --------------------------------------------
+# Control positions are derived from what each control actually has to print,
+# never hand-tuned. Every control reserves the room its own widest element
+# needs -- body, caption, tick ladder and scale legend -- and the row's spare
+# width is then shared out equally, so density is uniform across the panel
+# instead of cramped in one section and empty in the next. Change a caption or
+# a type size and the layout re-flows to keep the same clearances.
+
+
+def control_width(item):
+    return SIZES["toggle" if item["kind"] == "radio3" else item["kind"]][0]
+
+
+def caption_offset(item):
+    """Distance from a control's origin to the point its caption centres on."""
+    return (RADIO_CAPTION_OFFSET if item["kind"] == "radio3"
+            else control_width(item) / 2)
+
+
+def caption_centre(item):
+    return item["x"] + caption_offset(item)
+
+
+def scale_legend_width(item):
+    """Width of the widest scale word printed to the left of a fader."""
+    if item["kind"] != "fader" or not item["scale"] or item["scale"] == TEN:
+        return 0.0
+    return max(text_width(text, SCALE_SIZE, track=TRACK_SCALE)
+               for _, text in item["scale"])
+
+
+def radio_label_width():
+    return max(text_width(text, RADIO_SIZE, track=TRACK_SCALE)
+               for text in KEY_MODE_LABELS)
+
+
+def wave_label_width():
+    return max(text_width(text, SCALE_SIZE, track=TRACK_SCALE)
+               for text in ("PULSE", "SAW"))
+
+
+def reach(item):
+    """How far a control's ink extends either side of its caption centre.
+
+    Measured in logical units from the point the caption is centred on, which
+    is what `caption_centre` returns and what the spacing checker polices.
+    """
+    caption_half = (text_width(item["caption"], CAPTION_SIZE, track=TRACK_CAPTION) / 2
+                    if item["caption"] else 0.0)
+    kind = item["kind"]
+    if kind == "radio3":
+        left = float(RADIO_CAPTION_OFFSET)
+        right = (TOGGLE_SIZE + RADIO_LABEL_GAP - RADIO_CAPTION_OFFSET
+                 + radio_label_width())
+    elif kind == "wave_stack":
+        left = SIZES["wave_stack"][0] / 2
+        right = TOGGLE_SIZE + WAVE_LABEL_GAP - left + wave_label_width()
+    else:
+        width = control_width(item)
+        legend = scale_legend_width(item)
+        left = (SCALE_OFFSET + legend) if legend else width / 2
+        right = width / 2
+    # Positions are placed as floats but emitted as whole logical units, so
+    # reserve the rounding error rather than letting it eat a clearance the
+    # spacing checker is about to measure.
+    return max(left, caption_half) + ROUNDING_GUARD, max(right, caption_half) + ROUNDING_GUARD
+
+
+def place_row(sections, width=WIDTH):
+    """Assign every control an x, then return (title, x0, x1, controls) boxes.
+
+    Sections are sized to their contents; the row's leftover width is then
+    divided between the gaps that exist, so the sections carrying the most
+    controls receive the most relief and the whole row ends up at one density.
+    """
+    reaches = {id(item): reach(item)
+               for _, controls in sections for item in controls}
+
+    def section_span(controls, padding):
+        return (2 * GROUP_PADDING + sum(sum(reaches[id(i)]) for i in controls)
+                + (len(controls) - 1) * (CONTROL_GAP + padding))
+
+    gaps = sum(len(controls) - 1 for _, controls in sections)
+    base = sum(section_span(controls, 0.0) for _, controls in sections)
+    spare = width - 2 * BOX_GAP - (len(sections) - 1) * BOX_GAP - base
+    # A sparse row must not sprawl just because it can: past this cap the
+    # surplus goes into the section boxes instead, so control pitch stays
+    # comparable from the top row to the bottom one.
+    padding = min(max(0.0, spare / gaps), MAX_CONTROL_EXTRA) if gaps else 0.0
+    slack = (spare - padding * gaps) / len(sections)
+
+    boxes = []
+    x0 = float(BOX_GAP)
+    for title, controls in sections:
+        span = section_span(controls, padding) + slack
+        cursor = x0 + GROUP_PADDING + slack / 2
+        for item in controls:
+            left, right = reaches[id(item)]
+            item["x"] = int(round(cursor + left - caption_offset(item)))
+            cursor += left + right + CONTROL_GAP + padding
+        boxes.append((title, int(round(x0)), int(round(x0 + span)), controls))
+        x0 += span + BOX_GAP
+    return boxes
+
+
+def build_layout(spec):
+    rows = []
+    for row in spec:
+        for title, controls in row["sections"]:
+            for item in controls:
+                item["family"] = SECTION_FAMILY[title]
+        rows.append({"y": row["y"], "h": row["h"],
+                     "sections": place_row(row["sections"])})
+    return rows
+
+
+def fader_asset(family):
+    return "Fader" + family.capitalize()
+
+
+FADER_ASSETS = tuple(fader_asset(name) for name in FAMILY)
 
 
 # --- Front panel layout -----------------------------------------------------
 # Three generous rows: the tone-generating front half, filter/amplifier, and
 # performance/setup controls. The 8RU height gives the controls their natural
 # scale instead of asking every control to behave like a miniature annotation.
-LAYOUT = [
+# Sections carry the names a hardware panel would be silkscreened with: the
+# oscillator is a DCO, the filter and amplifier are the VCF and VCA, and the
+# wheels are the bender. They are shorter than prose names, and they are what
+# a synthesist reads for anyway. Master level is its own OUTPUT group rather
+# than being filed under the bender it has nothing to do with.
+LAYOUT_SPEC = [
     {
         "y": 80, "h": 144,
         "sections": [
-            ("LFO", 10, 134, [
-                fader("lfoRate", 40, "RATE"),
-                fader("lfoDelay", 94, "DELAY"),
+            ("LFO", [
+                fader("lfoRate", "RATE"),
+                fader("lfoDelay", "DELAY"),
             ]),
-            ("OSCILLATOR", 144, 392, [
-                selector("range", 168, "RANGE", "16'", "8'", "4'"),
-                fader("dcoLfo", 224, "LFO"),
-                fader("pwm", 286, "PWM"),
-                selector("pwmMode", 348, "SOURCE", "LFO", "MAN"),
+            ("DCO", [
+                selector("range", "RANGE", "16'", "8'", "4'"),
+                fader("dcoLfo", "LFO"),
+                fader("pwm", "PWM"),
+                selector("pwmMode", "SOURCE", "LFO", "MAN"),
             ]),
-            ("MIXER", 402, 644, [
-                wave_stack(416),
-                fader("sub", 530, "SUB"),
-                fader("noise", 600, "NOISE"),
+            ("MIXER", [
+                wave_stack(),
+                fader("sub", "SUB"),
+                fader("noise", "NOISE"),
             ]),
-            ("HIGH PASS", 654, 744, [
-                selector("highPass", 698, "", "BST", "1", "2", "3"),
+            ("HPF", [
+                selector("highPass", "CUT", "BST", "1", "2", "3"),
             ]),
         ],
     },
     {
         "y": 234, "h": 144,
         "sections": [
-            ("FILTER", 10, 294, [
-                fader("cutoff", 31, "CUT"),
-                fader("resonance", 76, "RES"),
-                selector("envPolarity", 121, "POL", "+", "−"),
-                fader("vcfEnv", 166, "ENV"),
-                fader("vcfLfo", 211, "LFO"),
-                fader("keyFollow", 256, "TRACK"),
+            ("VCF", [
+                fader("cutoff", "FREQ"),
+                fader("resonance", "RES"),
+                selector("envPolarity", "POL", "+", "−"),
+                fader("vcfEnv", "ENV"),
+                fader("vcfLfo", "LFO"),
+                fader("keyFollow", "KYBD"),
             ]),
-            ("AMPLIFIER", 304, 424, [
-                selector("vcaMode", 339, "", "ENV", "GATE"),
-                fader("vcaLevel", 386, "LEVEL"),
+            ("VCA", [
+                selector("vcaMode", "MODE", "ENV", "GATE"),
+                fader("vcaLevel", "LEVEL"),
             ]),
-            ("ENVELOPE", 434, 622, [
-                fader("attack", 455, "ATT"),
-                fader("decay", 499, "DEC"),
-                fader("sustain", 543, "SUS"),
-                fader("release", 587, "REL"),
+            ("ENV", [
+                fader("attack", "A"),
+                fader("decay", "D"),
+                fader("sustain", "S"),
+                fader("release", "R"),
             ]),
-            ("CHORUS", 632, 744, [
-                selector("chorus", 661, "", "OFF", "I", "II", "I+II"),
-                fader("chorusNoise", 711, "HISS"),
+            # Chorus sits at the end of the shaping row because that is where
+            # it sits in the signal: after the amplifier, before the output.
+            ("CHORUS", [
+                selector("chorus", "MODE", "OFF", "I", "II", "I+II"),
+                fader("chorusNoise", "NOISE"),
             ]),
         ],
     },
     {
         "y": 388, "h": 154,
         "sections": [
-            ("PERFORMANCE", 10, 366, [
-                control("wheel", "pitchBend", 30, "BEND"),
-                control("wheel", "modWheel", 88, "MOD"),
-                fader("volume", 146, "VOLUME"),
-                fader("benderDco", 204, "DCO"),
-                fader("benderVcf", 262, "VCF"),
-                fader("benderLfo", 320, "LFO"),
+            ("PERFORMANCE", [
+                control("wheel", "pitchBend", "BEND"),
+                control("wheel", "modWheel", "MOD"),
+                fader("benderDco", "DCO"),
+                fader("benderVcf", "VCF"),
+                fader("benderLfo", "LFO"),
+                fader("volume", "VOLUME"),
             ]),
-            ("KEYBOARD", 376, 744, [
-                control("knob", "portamento", 386, "GLIDE"),
-                control("radio3", "keyMode", 448, "KEY MODE"),
-                fader("transpose", 544, "SHIFT", span("−12", "0", "+12"), 5),
-                fader("masterTune", 594, "TUNE", span("−50", "0", "+50")),
-                fader("velocity", 646, "VEL"),
-                fader("polyphony", 700, "VOICES",
+            ("KEYBOARD", [
+                control("knob", "portamento", "GLIDE"),
+                control("radio3", "keyMode", "MODE"),
+                fader("transpose", "SHIFT", span("−12", "0", "+12"), 5),
+                fader("masterTune", "TUNE", span("−50", "0", "+50")),
+                fader("velocity", "VEL"),
+                fader("polyphony", "VOICES",
                       ((1.0, "1"), (7 / 15, "8"), (0.0, "16")), 3),
             ]),
         ],
     },
 ]
+
+LAYOUT = build_layout(LAYOUT_SPEC)
+
+
+def family_by_node():
+    """Which accent each placed front widget wears. Rear controls stay neutral."""
+    mapping = {}
+    for row in LAYOUT:
+        body = body_top(row)
+        for _, _, _, controls in row["sections"]:
+            for item in controls:
+                for node, *_ in row_controls([item], body):
+                    mapping[node] = item["family"]
+    return mapping
 
 REAR_INPUT_BOX = (60, 84, 360, 300)
 REAR_OUTPUT_BOX = (394, 84, 694, 300)
@@ -318,6 +536,9 @@ REAR_CONTROLS = (
 )
 ENGINE_STATUS_SIZE = (56, 16)
 ENGINE_STATUS_Y = 53
+# One shared baseline for every caption in the header's readout strip.
+STATUS_CAPTION_Y = 45
+NOTE_CAPTION_X = 714
 # Remote-controlled rear properties still need a read-only front representation
 # for Reason's device-view contract. Editing stays exclusively on the rear.
 ENGINE_STATUS = (
@@ -336,9 +557,6 @@ ENGINE_STATUS = (
 PLACEHOLDER_POS = (347, 15)
 
 # Radio clusters are laid out vertically so each position gets a full word.
-KEY_MODE_LABELS = ("POLY 1", "POLY 2", "UNISON")
-RADIO_PITCH = 29
-RADIO_HIT_MARGIN = 1
 
 # Header widgets, which sit outside the three control rows.
 HEADER_NODES = {
@@ -443,6 +661,13 @@ def row_controls(controls, body):
                    x, centred_y(body, FADER_SIZE[1]))
 
 
+FAMILY_BY_NODE = family_by_node()
+
+
+def fader_path(node):
+    return fader_asset(FAMILY_BY_NODE.get(node, "play"))
+
+
 def vertical_gradient(size, top, bottom, mode="RGB"):
     image = Image.new(mode, size)
     draw = ImageDraw.Draw(image)
@@ -453,14 +678,50 @@ def vertical_gradient(size, top, bottom, mode="RGB"):
     return image
 
 
+def brushed(size, strength=7.0, coarse=5.0):
+    """Horizontal brush grain, as on a painted-aluminium instrument chassis.
+
+    The grain is high frequency across the panel's height and low frequency
+    along its width, which is what makes a machine-brushed surface read as
+    long fine streaks rather than as film noise.
+    """
+    width, height = size
+    fine = Image.effect_noise((max(1, width // 220), height), strength)
+    fine = fine.resize(size, Image.BILINEAR)
+    # A second, slower pass gives the surface broad tonal drift so the grain
+    # does not tile visibly across a panel this wide.
+    broad = Image.effect_noise((max(1, width // 900), max(1, height // 26)), coarse)
+    broad = broad.resize(size, Image.BICUBIC)
+    return ImageChops.add(fine.point(lambda v: v // 2),
+                          broad.point(lambda v: v // 2))
+
+
+def vignette(image, depth=26):
+    """Darken the chassis toward its edges, the way a lit panel falls off."""
+    falloff = Image.radial_gradient("L").resize(image.size, Image.BILINEAR)
+    # radial_gradient is black at the centre; invert it into a light map and
+    # keep the centre unattenuated so the silkscreen keeps its full contrast.
+    shade = falloff.point(lambda v: 255 - int(depth * (v / 255) ** 2.1))
+    return ImageChops.multiply(image, Image.merge("RGB", (shade, shade, shade)))
+
+
 def base_panel(height=HEIGHT, rear=False):
-    top = (25, 32, 38) if not rear else (25, 31, 36)
-    bottom = (19, 25, 30) if not rear else (19, 25, 29)
+    top = (62, 64, 64) if not rear else (46, 47, 48)
+    bottom = (40, 42, 43) if not rear else (30, 31, 32)
     image = vertical_gradient((px(WIDTH), px(height)), top, bottom)
+    grain = brushed(image.size)
+    # Overlay the grain symmetrically about mid-grey so it lightens and darkens
+    # the paint instead of only dusting it lighter.
+    image = ImageChops.add(image, Image.merge("RGB", (grain, grain, grain)), scale=1.0, offset=-64)
+    image = vignette(image)
     draw = ImageDraw.Draw(image)
-    draw.rectangle((0, 0, image.width - 1, image.height - 1), outline=(7, 9, 10), width=Q)
-    draw.line((0, Q, image.width, Q), fill=(74, 77, 75), width=1)
-    return image, ImageDraw.Draw(image)
+    # Chassis edge: a dark folded rim with a lit top lip, so the panel reads as
+    # a physical plate seated in the rack rather than a flat rectangle.
+    draw.rectangle((0, 0, image.width - 1, image.height - 1), outline=(11, 12, 13), width=Q)
+    draw.line((Q, Q, image.width - Q, Q), fill=(126, 129, 128), width=px(0.4))
+    draw.line((Q, image.height - Q, image.width - Q, image.height - Q),
+              fill=(20, 21, 22), width=px(0.4))
+    return image, draw
 
 
 def screw(draw, x, y):
@@ -482,12 +743,31 @@ def screws(draw, height=HEIGHT):
         screw(draw, x, y)
 
 
-def section(draw, box, title, title_size=TITLE_SIZE):
-    """Group controls with a quiet surface and a clear title."""
-    x0, y0, _, _ = box
-    draw.rounded_rectangle(px(box), radius=px(3), fill=PANEL)
+def section(draw, box, title, title_size=TITLE_SIZE, family="play"):
+    """A shallow machined recess, titled and colour-coded by signal stage.
+
+    The pocket is drawn as a real edge rather than a flat card: a dark lip
+    along the top and left where the light does not reach, a lit lower-right
+    edge, and an accent rule under the title carrying the stage colour that the
+    section's fader caps also wear.
+    """
+    x0, y0, x1, y1 = box
+    accent = FAMILY[family]["rule"]
+    draw.rounded_rectangle(px(box), radius=px(2.5), fill=PANEL)
+    # Recess edges. Top/left shadow first, then the catch-light underneath.
+    draw.arc(px((x0, y0, x0 + 5, y0 + 5)), 180, 270, fill=(26, 27, 28), width=px(0.5))
+    draw.line(px((x0 + 2.5, y0, x1 - 2.5, y0)), fill=(26, 27, 28), width=px(0.5))
+    draw.line(px((x0, y0 + 2.5, x0, y1 - 2.5)), fill=(30, 31, 32), width=px(0.5))
+    draw.line(px((x0 + 2.5, y1, x1 - 2.5, y1)), fill=(96, 99, 98), width=px(0.5))
+    draw.line(px((x1, y0 + 2.5, x1, y1 - 2.5)), fill=(84, 87, 86), width=px(0.5))
     label(draw, (x0 + GROUP_PADDING, y0 + TITLE_H / 2 + TITLE_OPTICAL_OFFSET),
-          title, title_size, strong=True, anchor="lm")
+          title, title_size, strong=True, anchor="lm", track=TRACK_TITLE)
+    # The accent rule runs from the title to the section's right edge, which
+    # gives every box the same horizontal anchor line to read along.
+    rule_x = (x0 + GROUP_PADDING
+              + text_width(title, title_size, strong=True, track=TRACK_TITLE) + 7)
+    rule_y = y0 + TITLE_H / 2 + TITLE_OPTICAL_OFFSET
+    draw.line(px((rule_x, rule_y, x1 - GROUP_PADDING, rule_y)), fill=accent, width=px(0.8))
 
 
 def fader_scale(draw, x, y, values, ticks, room):
@@ -501,30 +781,53 @@ def fader_scale(draw, x, y, values, ticks, room):
     for index in range(ticks):
         yy = top + index * (FADER_TRAVEL / (ticks - 1))
         major = index in (0, ticks - 1) or ticks <= 5 or index == ticks // 2
-        length = 4.0 if major else 2.2
+        length = 5.4 if major else 3.0
         colour = SCALE_INK if major else TICK_INK
-        draw.line(px((centre - 8.7, yy, centre - 8.7 + length, yy)),
-                  fill=colour, width=px(0.9 if major else 0.65))
+        draw.line(px((centre - SCALE_TICK_X, yy, centre - SCALE_TICK_X + length, yy)),
+                  fill=colour, width=px(1.0 if major else 0.7))
 
-    size = min((fitted(text, room, SCALE_SIZE, SCALE_FLOOR)
+    size = min((fitted(text, room, SCALE_SIZE, SCALE_FLOOR, track=TRACK_SCALE)
                 for _, text in values), default=SCALE_SIZE)
     for amount, text in values:
-        label(draw, (centre - 10.4, top + amount * FADER_TRAVEL), text,
-              size, SCALE_INK, anchor="rm")
+        label(draw, (centre - SCALE_OFFSET, top + amount * FADER_TRAVEL), text,
+              size, SCALE_INK, anchor="rm", track=TRACK_SCALE)
+
+
+def header_plate(image, draw, bottom=None, dark=False):
+    """The name plate strip: a darker brushed band with a machined lower step."""
+    bottom = FRONT_HEADER_BOTTOM if bottom is None else bottom
+    band = px((0, 0, WIDTH, bottom))
+    top_tone = (36, 37, 38) if dark else (46, 48, 48)
+    bottom_tone = (26, 27, 28) if dark else (34, 36, 37)
+    plate = vertical_gradient((band[2], band[3]), top_tone, bottom_tone)
+    grain = brushed(plate.size)
+    plate = ImageChops.add(plate, Image.merge("RGB", (grain, grain, grain)),
+                           scale=1.0, offset=-64)
+    image.paste(plate, (0, 0))
+    draw.line(px((0, bottom, WIDTH, bottom)), fill=(22, 23, 24), width=px(0.7))
+    draw.line(px((0, bottom + 0.7, WIDTH, bottom + 0.7)),
+              fill=(96, 99, 98), width=px(0.4))
 
 
 def render_front():
     image, draw = base_panel()
-    draw.rectangle(px((0, 0, WIDTH, FRONT_HEADER_BOTTOM)), fill=PANEL_DARK)
-    label(draw, (20, 15), "PROTOCODUS", 14.0, ICE, strong=True, anchor="lm")
-    label(draw, (20, 38), "YOUKNOW", 28.0, INK, display=True, anchor="lm")
+    header_plate(image, draw)
+    label(draw, (20, 15), "PROTOCODUS", 13.0, ICE, strong=True, anchor="lm",
+          track=TRACK_TITLE)
+    label(draw, (20, 38), "YOUKNOW", 28.0, INK, display=True, anchor="lm",
+          track=TRACK_CAPTION)
+    # Patch window: a recessed smoked panel, lit along its lower edge.
     draw.rounded_rectangle(px((327, 16, 538, 39)), radius=px(2),
-                           fill=(11, 19, 24), outline=(82, 103, 113), width=px(0.6))
+                           fill=(19, 20, 21), outline=(16, 17, 18), width=px(0.7))
+    draw.line(px((328.5, 39, 536.5, 39)), fill=(92, 95, 94), width=px(0.35))
     status_width, status_height = ENGINE_STATUS_SIZE
     for item in ENGINE_STATUS:
-        x = item["x"]
-        label(draw, (x + status_width / 2, 46), item["caption"], 8.0, MUTED)
-    label(draw, (714, 42), "NOTE", 8.5, MUTED)
+        label(draw, (item["x"] + status_width / 2, STATUS_CAPTION_Y),
+              item["caption"], STATUS_SIZE, MUTED, track=TRACK_SCALE)
+    # The Note lamp's caption shares the readouts' baseline; it used to sit
+    # four units high, which read as a misalignment across the header.
+    label(draw, (NOTE_CAPTION_X, STATUS_CAPTION_Y), "NOTE", STATUS_SIZE, MUTED,
+          track=TRACK_SCALE)
     screws(draw)
 
     for row in LAYOUT:
@@ -532,7 +835,9 @@ def render_front():
         body = body_top(row)
         for title, x0, x1, controls in row["sections"]:
             section(draw, (x0, y0, x1, y1), title,
-                    fitted(title, x1 - x0 - 20, TITLE_SIZE, 10.0))
+                    fitted(title, x1 - x0 - 2 * GROUP_PADDING - 10, TITLE_SIZE,
+                           10.5, strong=True, track=TRACK_TITLE),
+                    SECTION_FAMILY[title])
             for item, (caption_room, scale_room) in zip(
                     controls, section_rooms(x0, x1, controls)):
                 draw_caption(draw, item, y0)
@@ -552,33 +857,37 @@ def draw_caption(draw, item, y0):
     if not item["caption"]:
         return
     label(draw, (caption_centre(item), y0 + HEAD_DY), item["caption"],
-          CAPTION_SIZE, CAPTION)
+          CAPTION_SIZE, CAPTION, track=TRACK_CAPTION)
 
 
 def draw_wave_labels(draw, item, body):
     top = centred_y(body, SIZES["wave_stack"][1])
     for index, text in enumerate(item["labels"]):
         y = top + index * (TOGGLE_SIZE + 12) + TOGGLE_SIZE / 2
-        label(draw, (item["x"] + TOGGLE_SIZE + 5, y), text,
-              SCALE_SIZE, CAPTION, anchor="lm")
+        label(draw, (item["x"] + TOGGLE_SIZE + WAVE_LABEL_GAP, y), text,
+              SCALE_SIZE, CAPTION, anchor="lm", track=TRACK_SCALE)
 
 
 def draw_radio_labels(draw, x, top):
     for index, text in enumerate(KEY_MODE_LABELS):
-        label(draw, (x + TOGGLE_SIZE + 4, top + index * RADIO_PITCH + TOGGLE_SIZE / 2),
-              text, RADIO_SIZE, MUTED, anchor="lm")
+        label(draw, (x + TOGGLE_SIZE + RADIO_LABEL_GAP,
+                     top + index * RADIO_PITCH + TOGGLE_SIZE / 2),
+              text, RADIO_SIZE, MUTED, anchor="lm", track=TRACK_SCALE)
 
 
 def render_back():
     image, draw = base_panel(rear=True)
-    draw.rectangle(px((0, 0, WIDTH, 66)), fill=PANEL_DARK)
-    label(draw, (20, 15), "PROTOCODUS", 14.0, ICE, strong=True, anchor="lm")
-    label(draw, (20, 40), "YOUKNOW", 28.0, INK, display=True, anchor="lm")
+    header_plate(image, draw, bottom=REAR_HEADER_BOTTOM, dark=True)
+    label(draw, (20, 15), "PROTOCODUS", 13.0, ICE, strong=True, anchor="lm",
+          track=TRACK_TITLE)
+    label(draw, (20, 40), "YOUKNOW", 28.0, INK, display=True, anchor="lm",
+          track=TRACK_CAPTION)
     screws(draw)
+    # Sockets are wiring, not signal stages; they take the neutral accent.
     section(draw, REAR_INPUT_BOX, "CV INPUTS")
     section(draw, REAR_OUTPUT_BOX, "AUDIO OUTPUTS")
-    section(draw, REAR_ENGINE_BOX, "PROCESSING QUALITY")
-    section(draw, REAR_UNIT_BOX, "UNIT MODEL")
+    section(draw, REAR_ENGINE_BOX, "PROCESSING QUALITY", family="shape")
+    section(draw, REAR_UNIT_BOX, "UNIT MODEL", family="effect")
     for name, title, x, y in REAR_CV_INPUTS:
         centre = x + CV_JACK_SIZE[0] / 2
         label(draw, (centre, y - CV_CAPTION_OFFSET), title,
@@ -606,13 +915,18 @@ def render_back():
 
 def render_folded(front=True):
     image, draw = base_panel(FOLDED_HEIGHT, rear=not front)
-    draw.rectangle(px((0, 0, WIDTH, 30)), fill=(17, 20, 21))
-    label(draw, (17, 15), "YOUKNOW", 18.0, INK, display=True, anchor="lm")
-    label(draw, (98, 15), "PROTOCODUS", 12.0, ICE, strong=True, anchor="lm")
+    # The folded strip is the same name plate as the full face, cropped to a
+    # single rack unit, so a folded YouKnow still reads as the same hardware.
+    header_plate(image, draw, bottom=FOLDED_HEIGHT, dark=not front)
+    label(draw, (17, 15), "YOUKNOW", 18.0, INK, display=True, anchor="lm",
+          track=TRACK_CAPTION)
+    label(draw, (98, 15), "PROTOCODUS", 11.0, ICE, strong=True, anchor="lm",
+          track=TRACK_TITLE)
     if front:
         draw.rounded_rectangle(px((297, 7, 507, 23)), radius=px(1.8),
-                               fill=(5, 8, 8), outline=(58, 64, 63), width=px(0.45))
-        label(draw, (719, 15), "NOTE", 8.0, MUTED)
+                               fill=(19, 20, 21), outline=(16, 17, 18), width=px(0.55))
+        draw.line(px((298.5, 23, 505.5, 23)), fill=(92, 95, 94), width=px(0.3))
+        label(draw, (719, 15), "NOTE", 9.5, MUTED, track=TRACK_SCALE)
     else:
         # Reason anchors folded cable bundles here. Make that anchor visible so
         # a connected folded device never appears to grow a cable from nowhere.
@@ -638,7 +952,10 @@ def fader_centre_y(frame, frames=32):
                  - frame / (frames - 1) * px(FADER_TRAVEL))
 
 
-def fader_strip():
+def fader_strip(family="play"):
+    top_colour = FAMILY[family]["capTop"]
+    body_colour = FAMILY[family]["cap"]
+    index_colour = (250, 248, 240) if family != "play" else (196, 74, 48)
     frame_w, frame_h, frames = px(FADER_SIZE[0]), px(FADER_SIZE[1]), 32
     strip = Image.new("RGBA", (frame_w, frame_h * frames), (0, 0, 0, 0))
     for frame in range(frames):
@@ -646,17 +963,20 @@ def fader_strip():
         draw = ImageDraw.Draw(cell)
         cx = frame_w // 2
         draw.rounded_rectangle((cx - px(2), px(2), cx + px(2), frame_h - px(2)),
-                               radius=px(1.5), fill=(12, 14, 14, 255),
-                               outline=(93, 116, 129, 220), width=px(0.7))
+                               radius=px(1.5), fill=(14, 15, 15, 255),
+                               outline=(24, 25, 26, 255), width=px(0.7))
+        # Lit lower-right lip of the routed channel, then the shadowed floor.
+        draw.line((cx + px(2), px(3), cx + px(2), frame_h - px(3)),
+                  fill=(104, 107, 106, 200), width=px(0.4))
         draw.line((cx, px(4), cx, frame_h - px(4)),
-                  fill=(57, 61, 59, 255), width=px(0.8))
+                  fill=(44, 46, 46, 255), width=px(0.9))
         centre_y = fader_centre_y(frame, frames)
         cap_y = centre_y - px(FADER_HANDLE) // 2
         draw.rounded_rectangle((px(0.6), cap_y + px(1), frame_w - px(0.2),
                                 cap_y + px(FADER_HANDLE) + px(2)),
                                radius=px(1), fill=(2, 3, 3, 125))
         cap = vertical_gradient((px(FADER_SIZE[0] - 2), px(FADER_HANDLE)),
-                                (235, 241, 242, 255), (166, 187, 197, 255), "RGBA")
+                                top_colour + (255,), body_colour + (255,), "RGBA")
         mask = Image.new("L", cap.size, 0)
         ImageDraw.Draw(mask).rounded_rectangle((0, 0, cap.width - 1, cap.height - 1), radius=px(0.8), fill=255)
         cell.paste(cap, (px(1), cap_y), mask)
@@ -664,7 +984,7 @@ def fader_strip():
         draw.rounded_rectangle((px(1), cap_y, frame_w - px(1), cap_y + px(FADER_HANDLE)),
                                radius=px(0.8), outline=(35, 37, 35, 235), width=px(0.5))
         draw.line((px(2), centre_y, frame_w - px(2), centre_y),
-                  fill=RED + (255,), width=px(0.8))
+                  fill=index_colour + (255,), width=px(0.9))
         draw.line((px(2.2), cap_y + px(2), frame_w - px(2.2), cap_y + px(2)),
                   fill=(246, 241, 222, 120), width=px(0.35))
         strip.alpha_composite(cell, (0, frame * frame_h))
@@ -798,6 +1118,8 @@ def composite_front(panel, assets):
             frames, frame = 64, 32 if name == "pitchBend" else 0
         else:
             path, frames, frame = art[kind]
+            if kind == "fader":
+                path = fader_path(node)
             frame = PREVIEW_NODE_FRAME.get(node, PREVIEW_FRAME.get(name, frame))
         image.alpha_composite(copy_frame(assets[path], frames, frame), px((x, y)))
     image.alpha_composite(copy_frame(assets["Lamp"], 2, 0), px(HEADER_NODES["S_note_on"]))
@@ -828,7 +1150,8 @@ def composite_back(panel, assets):
     for node, kind, name, x, y in rear_widgets():
         if kind == "fader":
             image.alpha_composite(
-                copy_frame(assets["Fader"], 32, PREVIEW_FRAME[name]), px((x, y)))
+                copy_frame(assets[fader_path(node)], 32, PREVIEW_FRAME[name]),
+                px((x, y)))
         else:
             image.alpha_composite(
                 copy_frame(assets["Toggle"], 2, PREVIEW_NODE_FRAME.get(node, 0)),
@@ -971,13 +1294,19 @@ def check_layout():
     # Coordinates alone are not enough: two sliders could trade properties
     # and the old set-based check would still pass. Match every helper call to
     # the property it is meant to control.
-    expected_faders = {(name, float(x), float(y))
+    # The cap art is part of the contract: a fader carrying another stage's
+    # colour would silently mis-group the panel, so match it too.
+    expected_faders = {(name, float(x), float(y), fader_path(node))
                        for node, kind, name, x, y in all_widgets()
                        if kind == "fader"}
-    actual_faders = {(name, float(x), float(y)) for x, y, name in re.findall(
+    actual_faders = {(name, float(x), float(y), path)
+                     for x, y, name, path in re.findall(
         r'\bfader\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*"([^"]+)"'
+        r'\s*,\s*"([^"]+)"'
         r'(?:\s*,\s*(?:true|false))?(?:\s*,\s*(?:true|false))?\s*\)', gui)}
-    assert actual_faders == expected_faders, "gui.lua: fader property/position drift"
+    assert actual_faders == expected_faders, (
+        "gui.lua: fader property/position/cap-art drift: "
+        f"{sorted(actual_faders ^ expected_faders)[:4]}")
 
     expected_toggles = {(name, float(x), float(y))
                         for node, _, name, x, y in widgets()
@@ -1039,8 +1368,9 @@ def check_layout():
             ", true, false" if item["remote"] else ", false, false")
         if item["kind"] == "fader":
             node = f'S_fader_{item["name"]}'
-            assert f'{node} = fader({item["x"]}, {item["top"]})' in device_back
-            assert (f'fader({item["x"]}, {item["top"]}, "{item["name"]}", '
+            path = fader_path(node)
+            assert f'{node} = fader({item["x"]}, {item["top"]}, "{path}")' in device_back
+            assert (f'fader({item["x"]}, {item["top"]}, "{item["name"]}", "{path}", '
                     f'{str(item["automation"]).lower()}, {str(item["remote"]).lower()})') in gui_back
             assert (f'fader("{node}", "{item["name"]}", {str(item["automation"]).lower()}, '
                     f'{str(item["remote"]).lower()})') in hdgui_back
@@ -1058,7 +1388,7 @@ def check_layout():
             assert remote_mapping in motherboard
         else:
             assert remote_mapping not in motherboard
-    assert re.search(r'fader\([^\n]+"chorusNoise"\)', gui_front)
+    assert re.search(r'fader\([^\n]+"chorusNoise",[^\n]*\)', gui_front)
     assert 'fader("S_fader_chorusNoise", "chorusNoise")' in hdgui_front
     for item in REAR_CONTROLS:
         name = re.escape(item["name"])
@@ -1083,15 +1413,6 @@ def check_layout():
         "gui.lua radio/reassert vertical hit margins drift")
 
 
-def control_width(item):
-    return SIZES["toggle" if item["kind"] == "radio3" else item["kind"]][0]
-
-
-def caption_centre(item):
-    return item["x"] + (32 if item["kind"] == "radio3"
-                        else control_width(item) / 2)
-
-
 def section_rooms(x0, x1, controls):
     """Room a caption and a scale caption have, per control, in logical units.
 
@@ -1111,9 +1432,9 @@ def section_rooms(x0, x1, controls):
     return rooms
 
 
-def text_ink_width(value, size, strong=False):
+def text_ink_width(value, size, strong=False, track=0.0):
     left, _, right, _ = font(size, strong=strong).getbbox(value, anchor="mm")
-    return (right - left) / Q
+    return ((right - left) + px(track) * max(0, len(value) - 1)) / Q
 
 
 def check_label_row(labels, strong=False):
@@ -1220,10 +1541,10 @@ def check_spacing():
     keyboard = LAYOUT[2]["sections"][1][3]
     key_mode = next(item for item in keyboard if item["name"] == "keyMode")
     transpose = next(item for item in keyboard if item["name"] == "transpose")
-    key_end = key_mode["x"] + TOGGLE_SIZE + 4 + max(
-        text_ink_width(text, RADIO_SIZE) for text in KEY_MODE_LABELS)
-    transpose_left = transpose["x"] + FADER_SIZE[0] / 2 - 10.4 - max(
-        text_ink_width(text, SCALE_SIZE) for _, text in transpose["scale"])
+    key_end = key_mode["x"] + TOGGLE_SIZE + RADIO_LABEL_GAP + max(
+        text_ink_width(text, RADIO_SIZE, track=TRACK_SCALE) for text in KEY_MODE_LABELS)
+    transpose_left = transpose["x"] + FADER_SIZE[0] / 2 - SCALE_OFFSET - max(
+        text_ink_width(text, SCALE_SIZE, track=TRACK_SCALE) for _, text in transpose["scale"])
     assert transpose_left - key_end >= LABEL_GAP, (
         "Key Mode names and Shift values need more separation")
 
@@ -1239,7 +1560,7 @@ def check_spacing():
 
             for item, (caption_room, scale_room) in zip(
                     controls, section_rooms(x0, x1, controls)):
-                width = text_width(item["caption"], CAPTION_SIZE)
+                width = text_width(item["caption"], CAPTION_SIZE, track=TRACK_CAPTION)
                 assert width <= caption_room, (
                     f"{title}: caption {item['caption']!r} needs {width:.1f} "
                     f"at the {CAPTION_SIZE} size but has "
@@ -1247,9 +1568,9 @@ def check_spacing():
 
                 # Scale captions hang off the left of the fader, so they have
                 # to clear whatever control sits before them.
-                if not item["scale"]:
+                if not item["scale"] or item["scale"] == TEN:
                     continue
-                widest = max(text_width(text, SCALE_FLOOR)
+                widest = max(text_width(text, SCALE_FLOOR, track=TRACK_SCALE)
                              for _, text in item["scale"])
                 assert widest <= scale_room, (
                     f"{title}: {item['name']} scale caption needs "
@@ -1293,7 +1614,7 @@ def validate():
     expected = {
         "Reason_GUI_front_root_Panel.png": (3770, 2760), "Reason_GUI_back_root_Panel.png": (3770, 2760),
         "Reason_GUI_folded_front_root_Panel.png": (3770, 150), "Reason_GUI_folded_back_root_Panel.png": (3770, 150),
-        "Fader.png": (px(FADER_SIZE[0]), fader_h),
+        **{f"{asset}.png": (px(FADER_SIZE[0]), fader_h) for asset in FADER_ASSETS},
         "Knob.png": (px(KNOB_SIZE), px(KNOB_SIZE) * 63),
         "Toggle.png": (px(TOGGLE_SIZE), px(TOGGLE_SIZE) * 2),
         "MomentaryOverlay.png": (px(TOGGLE_SIZE), px(TOGGLE_SIZE) * 2),
@@ -1307,12 +1628,14 @@ def validate():
     for name, size in expected.items():
         actual = Image.open(OUT / name).size
         assert actual == size, f"{name}: expected {size}, got {actual}"
-    for name, frames in (("Fader.png", 32), ("Knob.png", 63), ("Toggle.png", 2),
+    for name, frames in (*((f"{asset}.png", 32) for asset in FADER_ASSETS),
+                         ("Knob.png", 63), ("Toggle.png", 2),
                          ("MomentaryOverlay.png", 2),
                          ("Lamp.png", 2), ("PitchWheel.png", 64), ("ModWheel.png", 64),
                          ("AudioJack.png", 3), ("CVJack.png", 3)):
         assert Image.open(OUT / name).height % frames == 0, f"{name}: bad frame strip"
-    for name, frames in (("Fader.png", 32), ("Knob.png", 63), ("Toggle.png", 2),
+    for name, frames in (*((f"{asset}.png", 32) for asset in FADER_ASSETS),
+                         ("Knob.png", 63), ("Toggle.png", 2),
                          ("Lamp.png", 2), ("PitchWheel.png", 64), ("ModWheel.png", 64),
                          ("AudioJack.png", 3), ("CVJack.png", 3)):
         strip = Image.open(OUT / name).convert("RGBA")
@@ -1387,7 +1710,8 @@ def main():
     (OUT / "QualityDisplay.png").unlink(missing_ok=True)
     check_spacing()
     assets = {
-        "Fader": fader_strip(), "Knob": knob_strip(), "Toggle": toggle_strip(),
+        **{fader_asset(name): fader_strip(name) for name in FAMILY},
+        "Knob": knob_strip(), "Toggle": toggle_strip(),
         "MomentaryOverlay": momentary_overlay_strip(),
         "EngineDisplay": Image.new("RGBA", px(ENGINE_STATUS_SIZE), (0, 0, 0, 0)),
         "Lamp": lamp_strip(), "PitchWheel": standard_wheel("Pitch"),
@@ -1413,7 +1737,8 @@ def main():
 
     for name in PANEL_FILES:
         Image.open(OUT / name).convert("RGB").save(HD / name, optimize=True)
-    for name in ("Fader.png", "Knob.png", "Toggle.png", "MomentaryOverlay.png",
+    for name in (*(f"{asset}.png" for asset in FADER_ASSETS),
+                 "Knob.png", "Toggle.png", "MomentaryOverlay.png",
                  "Lamp.png", "PitchWheel.png", "ModWheel.png"):
         shutil.copy2(OUT / name, HD / name)
     validate()

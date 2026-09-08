@@ -132,9 +132,12 @@ present in panels and their downstream assets.
 
 | Development input | SHA-256 | Renderer role |
 |---|---|---|
-| `/System/Library/Fonts/Supplemental/DIN Condensed Bold.ttf` | `36958182a424e1e8a1307b2636a615a6323ce1bbfadda136735ab4fb3bd26ceb` | YouKnow wordmark |
-| `/System/Library/Fonts/Supplemental/Arial.ttf` | `525979822591a3447cfc49d943d6f7683508e25543407871c0ed8fed05fd2bd9` | Labels, scales, rear legends, and native-text preview approximations |
-| `/System/Library/Fonts/Supplemental/Arial Bold.ttf` | `d72db21f9242aedd6b917d8549ad5921766b24d5f8d0becfda2ff4c620b3c2e0` | Protocodus branding, section titles, and rear socket titles |
+| `/System/Library/Fonts/Supplemental/DIN Condensed Bold.ttf` | `36958182a424e1e8a1307b2636a615a6323ce1bbfadda136735ab4fb3bd26ceb` | YouKnow wordmark, section titles, Protocodus branding |
+| `/System/Library/Fonts/Supplemental/DIN Alternate Bold.ttf` | `78e816b9938fc40dd5383f4a91b598494798e2fa1d526abbd9e7ff7e5b9bf0ee` | Control captions, scales, rear legends, and native-text preview approximations |
+
+DIN is the industrial lettering standard instrument panels are silkscreened in,
+so both faces of the device are set in one family. Arial and Arial Bold were
+the previous label and title faces and are no longer a renderer input.
 
 The exact OS/font hashes make the renderer input reproducible. They do not by
 themselves establish commercial permission; that remains within the shipped-
@@ -149,10 +152,17 @@ recorded licensing and deployment evidence belongs to the support-site history.
 
 ## Project-created and generated bitmap lineage
 
-- `Design/render_panels.py` code-renders `Fader`, `Knob`, `Toggle`,
+- `Design/render_panels.py` code-renders four signal-stage `Fader` cap strips
+  (`FaderSource`, `FaderShape`, `FaderEffect`, `FaderPlay`), `Knob`, `Toggle`,
   `MomentaryOverlay`, `Lamp`, and `EngineDisplay`, then assembles front, rear,
   folded, navigator, palette, icon, and track-list images in both consumed GUI
-  trees. The panel uses a simple chassis gradient, flat groups, and sparse ticks.
+  trees. The chassis is a brushed-grain plate with an edge falloff; sections are
+  shallow recesses titled with a stage-coloured rule. Control positions are
+  derived from each control's own caption, tick ladder and scale legend, and
+  `Design/sync_panel_lua.py` stamps the resulting coordinates and cap-art paths
+  into `GUI2D/device_2D.lua` and `GUI/Output/gui.lua`.
+- The single `Fader` strip that preceded the four stage-coloured strips is no
+  longer generated or shipped.
 - The `1.0.0f9` rear CV grid and automation indications are implemented in the
   project renderer and GUI Lua sources. All eight CV sockets reuse the listed
   SDK CV jack input; this change introduces no new external artwork or fonts.

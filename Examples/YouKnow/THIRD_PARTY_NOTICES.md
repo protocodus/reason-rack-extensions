@@ -9,8 +9,8 @@ under YouKnow's MIT license.
 SDK standard artwork supplies the pitch/mod wheels, audio/CV sockets,
 device-name tape, placeholder, patch-browser group, and folded patch-name field.
 These remain under SDK terms, not YouKnow's MIT license.
-Panel labels and section titles are rasterized from the local
-macOS Arial and Arial Bold fonts; the YouKnow wordmark uses DIN Condensed Bold.
+Panel labels, section titles and the YouKnow wordmark are rasterized from the
+local macOS DIN Alternate Bold and DIN Condensed Bold fonts.
 Font files are not shipped. Reason supplies the native patch/status text.
 Exact inputs, hashes, mappings, and adapted sample scaffolding are recorded in
 `Docs/ASSET_PROVENANCE.md`.
