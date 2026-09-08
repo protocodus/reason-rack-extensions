@@ -33,6 +33,21 @@ GUI_LUA = PROJECT / "GUI" / "Output" / "gui.lua"
 # gui.lua writes its wheels, knob and note lamp as inline jbox blocks keyed by
 # the property they drive rather than by a node name, so they need this bridge
 # back to the node names device_2D.lua uses.
+# The folded panels declare the SAME header node names at their own, different
+# coordinates, so any rewrite keyed on those names has to be confined to the
+# full front panel or it silently drags the folded furniture along with it.
+def front_span(text):
+    """(start, end) of the front panel's declaration within a Lua source."""
+    start = text.index("front = ")
+    end = text.index("folded_front", start)
+    return start, end
+
+
+def in_front_only(text, rewrite):
+    start, end = front_span(text)
+    return text[:start] + rewrite(text[start:end]) + text[end:]
+
+
 PROPERTY_NODES = {
     "pitchBend": "S_pitch_wheel",
     "modWheel": "S_mod_wheel",
@@ -56,6 +71,7 @@ def positions():
     placed.update({f"S_momentary_keyMode_{index}":
                    (key_mode_x, top + index * R.RADIO_PITCH)
                    for index in range(3)})
+    placed.update(R.HEADER_NODES)
     return placed
 
 
@@ -82,9 +98,9 @@ def sync_device_2d(placed):
         return (f"{node} = {{\n\t\t\toffset = "
                 f"{{ {placed[node][0]} * Q, {placed[node][1]} * Q }}")
 
-    text = re.sub(r"(S_[A-Za-z0-9_]+) = \{\s*\n\s*offset = "
-                  r"\{ (-?[\d.]+) \* Q, (-?[\d.]+) \* Q \}",
-                  offset, text)
+    text = in_front_only(text, lambda chunk: re.sub(
+        r"(S_[A-Za-z0-9_]+) = \{\s*\n\s*offset = "
+        r"\{ (-?[\d.]+) \* Q, (-?[\d.]+) \* Q \}", offset, chunk))
 
     # Each fader also names the cap art for its signal-stage colour.
     def cap(match):
@@ -143,6 +159,28 @@ def sync_gui_lua(placed):
     text = re.sub(r"\bfader\((-?[\d.]+), (-?[\d.]+), \"(\w+)\""
                   r"(?:, \"[^\"]*\")?((?:, (?:true|false))*)\)", cap, text)
 
+    # Reason's own header furniture. patch_name takes bare coordinates; the
+    # browse group and device name are blocks identified by their jbox type.
+    def patch_name(match):
+        x, y, rest = match.groups()
+        node = "S_patch_name"
+        seen.add(node)
+        return f"patch_name({placed[node][0]}, {placed[node][1]},{rest}"
+
+    text = in_front_only(text, lambda chunk: re.sub(
+        r"\bpatch_name\((-?[\d.]+), (-?[\d.]+),([^)]*)", patch_name, chunk))
+
+    for jbox_type, node in (("patch_browse_group", "S_patch_browse_group"),
+                            ("device_name", "S_device_name")):
+        def furniture(match, node=node):
+            seen.add(node)
+            return (f"{match.group(1)}transform = "
+                    f"{{ {placed[node][0]}, {placed[node][1]} }}")
+
+        text = in_front_only(text, lambda chunk, jbox_type=jbox_type: re.sub(
+            rf"(jbox\.{jbox_type}\{{\s*\n\s*)"
+            r"transform = \{ -?[\d.]+, -?[\d.]+ \}", furniture, chunk))
+
     # Inline blocks: rewrite the transform that precedes a known property.
     def block(match):
         head, x, y, middle, name = match.groups()
@@ -153,9 +191,13 @@ def sync_gui_lua(placed):
         return (f"{head}{{ {placed[node][0]}, {placed[node][1]} }}"
                 f"{middle}property(\"{name}\")")
 
-    text = re.sub(r"(transform = )\{ (-?[\d.]+), (-?[\d.]+) \}"
-                  r"((?:[^}]|\}(?!\s*\n\s*\}))*?value = )property\(\"(\w+)\"\)",
-                  block, text, flags=re.S)
+    # The tempered body is essential: a plain lazy `.*?` walks past the end of
+    # this widget and pairs one block's transform with a LATER block's
+    # property, silently stamping the wrong coordinates on both.
+    text = in_front_only(text, lambda chunk: re.sub(
+        r"(transform = )\{ (-?[\d.]+), (-?[\d.]+) \}"
+        r"((?:(?!transform = \{)[\s\S])*?value = )property\(\"(\w+)\"\)",
+        block, chunk))
     GUI_LUA.write_text(text)
     return seen
 

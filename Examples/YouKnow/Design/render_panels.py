@@ -119,7 +119,26 @@ CONTROL_GAP = 17
 MAX_CONTROL_EXTRA = 15
 ROUNDING_GUARD = 0.75
 FRONT_HEADER_BOTTOM = 70
-REAR_HEADER_BOTTOM = 66
+REAR_HEADER_BOTTOM = 70
+# The maker mark and wordmark sit at exactly these coordinates on both faces,
+# so a flipped rack shows the same nameplate in the same place.
+WORDMARK_X = 20
+MAKER_Y = 13
+MAKER_SIZE = 11.5
+WORDMARK_Y = 32
+WORDMARK_SIZE = 24.0
+VERSION_Y = 51          # rear only: the build the panel was made for
+VERSION_SIZE = 9.5
+
+# --- Header readout strip ---------------------------------------------------
+# The six engine readouts used to stack a caption over its value in the sliver
+# between the patch window and the bottom of the header, six abreast. Setting
+# each caption beside its own value instead puts the whole strip on one line,
+# lets it use the full width of the panel, and gives every field the room its
+# own caption needs. Positions are derived, exactly like the control rows.
+STATUS_MARGIN = 20
+STATUS_CAPTION_GAP = 5
+STATUS_CENTRE_Y = 56
 
 # Type sizes are logical (1x) pixels. Control captions stay at a uniform size;
 # spacing checks reject crowded text instead of shrinking labels. Section
@@ -513,32 +532,31 @@ REAR_CV_INPUTS = (
 CV_CAPTION_SIZE = 12.0
 CV_CAPTION_OFFSET = 22
 REAR_CONTROLS = (
-    {"kind": "radio", "name": "quality", "caption": "OVERSAMPLE",
+    {"kind": "radio", "name": "quality", "x": 0, "caption": "OVERSAMPLE",
      "x": 80, "center": 122, "top": 378,
      "labels": ("1x", "2x", "4x"), "remote": True, "automation": True},
-    {"kind": "radio", "name": "vcfTanhMode", "caption": "SATURATION",
+    {"kind": "radio", "name": "vcfTanhMode", "x": 0, "caption": "SATURATION",
      "x": 188, "center": 230, "top": 378,
      "labels": ("EXACT", "FAST", "POLY"), "remote": True, "automation": True},
-    {"kind": "radio", "name": "vcfFastEarlyMode", "caption": "EARLY MODEL",
+    {"kind": "radio", "name": "vcfFastEarlyMode", "x": 0, "caption": "EARLY MODEL",
      "x": 296, "center": 338, "top": 393,
      "labels": ("HERMITE", "CUBIC"), "remote": True, "automation": True},
-    {"kind": "radio", "name": "vcfSolverMode", "caption": "FILTER SOLVER",
+    {"kind": "radio", "name": "vcfSolverMode", "x": 0, "caption": "FILTER SOLVER",
      "x": 404, "center": 446, "top": 378,
      "labels": ("MAX", "HIGH", "NORMAL"), "remote": True, "automation": True},
-    {"kind": "fader", "name": "calibration", "caption": "CHARACTER",
+    {"kind": "fader", "name": "calibration", "x": 0, "caption": "CHARACTER",
      "x": 544, "center": 554, "top": 378,
      "scale": span("0", "100", "200%"), "ticks": 5,
      "remote": True, "automation": True},
-    {"kind": "fader", "name": "aging", "caption": "AGING",
+    {"kind": "fader", "name": "aging", "x": 0, "caption": "AGING",
      "x": 636, "center": 646, "top": 378,
      "scale": span("0", "50", "100%"), "ticks": 5,
      "remote": True, "automation": True},
 )
 ENGINE_STATUS_SIZE = (56, 16)
-ENGINE_STATUS_Y = 53
+ENGINE_STATUS_Y = STATUS_CENTRE_Y - 8
 # One shared baseline for every caption in the header's readout strip.
-STATUS_CAPTION_Y = 45
-NOTE_CAPTION_X = 714
+STATUS_CAPTION_Y = STATUS_CENTRE_Y
 # Remote-controlled rear properties still need a read-only front representation
 # for Reason's device-view contract. Editing stays exclusively on the rear.
 ENGINE_STATUS = (
@@ -554,16 +572,47 @@ ENGINE_STATUS = (
     {"name": "aging", "caption": "AGING", "x": 634,
      "preview": "50%"},
 )
+
+
+def place_status_strip():
+    """Spread the readouts and the Note lamp across the header's full width.
+
+    Each field is a right-aligned caption followed by its value window, so the
+    strip reads as one line of instrument status rather than six stacked pairs
+    crammed under the patch name. Whatever width is left over is divided evenly
+    between the fields.
+    """
+    display_width = ENGINE_STATUS_SIZE[0]
+    widths = []
+    for item in ENGINE_STATUS:
+        caption = text_width(item["caption"], STATUS_SIZE, track=TRACK_SCALE)
+        widths.append(caption + STATUS_CAPTION_GAP + display_width)
+    note_caption = text_width("NOTE", STATUS_SIZE, track=TRACK_SCALE)
+    widths.append(note_caption + STATUS_CAPTION_GAP + LAMP_SIZE)
+
+    available = WIDTH - 2 * STATUS_MARGIN
+    spacing = (available - sum(widths)) / (len(widths) - 1)
+    cursor = float(STATUS_MARGIN)
+    for item, width in zip(ENGINE_STATUS, widths):
+        item["x"] = int(round(cursor + width - display_width))
+        cursor += width + spacing
+    return int(round(cursor + widths[-1] - LAMP_SIZE))
+
+
+NOTE_LAMP_X = place_status_strip()
 PLACEHOLDER_POS = (347, 15)
 
 # Radio clusters are laid out vertically so each position gets a full word.
 
 # Header widgets, which sit outside the three control rows.
+# Band one carries identity and the patch; band two is the readout strip that
+# place_status_strip() spreads across the full width beneath it.
+PATCH_BOX = (296, 12, 507, 36)
 HEADER_NODES = {
-    "S_patch_name": (330, 21),
-    "S_patch_browse_group": (544, 17),
-    "S_device_name": (610, 23),
-    "S_note_on": (709, 51),
+    "S_patch_name": (299, 16),
+    "S_patch_browse_group": (517, 13),
+    "S_device_name": (589, 17),
+    "S_note_on": (NOTE_LAMP_X, STATUS_CENTRE_Y - LAMP_SIZE // 2),
 }
 
 PREVIEW_PATCH_NAME = "Init"
@@ -743,6 +792,17 @@ def screws(draw, height=HEIGHT):
         screw(draw, x, y)
 
 
+def section_title(draw, box, title, title_size=TITLE_SIZE, family="play"):
+    """A title and its accent rule, with no surrounding recess."""
+    x0, y0, _, y1 = box
+    label(draw, (x0, y0 + TITLE_H / 2 + TITLE_OPTICAL_OFFSET), title, title_size,
+          strong=True, anchor="lm", track=TRACK_TITLE)
+    rule_x = x0 + text_width(title, title_size, strong=True, track=TRACK_TITLE) + 7
+    rule_y = y0 + TITLE_H / 2 + TITLE_OPTICAL_OFFSET
+    draw.line(px((rule_x, rule_y, box[2], rule_y)), fill=FAMILY[family]["rule"],
+              width=px(0.8))
+
+
 def section(draw, box, title, title_size=TITLE_SIZE, family="play"):
     """A shallow machined recess, titled and colour-coded by signal stage.
 
@@ -809,25 +869,41 @@ def header_plate(image, draw, bottom=None, dark=False):
               fill=(96, 99, 98), width=px(0.4))
 
 
+def device_version():
+    """The version_number info.lua declares, for the rear nameplate."""
+    text = (PROJECT / "info.lua").read_text(encoding="utf-8")
+    match = re.search(r'^version_number\s*=\s*"([^"]+)"', text, re.MULTILINE)
+    assert match, "info.lua has no version_number"
+    return match.group(1)
+
+
+def wordmark(draw, version=None):
+    """The maker mark and instrument name, identically placed on both faces."""
+    label(draw, (WORDMARK_X, MAKER_Y), "PROTOCODUS", MAKER_SIZE, ICE,
+          strong=True, anchor="lm", track=TRACK_TITLE)
+    label(draw, (WORDMARK_X, WORDMARK_Y), "YOUKNOW", WORDMARK_SIZE, INK,
+          display=True, anchor="lm", track=TRACK_CAPTION)
+    if version:
+        label(draw, (WORDMARK_X, VERSION_Y), f"VERSION {version}", VERSION_SIZE,
+              MUTED, anchor="lm", track=TRACK_SCALE)
+
+
 def render_front():
     image, draw = base_panel()
     header_plate(image, draw)
-    label(draw, (20, 15), "PROTOCODUS", 13.0, ICE, strong=True, anchor="lm",
-          track=TRACK_TITLE)
-    label(draw, (20, 38), "YOUKNOW", 28.0, INK, display=True, anchor="lm",
-          track=TRACK_CAPTION)
+    wordmark(draw)
     # Patch window: a recessed smoked panel, lit along its lower edge.
-    draw.rounded_rectangle(px((327, 16, 538, 39)), radius=px(2),
+    x0, y0, x1, y1 = PATCH_BOX
+    draw.rounded_rectangle(px(PATCH_BOX), radius=px(2),
                            fill=(19, 20, 21), outline=(16, 17, 18), width=px(0.7))
-    draw.line(px((328.5, 39, 536.5, 39)), fill=(92, 95, 94), width=px(0.35))
-    status_width, status_height = ENGINE_STATUS_SIZE
+    draw.line(px((x0 + 1.5, y1, x1 - 1.5, y1)), fill=(92, 95, 94), width=px(0.35))
+    # Every caption is set immediately left of the window it names, all on one
+    # baseline, so the strip reads as a single line of status.
     for item in ENGINE_STATUS:
-        label(draw, (item["x"] + status_width / 2, STATUS_CAPTION_Y),
-              item["caption"], STATUS_SIZE, MUTED, track=TRACK_SCALE)
-    # The Note lamp's caption shares the readouts' baseline; it used to sit
-    # four units high, which read as a misalignment across the header.
-    label(draw, (NOTE_CAPTION_X, STATUS_CAPTION_Y), "NOTE", STATUS_SIZE, MUTED,
-          track=TRACK_SCALE)
+        label(draw, (item["x"] - STATUS_CAPTION_GAP, STATUS_CAPTION_Y),
+              item["caption"], STATUS_SIZE, MUTED, anchor="rm", track=TRACK_SCALE)
+    label(draw, (NOTE_LAMP_X - STATUS_CAPTION_GAP, STATUS_CAPTION_Y), "NOTE",
+          STATUS_SIZE, MUTED, anchor="rm", track=TRACK_SCALE)
     screws(draw)
 
     for row in LAYOUT:
@@ -878,16 +954,15 @@ def draw_radio_labels(draw, x, top):
 def render_back():
     image, draw = base_panel(rear=True)
     header_plate(image, draw, bottom=REAR_HEADER_BOTTOM, dark=True)
-    label(draw, (20, 15), "PROTOCODUS", 13.0, ICE, strong=True, anchor="lm",
-          track=TRACK_TITLE)
-    label(draw, (20, 40), "YOUKNOW", 28.0, INK, display=True, anchor="lm",
-          track=TRACK_CAPTION)
+    wordmark(draw, device_version())
     screws(draw)
-    # Sockets are wiring, not signal stages; they take the neutral accent.
-    section(draw, REAR_INPUT_BOX, "CV INPUTS")
-    section(draw, REAR_OUTPUT_BOX, "AUDIO OUTPUTS")
-    section(draw, REAR_ENGINE_BOX, "PROCESSING QUALITY", family="shape")
-    section(draw, REAR_UNIT_BOX, "UNIT MODEL", family="effect")
+    # The rear is a wiring diagram, not a performance surface: its areas are
+    # titled and ruled, but not boxed. Recessed groups belong to the controls
+    # you reach for, and drawing them back here only fences off sockets.
+    section_title(draw, REAR_INPUT_BOX, "CV INPUTS")
+    section_title(draw, REAR_OUTPUT_BOX, "AUDIO OUTPUTS")
+    section_title(draw, REAR_ENGINE_BOX, "PROCESSING QUALITY", family="shape")
+    section_title(draw, REAR_UNIT_BOX, "UNIT MODEL", family="effect")
     for name, title, x, y in REAR_CV_INPUTS:
         centre = x + CV_JACK_SIZE[0] / 2
         label(draw, (centre, y - CV_CAPTION_OFFSET), title,
@@ -1127,7 +1202,9 @@ def composite_front(panel, assets):
                           px(HEADER_NODES["S_patch_browse_group"]))
     image.alpha_composite(assets["TapeHorz"], px(HEADER_NODES["S_device_name"]))
     preview_draw = ImageDraw.Draw(image)
-    label(preview_draw, (432, 29), PREVIEW_PATCH_NAME, 11.0, ICE)
+    label(preview_draw, ((PATCH_BOX[0] + PATCH_BOX[2]) / 2,
+                         (PATCH_BOX[1] + PATCH_BOX[3]) / 2),
+          PREVIEW_PATCH_NAME, 11.0, ICE)
     status_width, status_height = ENGINE_STATUS_SIZE
     for item in ENGINE_STATUS:
         label(
@@ -1136,7 +1213,8 @@ def composite_front(panel, assets):
              ENGINE_STATUS_Y + status_height / 2),
             item["preview"], 11.0, ICE,
         )
-    label(preview_draw, (650, 29.5), "YOUKNOW", 5.5, PANEL_DARK)
+    tape_x, tape_y = HEADER_NODES["S_device_name"]
+    label(preview_draw, (tape_x + 40, tape_y + 6.5), "YOUKNOW", 5.5, PANEL_DARK)
     return image
 
 
@@ -1262,6 +1340,9 @@ def check_layout():
 
     expected = {node: (float(x), float(y)) for node, _, _, x, y in all_widgets()}
     expected["S_placeholder"] = tuple(map(float, PLACEHOLDER_POS))
+    # The header furniture is derived now too, so hold it to the same contract.
+    expected.update({node: (float(x), float(y))
+                     for node, (x, y) in HEADER_NODES.items()})
     expected.update({f"S_cv_input_{name}": (float(x), float(y))
                      for name, _, x, y in REAR_CV_INPUTS})
     expected.update({
@@ -1278,6 +1359,14 @@ def check_layout():
     })
     placed = {node: (float(x), float(y)) for node, x, y in re.findall(
         r"(S_[A-Za-z0-9_]+)\s*=\s*\w+\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)", device)}
+    # Reason's own furniture is declared as a table with an offset rather than
+    # through one of the helper calls, so it needs its own pattern -- and it
+    # must be read from the front panel alone, because folded_front declares
+    # the very same node names at its own coordinates.
+    front_only = device[device.index("front = "):device.index("folded_front")]
+    placed.update({node: (float(x), float(y)) for node, x, y in re.findall(
+        r"(S_[A-Za-z0-9_]+)\s*=\s*\{\s*\n\s*offset\s*=\s*"
+        r"\{\s*(-?[\d.]+)\s*\*\s*Q\s*,\s*(-?[\d.]+)\s*\*\s*Q\s*\}", front_only)})
     for node, position in expected.items():
         assert node in placed, f"device_2D.lua: {node} is not placed"
         assert placed[node] == position, (
@@ -1287,7 +1376,7 @@ def check_layout():
     mirrored = {(float(x), float(y)) for x, y in re.findall(
         r"transform\s*=\s*\{\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\}", gui)}
     mirrored |= {(float(x), float(y)) for x, y in re.findall(
-        r"\b(?:fader|toggle|radio|status)\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,", gui)}
+        r"\b(?:fader|toggle|radio|status|patch_name)\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,", gui)}
     missing = sorted(set(expected.values()) - mirrored)
     assert not missing, f"gui.lua: no widget at {missing}"
 
@@ -1499,20 +1588,35 @@ def check_spacing():
 
     # The fixed header and folded furniture must retain breathing room around
     # Reason's native patch/name widgets.
-    assert 20 + text_width("YOUKNOW", 28.0, True) + 24 <= 160
-    assert 20 + font(14, strong=True).getlength("PROTOCODUS") / Q < 300
+    # The nameplate is identical on both faces and must clear the patch window.
+    wordmark_end = WORDMARK_X + max(
+        text_width("YOUKNOW", WORDMARK_SIZE, True, track=TRACK_CAPTION),
+        text_width("PROTOCODUS", MAKER_SIZE, strong=True, track=TRACK_TITLE))
+    assert wordmark_end + BOX_GAP <= PATCH_BOX[0], "nameplate runs into the patch window"
+    assert PATCH_BOX[3] < STATUS_CENTRE_Y - ENGINE_STATUS_SIZE[1] / 2, (
+        "the patch window overlaps the readout strip")
     assert 17 + text_width("YOUKNOW", 18.0, True) + 16 <= 98
     assert 98 + font(12, strong=True).getlength("PROTOCODUS") / Q + 12 <= 202
+
+    # The readout strip is one line of caption/value pairs. Nothing in it may
+    # touch its neighbour, and it has to sit inside the header band.
     status_width, status_height = ENGINE_STATUS_SIZE
-    previous_end = ENGINE_STATUS[0]["x"]
+    assert ENGINE_STATUS_Y >= PATCH_BOX[3]
+    assert ENGINE_STATUS_Y + status_height <= FRONT_HEADER_BOTTOM
+    # Display positions are placed as floats and emitted as whole units, so the
+    # left margin absorbs that rounding exactly as the control rows do.
+    previous_end = STATUS_MARGIN - ROUNDING_GUARD
     for item in ENGINE_STATUS:
-        assert item["x"] >= previous_end
-        assert item["x"] + status_width <= 690
-        assert ENGINE_STATUS_Y + status_height <= FRONT_HEADER_BOTTOM
-        assert text_width(item["caption"], 8.0) <= status_width
+        caption_start = (item["x"] - STATUS_CAPTION_GAP
+                         - text_width(item["caption"], STATUS_SIZE, track=TRACK_SCALE))
+        assert caption_start >= previous_end, (
+            f"{item['caption']}: readout caption collides with its neighbour")
         assert text_width(item["preview"], 11.0) <= status_width
         previous_end = item["x"] + status_width
-    assert previous_end + BOX_GAP <= HEADER_NODES["S_note_on"][0]
+    note_start = (NOTE_LAMP_X - STATUS_CAPTION_GAP
+                  - text_width("NOTE", STATUS_SIZE, track=TRACK_SCALE))
+    assert note_start >= previous_end, "NOTE collides with the last readout"
+    assert NOTE_LAMP_X + LAMP_SIZE <= WIDTH - STATUS_MARGIN + LAMP_SIZE
 
     for row in LAYOUT:
         check_label_row([

@@ -86,25 +86,25 @@ end
 front = jbox.panel{
 	backdrop = jbox.image{ path = "Reason_GUI_front_root_Panel" },
 	widgets = {
-		patch_name(330, 21, 16, "Arial medium font"),
+		patch_name(299, 16, 16, "Arial medium font"),
 		jbox.patch_browse_group{
-			transform = { 544, 17 },
+			transform = { 517, 13 },
 			fx_patch = false,
 		},
 		jbox.device_name{
-			transform = { 610, 23 },
+			transform = { 589, 17 },
 		},
 		jbox.sequence_meter{
-			transform = { 709, 51 },
+			transform = { 724, 51 },
 			animation = jbox.image_sequence{ path = "Lamp", frames = 2 },
 			value = property("noteOn"),
 		},
-		status(304, 53, "quality"),
-		status(370, 53, "vcfTanhMode"),
-		status(436, 53, "vcfFastEarlyMode"),
-		status(502, 53, "vcfSolverMode"),
-		status(568, 53, "calibration"),
-		status(634, 53, "aging"),
+		status(64, 48, "quality"),
+		status(166, 48, "vcfTanhMode"),
+		status(272, 48, "vcfFastEarlyMode"),
+		status(385, 48, "vcfSolverMode"),
+		status(518, 48, "calibration"),
+		status(623, 48, "aging"),
 
 		-- Row 1: LFO, oscillator, high-pass filter
 		fader(31, 116, "lfoRate", "FaderSource"),

@@ -38,6 +38,15 @@ Notable customer-facing changes to YouKnow are recorded here.
   captions read PWM and SOURCE.
 - Aligned the Note lamp caption to the engine readout baseline it had been
   sitting four pixels above, and enlarged the readout captions to 10 pixels.
+- Reworked the header. The six engine readouts used to stack a caption over
+  its value in the sliver between the patch window and the bottom of the
+  header, six abreast; each caption now sits beside its own value on one line
+  spread across the panel's full width, with the Note lamp at its end. The
+  maker mark and wordmark are placed identically on the front and the rear, so
+  a flipped rack shows the same nameplate in the same spot.
+- Dropped the group boxes from the rear and titled its areas with a rule
+  instead: the rear is a wiring diagram, and boxing sockets only fences them
+  off. The rear nameplate now carries the version number below the wordmark.
 - Glided Unit Character over 30 ms when a host automates it. It is the one
   parameter whose change rebuilds every voice card's analogue trims at once,
   and jumped across its full travel under a sounding note that rebuild was
