@@ -54,6 +54,18 @@ constexpr std::array<float, 4097> frozenVoiceVcaGain {{
 #include "../DSP/YouKnowVoiceVcaGainTable.inc"
 }};
 
+constexpr std::array<double, 4097> frozenVcaControlCharge {{
+#include "../DSP/YouKnowVcaControlChargeTable.inc"
+}};
+
+constexpr std::array<double, 4097> frozenVcaControlDifferential {{
+#include "../DSP/YouKnowVcaControlDifferentialTable.inc"
+}};
+
+constexpr std::array<float, 4097> frozenSubLevel {{
+#include "../DSP/YouKnowSubLevelTable.inc"
+}};
+
 constexpr float frozenCardJohnsonNoise =
 #include "../DSP/YouKnowCardJohnsonNoise.inc"
 ;
@@ -422,6 +434,72 @@ std::array<float, 4097> buildVoiceVcaGainTable()
         return result;
 }
 
+// The nominated upstream 72e1d448 builders, retained here so every entry of
+// the immutable Rack tables is checked against the original numerical solve.
+struct VcaControlTables
+{
+    std::array<double, 4097> charge {};
+    std::array<double, 4097> differential {};
+};
+
+VcaControlTables buildVcaControlTables()
+{
+    VcaControlTables result;
+    constexpr int steps = 4096;
+    constexpr double thermalVolts = static_cast<double>(0.026f);
+    constexpr double spanVolts = static_cast<double>(9.921875f);
+    constexpr double knee = static_cast<double>(0.015f);
+    constexpr double inputOhms = 10000.0;
+    constexpr double emitterOhms = 22000.0;
+    const double scale = spanVolts / thermalVolts;
+    for (int index = 0; index <= steps; ++index)
+    {
+        const double u = static_cast<double>(index) / steps;
+        const double v = (u - knee) * scale;
+        double y = v > 1.0 ? v - std::log(v) : std::exp(v);
+        for (int iteration = 0; iteration < 12; ++iteration)
+        {
+            const double delta = (y + std::log(y) - v) * y / (y + 1.0);
+            y -= delta;
+            if (std::abs(delta) <= 1.0e-15 * y)
+                break;
+        }
+        const double current = y * thermalVolts / (inputOhms + emitterOhms);
+        result.charge[static_cast<std::size_t>(index)] =
+            u - inputOhms * current / spanVolts;
+        result.differential[static_cast<std::size_t>(index)] =
+            1.0 - inputOhms / (inputOhms + emitterOhms) * y / (1.0 + y);
+    }
+    return result;
+}
+
+std::array<float, 4097> buildSubLevelTable()
+{
+    std::array<float, 4097> result {};
+    constexpr double fullScaleVolts = 10.0 * 4064.0 / 4096.0;
+    constexpr double junctionSlopeVolts = 0.026;
+    constexpr double referenceSeriesSpanVolts = 8.896019223386196;
+    result.back() = 1.0f;
+    for (int i = 1; i < 4096; ++i)
+    {
+        const double control = static_cast<double>(i) / 4096;
+        const double scale = referenceSeriesSpanVolts / junctionSlopeVolts;
+        const double z = std::log(scale)
+            + (fullScaleVolts * (control - 1.0) + referenceSeriesSpanVolts)
+                / junctionSlopeVolts;
+        double y = z > 1.0 ? z - std::log(z) : std::exp(z);
+        for (int iteration = 0; iteration < 12; ++iteration)
+        {
+            const double delta = (y + std::log(y) - z) * y / (y + 1.0);
+            y -= delta;
+            if (std::abs(delta) <= 1.0e-15 * y)
+                break;
+        }
+        result[static_cast<std::size_t>(i)] = static_cast<float>(y / scale);
+    }
+    return result;
+}
+
 template <typename Value, std::size_t size>
 bool validateTable(const std::array<Value, size>& frozen,
                    const std::array<Value, size>& expected,
@@ -482,10 +560,16 @@ int main()
 
     const auto expectedResonance = buildResonanceFrequencyTrim();
     const auto expectedCorrection = buildCorrectionTables();
+    const auto expectedVcaControl = buildVcaControlTables();
     if (!validateTable(frozenDescribing, buildDescribingTable(),
                         "harmonic describing")
         || !validateTable(frozenVoiceVcaGain, buildVoiceVcaGainTable(),
                           "voice VCA gain")
+        || !validateTable(frozenVcaControlCharge, expectedVcaControl.charge,
+                          "voice VCA control charge")
+        || !validateTable(frozenVcaControlDifferential, expectedVcaControl.differential,
+                          "voice VCA control differential")
+        || !validateTable(frozenSubLevel, buildSubLevelTable(), "SUB diode gain")
         || !validateTable(frozenResonanceFrequencyTrim,
                             expectedResonance, "resonance frequency trim")
         || !validateTable(frozenCorrectionStep,
@@ -498,6 +582,7 @@ int main()
 
     std::cout << "validated 513 BBD nodes, 216 VCF intervals, "
               << "129 resonance trims, 6146 correction samples, 513 describing nodes,\n"
-              << "4097 voice VCA gains and the card Johnson-noise constant\n";
+              << "4097 voice VCA gains, 8194 VCA control samples, 4097 SUB diode gains,\n"
+              << "and the card Johnson-noise constant\n";
     return 0;
 }

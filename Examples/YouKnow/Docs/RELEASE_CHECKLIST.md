@@ -1,4 +1,4 @@
-# YouKnow 1.0.0f11 release checklist
+# YouKnow 1.0.0f12 release checklist
 
 Current results and retained failures are recorded in
 [RELEASE_EVIDENCE.md](RELEASE_EVIDENCE.md).
@@ -17,9 +17,9 @@ Product support: https://protocodus.cz/product/youknow/
 - [x] Record the current native default timing pass (0/1875 misses), retaining earlier failures.
 - [x] Build local45 Deployment and inspect installed source-backed payload bytes.
 - [x] Build universal45 and verify ZIP, four chips, source bytes, and SHA-256.
-- [x] Record a fresh Recon diagnostic and its exact host identity/capability limit.
-- [x] Generate and visually inspect the matching PDF, Shop, and panel previews.
-- [x] Assemble the source/artifact handoff with a verified SHA256SUMS manifest.
+- [ ] Create this candidate in a fresh SDK 5-compatible host and record its identity.
+- [ ] Generate and visually inspect matching PDF and Shop materials; panel previews are current.
+- [ ] Assemble the publication handoff with a verified SHA256SUMS manifest.
 
 ## Host and publication acceptance
 

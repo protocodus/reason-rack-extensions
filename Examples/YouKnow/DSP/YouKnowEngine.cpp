@@ -1,4 +1,6 @@
 #include "YouKnowEngine.h"
+#include "YouKnowVcaControl.h"
+#include "YouKnowReferenceVcf.h"
 
 #include <algorithm>
 #include <cmath>
@@ -743,21 +745,49 @@ float YouKnowEngine::vcfConverterCarryCounts(float counts) noexcept
 }
 
 float YouKnowEngine::vcfEffectiveCutoffHz(float counts,
-                                             float feedback) noexcept
+                                             float calibrationFeedback,
+                                             int referenceCard) noexcept
 {
-    const float rawHz = vcfAntilogHz(counts)
-        * VoicedResonanceCompatibilityProfile::frequencyTrim(feedback);
+    // Service Notes p. 13 connects VR29 FREQ/VR28 WIDTH only to the cutoff
+    // path; VR26 RES feeds a separate grounded-base transistor/BA662. Page
+    // 19 adjusts the two frequency trimmers AFTER the 4.8Vp-p full-RES trim.
+    // Their setting cannot subsequently follow the resonance slider.
+    // The engine therefore passes the card's fixed full-RES service-condition
+    // feedback here. Its legacy comparison passes the live feedback instead.
+    // https://www.synfo.nl/servicemanuals/Roland/ROLAND_JUNO-106_SERVICE_NOTES_1st.pdf
+    const bool reference = referenceCard >= 0
+        && referenceCard < static_cast<int>(serviced439522Vcf.size());
+    float antilogHz = vcfAntilogHz(counts);
+    float saturationHz = vcfControlSaturationHz;
+    if (reference)
+    {
+        const auto& calibration = serviced439522Vcf[static_cast<std::size_t>(referenceCard)];
+        const float safeCounts = std::clamp(sanitised(counts, 0.0f), -2000.0f, 20000.0f);
+        antilogHz = static_cast<float>(calibration.baseHertz
+            * std::exp2(static_cast<double>(safeCounts)
+                * calibration.centsPerByte / (128.0 * 1200.0)));
+        saturationHz = static_cast<float>(calibration.selfOscillationCeilingHertz)
+            * VoicedResonanceCompatibilityProfile::frequencyTrim(
+                VoicedResonanceCompatibilityProfile::maximumFeedback);
+    }
+    const float rawHz = antilogHz
+        * VoicedResonanceCompatibilityProfile::frequencyTrim(calibrationFeedback);
     // The transconductor's control current saturates internally, so the pole
     // stops following the anti-log converter near the top of the slider. The
     // generalized algebraic clip keeps the law numerically exact through the
     // musical range -- under five cents of correction below 2.7 kHz -- and
     // bends it only as the current approaches its own limit.
     const double normalised = static_cast<double>(rawHz)
-                            / static_cast<double>(vcfControlSaturationHz);
+                            / static_cast<double>(saturationHz);
     const double exponent = static_cast<double>(vcfControlSaturationExponent);
     const double saturated = static_cast<double>(rawHz)
         / algebraicSoftClipDenominator(normalised, exponent);
-    return std::min(vcfSafetyCapHz, static_cast<float>(saturated));
+    // The identified capture reaches 51.35kHz, so the nominal 50kHz product
+    // cap would invalidate its upper held-outs. This opt-in profile keeps
+    // its explicit historical-model fit bound; both render paths additionally
+    // cap every physical pole at 0.45 of the actual internal sample rate.
+    return std::min(reference ? 72900.0f : vcfSafetyCapHz,
+                    static_cast<float>(saturated));
 }
 
 float YouKnowEngine::chassisGradientCelsius(int cardIndex) noexcept
@@ -1172,6 +1202,26 @@ YouKnowEngine::converterEventPhases(ConverterTimingProfile profile) noexcept
     if (profile == ConverterTimingProfile::PhaseZeroDiagnostic)
         return phases;
 
+    if (profile == ConverterTimingProfile::FirmwareDcoNoInterrupt)
+    {
+        phases = converterEventPhases(ConverterTimingProfile::MeasuredChartGeometry);
+        // Preserve the unresolved first-DCO and non-DCO anchors. The relative
+        // five gaps have a stronger source than drafting proportions: the B-2
+        // path 0493 -> 0496..04a1 -> 041c..0493 is 867 states for an unclamped,
+        // running voice, not the chart's 223.7..227.1 us. Actual branch costs
+        // are installed by refreshFirmwareDcoTiming at each logical pass.
+        // https://github.com/ErroneousBosh/j106roms/blob/26926a04ff1939106820313e71e34b4ca2f67070/ic29.txt#L681-L763
+        // NEC uPD7810/11 instruction table pp. 17-26 (states, not clocks):
+        // https://datasheet4u.com/pdf/298676/UPD7810.pdf#page=17
+        // AuditDcoFirmwareTiming independently walks the instruction path and
+        // also checks the previously recovered T-334/-323/-389 PIT anchors.
+        for (std::size_t ordinal = 4; ordinal < 9; ++ordinal)
+            phases[ordinal] = phases[ordinal - 1]
+                + firmwareDcoInterWriteStates(false, 60)
+                    * controlScanHz / voiceCpuStateHz;
+        return phases;
+    }
+
     if (profile == ConverterTimingProfile::MeasuredChartGeometry)
     {
         // The Service Notes p. 8 "D/A & S/H TIMING CHART", measured from the
@@ -1450,6 +1500,24 @@ float YouKnowEngine::pwmDutyCycle(float controlVolts,
     const float scale = std::clamp(
         sanitised(rampAmplitudeScale, 1.0f), 0.25f, 4.0f);
     return std::clamp(1.0f - volts / (12.0f * scale), 0.0f, 1.0f);
+}
+
+const VcaControlCircuit& YouKnowEngine::voiceVcaControlCircuit() noexcept
+{
+    // Exact upstream nominal tables and knee coordinates, frozen to avoid
+    // guarded static initialization and any table solve on the audio thread.
+    static constexpr std::array<double, VcaControlCircuit::tableSteps + 1> charge {{
+#include "YouKnowVcaControlChargeTable.inc"
+    }};
+    static constexpr std::array<double, VcaControlCircuit::tableSteps + 1> differential {{
+#include "YouKnowVcaControlDifferentialTable.inc"
+    }};
+    static constexpr VcaControlCircuit circuit {
+        charge, differential,
+        VoiceVcaControlLaw::turnOn + 8.0 * thermalVoltage
+            / CircuitDerivedResonanceProfile::controlFullScaleVolts,
+        0.5 * thermalVoltage / CircuitDerivedResonanceProfile::controlFullScaleVolts };
+    return circuit;
 }
 
 const std::array<float, YouKnowEngine::VoiceVcaControlLaw::tableSteps + 1>&
@@ -4610,6 +4678,7 @@ YouKnowEngine::YouKnowEngine() noexcept
     // Function-local statics are thread-safe, but their first-use guards and
     // exponentials do not belong in the first audio callback.
     (void) chassisGradientMeanCelsius();
+    (void) SubLevelDiodeLaw::table();
     buildVoiceCards();
     refreshVoiceCardThermalScales();
     clearHeldNotes();
@@ -4942,6 +5011,8 @@ void YouKnowEngine::setInitialOversamplingFactor(int factor) noexcept
 
 void YouKnowEngine::updateProcessingRate(bool preserveFreeRunningState) noexcept
 {
+    // Prepare the control circuit's table before entering the audio callback.
+    (void) voiceVcaControlCircuit();
     const double previousProcessingRate = oversampledRate_;
     oversampling_ = effectiveOversampleFactor(oversamplingApplied_);
 
@@ -5003,6 +5074,8 @@ void YouKnowEngine::updateProcessingRate(bool preserveFreeRunningState) noexcept
     // C14's load and the following HPF are selected by one panel switch.  Their
     // coefficients move only with that mode or this internal rate.
     updateSharedHighPass(activeParameters_);
+    if (highPassSwitchResistance_ > 0)
+        highPassSwitch_.prepare(oversampledRate_, highPassSwitchResistance_);
     // The two cut legs' undriven corners: each leg's own passband corner
     // scaled by highPassDepartRatio. 225.8 Hz -> 10.14 Hz leaving Two,
     // 720.5 Hz -> 32.34 Hz leaving Three. Both sit far below every supported
@@ -5203,6 +5276,7 @@ void YouKnowEngine::clearRateDependentOutputPath(
     if (!preserveFreeRunningState)
     {
         voiceBusCoupling_.reset();
+        highPassSwitch_.reset();
         highPass_.reset();
         highPassTwoLeg_.reset();
         highPassThreeLeg_.reset();
@@ -5322,6 +5396,7 @@ void YouKnowEngine::reset()
         voice.dco.reset();
         voice.filter.reset();
         voice.moduleCoupling.reset();
+        voice.coupledMixer.reset();
         voice.vcaInputCoupling.reset();
         voice.vcaInputVolts = 0.0f;
         voice.envelope.reset();
@@ -5376,6 +5451,7 @@ void YouKnowEngine::reset()
     rangeClockClocksToReload_ = 0.0;
     rangeClockTransitionPending_ = false;
     controlScanPhase_ = 1.0;
+    activeConverterTimingProfile_ = converterTimingProfile_;
     converterEventPhases_ = converterEventPhases(converterTimingProfile_);
     nextConverterWrite_ = 0;
     converterPassLfoGated_ = 0.0f;
@@ -5548,6 +5624,24 @@ float YouKnowEngine::processMainNoiseSource(
     return resolvedC41Memory ? rail : rail * level;
 }
 
+bool YouKnowEngine::configureCoupledMixer(
+    const CoupledSubMixer::Calibration& calibration) noexcept
+{
+    if (prepared_ || !calibration.valid())
+        return false;
+    coupledMixerCalibration_ = calibration;
+    coupledMixerEnabled_ = true;
+    return true;
+}
+
+bool YouKnowEngine::configureHighPassSwitch(double resistance) noexcept
+{
+    if (prepared_ || !std::isfinite(resistance) || resistance < 50 || resistance > 1000)
+        return false;
+    highPassSwitchResistance_ = resistance;
+    return true;
+}
+
 void YouKnowEngine::setParameters(const EngineParameters& parameters)
 {
     // Before the first valid prepared audio interval, even an equal snapshot has
@@ -5582,6 +5676,12 @@ void YouKnowEngine::setParameters(const EngineParameters& parameters)
     const bool rampCurrentScalesChanged = startupSnapshot
         || next.calibration != activeParameters_.calibration;
     const bool agingChanged = next.aging != activeParameters_.aging;
+    if (next.useFixedVcfServiceFrequencyTrim
+            != activeParameters_.useFixedVcfServiceFrequencyTrim
+        || next.useServiced439522VcfCalibration
+            != activeParameters_.useServiced439522VcfCalibration)
+        for (auto& voice : voices_)
+            voice.cutoffChainCounts = -1.0e30f;
     // Before the first valid prepared audio interval, a host snapshot is the
     // power-up image rather than a timed panel move. `panelGlidePrimed_` is
     // already the exact one-shot marker for that boundary: invalid/zero calls
@@ -6032,6 +6132,7 @@ void YouKnowEngine::silenceVoice(Voice& voice) noexcept
         voice.pulseThresholdPrimed = false;
         voice.filter.reset();
         voice.moduleCoupling.reset();
+        voice.coupledMixer.reset();
         voice.vcaInputCoupling.reset();
         voice.vcaInputVolts = 0.0f;
         voice.noiseState = hash32(
@@ -6154,6 +6255,49 @@ void YouKnowEngine::restartVoiceBoardScanAfterSerialVoiceCommand() noexcept
     controlScanPhase_ = passBoundaryWasAlreadyDue ? 1.0 : 0.0;
     nextConverterWrite_ = 0;
     passiveHoldEventLatch_ = {};
+    refreshFirmwareDcoTiming();
+}
+
+void YouKnowEngine::refreshFirmwareDcoTiming() noexcept
+{
+    if (activeConverterTimingProfile_
+        != ConverterTimingProfile::FirmwareDcoNoInterrupt)
+        return;
+
+    // This is deliberately an opt-in *partial* no-interrupt candidate. The
+    // first DCO/other destinations and 4.2 ms pass retain chart policy. B-2's
+    // full loop has data-dependent work and no timer wait at 07b5; replacing
+    // the whole scheduler requires a complete instruction trace, not a rescale
+    // of these gaps. Serial wire/entry time, pin edges and mux acquisition
+    // remain unmeasured. No latency is added to incoming host events.
+    //
+    // Predict only the next pitch/reset branch from the logical pass snapshot.
+    // A host edit after this snapshot can change the later transaction's data;
+    // its branch-time effect is outside this candidate's qualification. This
+    // explicit limit is why the shipping profile does not select it yet.
+    const auto& p = activeParameters_;
+    const float glide = resolveGlideStepPerScan(
+        portamentoTravelAdcFraction(p.portamento));
+    const std::int32_t controlOffset = masterTunePitchWordOffset(p.masterTuneCents)
+        + dcoPitchBendWord_ + dcoLfoPitchWord_;
+    for (int slot = 1; slot < hardwareVoices; ++slot)
+    {
+        const auto& voice = voices_[static_cast<std::size_t>(slot)];
+        const float target = voice.rootMidi >= 0
+            ? static_cast<float>(voice.rootMidi + p.keyTranspose)
+            : voice.targetMidi;
+        const float nextMidi = glide > 0.0f
+            ? voice.currentMidi + std::clamp(target - voice.currentMidi, -glide, glide)
+            : target;
+        const auto word = aggregatePitchWord(nextMidi, controlOffset);
+        const bool reset = voice.dcoResetPending
+            || (voice.rootMidi >= 0 && pitchChangeRequestsDcoReset(
+                    voice, voice.rootMidi + p.keyTranspose));
+        const auto ordinal = static_cast<std::size_t>(slot + 3);
+        converterEventPhases_[ordinal] = converterEventPhases_[ordinal - 1]
+            + firmwareDcoInterWriteStates(reset, static_cast<std::uint8_t>(word >> 8u))
+                * controlScanHz / voiceCpuStateHz;
+    }
 }
 
 void YouKnowEngine::assignHeldNote(int midiNote, float velocity) noexcept
@@ -6694,7 +6838,8 @@ float YouKnowEngine::voiceVcfTarget(
     // produced, so it stays on the hold capacitor and reaches the filter.
     // Crossing mid-scale on a slow sweep therefore steps by about 23 cents,
     // as a real card's does.
-    return code + vcfConverterCarryCounts(code) * parameters.calibration;
+    return code + vcfConverterCarryCounts(code)
+        * (parameters.useServiced439522VcfCalibration ? 1.0f : parameters.calibration);
 }
 
 void YouKnowEngine::updateVoiceVcaTarget(
@@ -7156,6 +7301,10 @@ void YouKnowEngine::updateVoiceAudio(Voice& voice,
 
     const float analogCounts = cutoffAnalogCounts(
         voice.cutoffCounts, card, tolerance, powerSupplyDroop_);
+    const float calibrationFeedback = parameters.useFixedVcfServiceFrequencyTrim
+        ? resonanceFeedbackFor(1.0f, card, tolerance,
+            parameters.useCircuitDerivedResonanceShape)
+        : voice.feedback;
     // The chain from counts to the physical omega*dt interval costs an exp2
     // and two double pow calls per card, per internal sample -- and it is a
     // pure function of the two values compared here. A card whose hold has
@@ -7164,17 +7313,18 @@ void YouKnowEngine::updateVoiceAudio(Voice& voice,
     // instrument does. The guard is exact equality, so the cache can only
     // return the value the chain would have recomputed.
     if (analogCounts != voice.cutoffChainCounts
-        || voice.feedback != voice.cutoffChainFeedback)
+        || calibrationFeedback != voice.cutoffChainFeedback)
     {
 #if defined(YOUKNOW_WORK_AUDIT)
         YOUKNOW_COUNT_DOMAIN_WORK(cutoffMemoMisses, 1);
 #endif
-        const float cutoffHz = vcfEffectiveCutoffHz(analogCounts, voice.feedback);
+        const float cutoffHz = vcfEffectiveCutoffHz(analogCounts, calibrationFeedback,
+            parameters.useServiced439522VcfCalibration ? voice.cardIndex : -1);
         const float limited =
             std::min(cutoffHz, static_cast<float>(oversampledRate_) * 0.45f);
         voice.filterOmegaStep = twoPi * limited * inverseOversampledRate_;
         voice.cutoffChainCounts = analogCounts;
-        voice.cutoffChainFeedback = voice.feedback;
+        voice.cutoffChainFeedback = calibrationFeedback;
     }
 #if defined(YOUKNOW_WORK_AUDIT)
     else
@@ -7306,7 +7456,9 @@ float YouKnowEngine::subWaveNodeMean(
     if (!parameters.enableSubHalfWaveNodeCoupling)
         return 0.0f;
     const auto& card = cards_[static_cast<std::size_t>(voice.cardIndex)];
-    return subMixVolts * static_cast<float>(subCv_)
+    const float subCurrent = parameters.enableSubDiodeControl
+        ? SubLevelDiodeLaw::gain(subCv_) : static_cast<float>(subCv_);
+    return subMixVolts * subCurrent
          * (1.0f + card.subLevelError * 0.03f * parameters.calibration);
 }
 
@@ -7329,6 +7481,16 @@ void YouKnowEngine::primeVoiceWaveNode(
     voice.moduleCoupling.state = static_cast<double>(
         pulseWaveNodeMean(voice, parameters)
         + subWaveNodeMean(voice, parameters));
+    if (coupledMixerEnabled_)
+    {
+        const auto& c = coupledMixerCalibration_;
+        // Same settled-mean startup policy as the compatibility network.
+        // This is not a claim about power-on charge or the nonlinear periodic
+        // mean; the audit allows settling before measuring steady windows.
+        voice.coupledMixer.prime(c,
+            c.sourceBiasVolts + c.sourceScale * pulseWaveNodeMean(voice, parameters),
+            CoupledSubMixer::railFullScaleVolts * subCv_, 0.5);
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -7763,7 +7925,15 @@ YouKnowEngine::VoiceFilterFrame YouKnowEngine::prepareVoiceFilter(
     if (!voice.active && voice.cardIndex >= hardwareVoices)
         return {};
 
-    if (!voice.active && parameters.vcfTanhMode != VcfTanhMode::Exact)
+    // A retired physical card's render is computed and then discarded: the
+    // caller drops the sample, so the only thing this pass can change is the
+    // free-running state a later reassignment starts from. Under the fast
+    // tanh modes that state is advanced directly, at a fraction of the cost.
+    // Exact keeps the established full render, so the reference kernel's
+    // frozen fingerprints and work counters are untouched -- and switching
+    // back to Exact is the way to switch this behaviour off.
+    if (!voice.active && parameters.vcfTanhMode != VcfTanhMode::Exact
+        && !coupledMixerEnabled_)
     {
         freewheelVoiceCard(voice);
         return {};
@@ -7805,7 +7975,9 @@ YouKnowEngine::VoiceFilterFrame YouKnowEngine::prepareVoiceFilter(
     // timestamps above; their logic levels are independent of ramp amplitude.
     const float pulseOut =
         dco.pulse.advance(dco.pulseState) * pulseMixVolts;
-    const float subGain = subMixVolts * static_cast<float>(subCv_)
+    const float subCurrent = parameters.enableSubDiodeControl
+        ? SubLevelDiodeLaw::gain(subCv_) : static_cast<float>(subCv_);
+    const float subGain = subMixVolts * subCurrent
         * (1.0f + card.subLevelError * 0.03f * parameters.calibration);
     // Half-wave: AC +/- subGain as before, plus a +subGain mean (see the
     // summing-node note below). The comparison switch keeps the zero-mean
@@ -7833,9 +8005,12 @@ YouKnowEngine::VoiceFilterFrame YouKnowEngine::prepareVoiceFilter(
     // sources (9.92 V * subCv - V_D6) / 60k, roughly 155 uA at full scale
     // for a ~0.6 V drop (the D6 part is unread), on the half-cycle Tr19 is
     // off and nothing on the other -- so its mean rides on this node for
-    // C56/C50 to remove; the level law stays linear in the held rail (the
-    // diode's onset and the saw-dependent modulation of the sub current
-    // through the node's own swing are OQ-15). The node's
+    // C56/C50 to remove. SubLevelDiodeLaw supplies the measured aggregate
+    // onset/soft knee at a settled WAVE bias; false enableSubDiodeControl
+    // restores the old linear rail law. Saw-dependent modulation through
+    // the node's swing remains calibration-dependent: the explicit coupled
+    // candidate above can represent it, but has no installed-unit defaults.
+    // The compatibility node's
     // DC-to-AC impedance ratio is voiced at 1, the floor of its <= 2 bracket,
     // inside the already-voiced subMixVolts coordinate. This is NOT the
     // removed "sub-driver amplitude asymmetry" (a fabricated 0.3 % inequality
@@ -7856,7 +8031,8 @@ YouKnowEngine::VoiceFilterFrame YouKnowEngine::prepareVoiceFilter(
     if (pulseMixEnabled(parameters.pulseEnabled, voice.pulseDuty,
                         parameters.enablePulseOffWaveNodeCoupling))
         mixed += pulseOut;
-    mixed += subOut;
+    if (!coupledMixerEnabled_)
+        mixed += subOut;
     mixed += noiseSample
            * (1.0f + card.noiseLevelError * 0.03f * parameters.calibration)
            * agedNoiseGain_;
@@ -7884,8 +8060,26 @@ YouKnowEngine::VoiceFilterFrame YouKnowEngine::prepareVoiceFilter(
     // puts it on the jack board, downstream of the summing amplifier, so it is
     // one shared stage after all six voices rather than a leg inside each --
     // see the mix.
-    const float coupled = voice.moduleCoupling.process(
-        mixed, moduleCouplingG_, 0.0f, 1.0f);
+    float coupled;
+    if (coupledMixerEnabled_)
+    {
+        const auto& c = coupledMixerCalibration_;
+        // Required calibration maps the existing no-sub source sum to the
+        // physical Thevenin source. The coupled solve replaces BOTH the
+        // independent sub add and C56: its output is already volts at VCF IN.
+        // Divide out the compatibility coordinate here so the existing
+        // compensation/core path below receives those physical volts once.
+        // Inactive cards run the same solve, preserving real capacitor charge;
+        // the old freewheel mean is invalid for this nonlinear network.
+        const auto node = voice.coupledMixer.process(c,
+            c.sourceBiasVolts + c.sourceScale * mixed,
+            CoupledSubMixer::railFullScaleVolts * subCv_,
+            0.5 * (1.0 + subTrack), inverseOversampledRate_);
+        coupled = static_cast<float>(node.filterVolts / filterInputAttenuation);
+    }
+    else
+        coupled = voice.moduleCoupling.process(
+            mixed, moduleCouplingG_, 0.0f, 1.0f);
     // The microscopic card excitation is injected at the filter input, after
     // the source coordinate scale, so it stays outside this capacitor (OQ-16).
     // With the differential form the compensation rides inside the resonance
@@ -7935,8 +8129,13 @@ YouKnowEngine::VoiceFilterFrame YouKnowEngine::prepareVoiceFilter(
             const float mappedAnalogCounts = cutoffAnalogCounts(
                 static_cast<float>(cutoffCounts), card, parameters.calibration,
                 powerSupplyDroop_);
+            const float calibrationFeedback = parameters.useFixedVcfServiceFrequencyTrim
+                ? resonanceFeedbackFor(1.0f, card, parameters.calibration,
+                    parameters.useCircuitDerivedResonanceShape)
+                : mappedFeedback;
             const float cutoffHz = vcfEffectiveCutoffHz(
-                mappedAnalogCounts, mappedFeedback);
+                mappedAnalogCounts, calibrationFeedback,
+                parameters.useServiced439522VcfCalibration ? voice.cardIndex : -1);
             const float limited = std::min(
                 cutoffHz, static_cast<float>(oversampledRate_) * 0.45f);
             const float baseOmega = twoPi * limited
@@ -8324,6 +8523,12 @@ void YouKnowEngine::process(float* left, float* right, int numSamples)
 
     const auto& parameters = activeParameters_;
 
+    // Resolve a reference calibration once per block, before the shared
+    // Tr21/C42/BA662/C41 path. Nominal is exactly unity; the profile changes
+    // source level only and leaves the measured control/spectral laws intact.
+    const float mainNoiseSourceScale = parameters.mainNoiseLevelScale
+        * mainNoiseCalibrationScale(parameters.mainNoiseCalibrationProfile);
+
     if (!panelGlidePrimed_)
     {
         glidedVolume_ = parameters.volume;
@@ -8450,6 +8655,7 @@ void YouKnowEngine::process(float* left, float* right, int numSamples)
                     ? pwmDacCode(parameters.pwmDepth, parameters.pwmSource,
                                  lfoAccumulator_, lfoPolarity_ >= 0.0f)
                     : 0u;
+                refreshFirmwareDcoTiming();
 
                 // Slots above the six physical cards are an explicit product
                 // extension. They reuse one complete logical update at the
@@ -8621,7 +8827,7 @@ void YouKnowEngine::process(float* left, float* right, int numSamples)
             noiseState_ = xorshift32(noiseState_);
             const float rawNoise =
                 bipolarFromState(noiseState_) * noiseRateScale_
-                * parameters.mainNoiseLevelScale;
+                * mainNoiseSourceScale;
             // The hold voltage is what moves; Tr22 converts it to control
             // current instantaneously, so the onset law is applied after the
             // hold and ahead of both the C41-driven and legacy level paths.
@@ -8732,7 +8938,25 @@ void YouKnowEngine::process(float* left, float* right, int numSamples)
                     && physicalHoldEvent.write.destination
                            == ConverterDestination::VoiceVca
                     && physicalHoldEvent.write.voice == slot;
-                voice.vcaControl = voiceVcaEvent
+                if (parameters.enableCoupledVoiceVcaControl)
+                {
+                    const auto& circuit = voiceVcaControlCircuit();
+                    const double dt = coefficients.internalIntervalSeconds;
+                    if (voiceVcaEvent)
+                    {
+                        voice.vcaControl = circuit.advance(
+                            voice.vcaControl, physicalHoldEvent.previousTarget,
+                            dt * physicalHoldEvent.position);
+                        voice.vcaControl = circuit.advance(
+                            voice.vcaControl, physicalHoldEvent.target,
+                            dt * (1.0 - physicalHoldEvent.position));
+                    }
+                    else
+                        voice.vcaControl = circuit.advance(
+                            voice.vcaControl, voice.vcaControlTarget, dt);
+                }
+                else
+                    voice.vcaControl = voiceVcaEvent
                     ? exactOnePoleHoldEndpoint(
                         voice.vcaControl,
                         physicalHoldEvent.previousTarget, true,
@@ -8750,9 +8974,11 @@ void YouKnowEngine::process(float* left, float* right, int numSamples)
                 // still needs the comparator duty when the Pulse-Off WAVE-node
                 // model is live: its slow C56/C50 state follows the endpoint at
                 // low carrier rates and that duty mean at high rates. The
-                // expensive filter/audio coefficients remain skipped.
+                // expensive filter/audio coefficients remain skipped unless
+                // the coupled mixer keeps the complete physical card live.
                 const bool freewheels = !voice.active
-                    && parameters.vcfTanhMode != VcfTanhMode::Exact;
+                    && parameters.vcfTanhMode != VcfTanhMode::Exact
+                    && !coupledMixerEnabled_;
                 const bool hasAudioCell = voice.active || slot < hardwareVoices;
                 if (hasAudioCell
                     && (!freewheels
@@ -8946,6 +9172,12 @@ void YouKnowEngine::process(float* left, float* right, int numSamples)
                     shaped += boostLeg;
             }
 
+            if (highPassSwitchResistance_ > 0)
+                shaped = static_cast<float>(highPassSwitch_.process(
+                    busIn, static_cast<int>(parameters.highPass), [](double value) {
+                        return static_cast<double>(outputSummerClip(static_cast<float>(value)));
+                    }));
+
             // VCA LEVEL is the one common uPC1252H2 on the jack board, after
             // the voice sum and HPF. The six voice-module VCAs above are driven
             // only by ENV/GATE (plus the optional velocity extension).
@@ -8993,7 +9225,8 @@ void YouKnowEngine::process(float* left, float* right, int numSamples)
                                 parameters.useChorusRateNoiseHypothesis,
                                 parameters.enableNarrowOneTwoChorus,
                                 parameters.enableChorusMuteDrive,
-                                parameters.enableChorusLineGainSpread);
+                                parameters.enableChorusLineGainSpread,
+                                parameters.useA11EffectiveChorusTimingProfile);
 
             // TA75558S IC6 has finite loaded output swing inside its +/-15 V
             // supplies. The modelled 13.5 V asymptote and knee are provisional

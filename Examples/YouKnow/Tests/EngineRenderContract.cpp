@@ -110,6 +110,33 @@ struct YouKnowTestAccess
     {
         return engine.voices_[static_cast<std::size_t>(slot)].dco.divider;
     }
+
+    static void seedVcfControlInterval(YouKnowEngine& engine, int slot,
+                                       float resonance) noexcept
+    {
+        auto& voice = engine.voices_[static_cast<std::size_t>(slot)];
+        voice.active = voice.keyDown = true;
+        voice.rootMidi = 60;
+        voice.energy = 0;
+        voice.filter.reset();
+        voice.currentMidi = voice.targetMidi = 60;
+        voice.cutoffCounts = voice.cutoffCountsTarget = 6000.0f;
+        voice.vcaControl = voice.vcaControlTarget = 0.5;
+        engine.resonanceCv_ = engine.resonanceCvTarget_ = resonance;
+        engine.controlScanPhase_ = -100.0;
+        engine.nextConverterWrite_ = 0;
+        engine.passiveHoldEventLatch_ = {};
+        engine.powerSupplyDroop_ = 0;
+        engine.driftControlCountdown_ = 1000000;
+        for (auto& card : engine.cards_)
+            card.driftValue = 0;
+        engine.updateActiveVoiceCount();
+    }
+
+    static float vcfPoleOmega(const YouKnowEngine& engine, int slot) noexcept
+    {
+        return engine.voices_[static_cast<std::size_t>(slot)].filterOmegaStep;
+    }
 };
 } // namespace youknow
 
@@ -298,11 +325,16 @@ bool testNewParameterEqualityFields()
         &Parameters::enablePulseOffWaveNodeCoupling,
         &Parameters::enableSubHalfWaveNodeCoupling,
         &Parameters::enableVoiceVcaSignalSaturation,
+        &Parameters::enableCoupledVoiceVcaControl,
+        &Parameters::enableSubDiodeControl,
         &Parameters::enableNoiseLevelBeforeC41,
         &Parameters::useCircuitDerivedNoiseLevelShape,
         &Parameters::enableNarrowOneTwoChorus,
         &Parameters::enableChorusMuteDrive,
         &Parameters::enableChorusLineGainSpread,
+        &Parameters::useA11EffectiveChorusTimingProfile,
+        &Parameters::useFixedVcfServiceFrequencyTrim,
+        &Parameters::useServiced439522VcfCalibration,
         &Parameters::enableHighPassDepartingLegTail,
         &Parameters::enableDifferentialResonanceInput,
         &Parameters::useSoftplusVoiceVcaCompatibilityLaw,
@@ -320,11 +352,128 @@ bool testNewParameterEqualityFields()
     aged.aging = 1.0f;
     auto noise = base;
     noise.mainNoiseLevelScale = 1.2f;
+    auto noiseProfile = base;
+    noiseProfile.mainNoiseCalibrationProfile =
+        youknow::MainNoiseCalibrationProfile::Serviced439522;
     auto resonance = base;
     resonance.resonanceCompensationShape =
         youknow::ResonanceCompensationShape::Drawn;
     return base == base && !(base == aged) && !(base == noise)
-        && !(base == resonance);
+        && !(base == resonance) && !(base == noiseProfile);
+}
+
+bool testCalibrationDefaultsAndNoiseProfile()
+{
+    using namespace youknow;
+    const EngineParameters defaults;
+    if (!defaults.enableCoupledVoiceVcaControl
+        || !defaults.enableSubDiodeControl
+        || !defaults.useFixedVcfServiceFrequencyTrim
+        || defaults.useA11EffectiveChorusTimingProfile
+        || defaults.useServiced439522VcfCalibration
+        || defaults.mainNoiseCalibrationProfile != MainNoiseCalibrationProfile::Nominal
+        || mainNoiseCalibrationScale(static_cast<MainNoiseCalibrationProfile>(255)) != 1.0f)
+        return false;
+
+    // The reference-unit noise fit changes only the shared source amplitude.
+    // Compare the complete stereo path against the existing scalar control,
+    // and against one-frame callbacks to exercise scheduler independence.
+    using Audio = std::array<std::array<float, 4096>, 2>;
+    const auto render = [](EngineParameters parameters, int count, Audio& audio) {
+        YouKnowEngine engine;
+        engine.prepare(48000.0, blockSize, 1);
+        parameters.vcfTanhMode = VcfTanhMode::PolyZoned;
+        parameters.vcfFastEarlyMode = VcfFastEarlyMode::Cubic;
+        parameters.vcfSolverMode = VcfSolverMode::Rk4Single;
+        parameters.chorus = ChorusMode::Off;
+        parameters.chorusNoise = 0;
+        engine.setParameters(parameters);
+        for (int note : { 48, 55, 60 })
+            engine.noteOn(note, 1.0f);
+        for (int frame = 0; frame < 4096; frame += count)
+        {
+            const int interval = std::min(count, 4096 - frame);
+            engine.process(audio[0].data() + frame, audio[1].data() + frame, interval);
+        }
+        for (const auto& channel : audio)
+            for (float value : channel)
+                if (!std::isfinite(value))
+                    return false;
+        return true;
+    };
+    EngineParameters nominal;
+    nominal.noiseLevel = 1;
+    nominal.sawEnabled = nominal.pulseEnabled = false;
+    nominal.cutoff = 0.38f;
+    nominal.resonance = 0.85f;
+    auto reference = nominal;
+    reference.mainNoiseCalibrationProfile = MainNoiseCalibrationProfile::Serviced439522;
+    auto scalar = nominal;
+    scalar.mainNoiseLevelScale = mainNoiseCalibrationScale(reference.mainNoiseCalibrationProfile);
+    Audio named {}, comparison {};
+    if (!render(reference, blockSize, named)
+        || !render(scalar, blockSize, comparison) || named != comparison
+        || !render(reference, 1, comparison) || named != comparison
+        || !render(nominal, blockSize, comparison) || named == comparison)
+        return false;
+    nominal.noiseLevel = reference.noiseLevel = 0;
+    nominal.sawEnabled = reference.sawEnabled = true;
+    return render(nominal, blockSize, named)
+        && render(reference, blockSize, comparison) && named == comparison;
+}
+
+bool testFixedVcfTrimAndProfileRoundTrip()
+{
+    using namespace youknow;
+    // The frequency trimmers have one physical setting at every resonance.
+    // Reuse the engine through profile changes while the held cutoff stays
+    // identical: a stale cutoff memo would silently retain the old profile.
+    for (const auto kernel : { VcfTanhMode::Exact, VcfTanhMode::PolyZoned })
+    for (int factor : { 1, 4 })
+    for (int slot = 0; slot < 6; ++slot)
+    {
+        YouKnowEngine engine;
+        engine.prepare(48000.0, 1, factor);
+        EngineParameters parameters;
+        parameters.calibration = 0;
+        parameters.vcfTanhMode = kernel;
+        parameters.vcfFastEarlyMode = VcfFastEarlyMode::Cubic;
+        parameters.vcfSolverMode = kernel == VcfTanhMode::Exact
+            ? VcfSolverMode::MersonHalfSteps : VcfSolverMode::Rk4Single;
+        parameters.sawEnabled = parameters.pulseEnabled = false;
+        parameters.subLevel = parameters.noiseLevel = 0;
+        parameters.enableVcfStageOffsets = false;
+        parameters.enablePulseOffWaveNodeCoupling = false;
+        parameters.chorus = ChorusMode::Off;
+        const auto corner = [&](float resonance) {
+            engine.setParameters(parameters);
+            YouKnowTestAccess::seedVcfControlInterval(engine, slot, resonance);
+            float left {}, right {};
+            engine.process(&left, &right, 1);
+            return std::isfinite(left) && std::isfinite(right)
+                ? YouKnowTestAccess::vcfPoleOmega(engine, slot) : -1.0f;
+        };
+        parameters.useFixedVcfServiceFrequencyTrim = false;
+        const float legacyQuiet = corner(0);
+        const float legacyFull = corner(1);
+        if (!(legacyQuiet > 0 && legacyFull > legacyQuiet * 1.05f))
+            return false;
+        parameters.useFixedVcfServiceFrequencyTrim = true;
+        for (float resonance : { 1.0f, 0.0f, 0.5f, 0.9f })
+            if (corner(resonance) != legacyFull)
+                return false;
+        parameters.useServiced439522VcfCalibration = true;
+        const float reference = corner(0);
+        if (!(reference > 0) || reference == legacyFull)
+            return false;
+        parameters.useServiced439522VcfCalibration = false;
+        if (corner(0) != legacyFull)
+            return false;
+        parameters.useFixedVcfServiceFrequencyTrim = false;
+        if (corner(0) != legacyQuiet)
+            return false;
+    }
+    return true;
 }
 
 bool testReasonMasterTuneRange()
@@ -799,6 +948,8 @@ int main()
                        youknow::VcfSolverMode::MersonHalfSteps,
                        youknow::ChorusMode::OneTwo)
         && testNewParameterEqualityFields()
+        && testCalibrationDefaultsAndNoiseProfile()
+        && testFixedVcfTrimAndProfileRoundTrip()
         && testReasonMasterTuneRange()
         && testAgingPath()
         && testInitialQualitySelection()

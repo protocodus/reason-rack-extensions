@@ -70,6 +70,8 @@ def positions():
     placed["S_placeholder"] = tuple(R.PLACEHOLDER_POS)
     placed.update({f"S_cv_input_{name}": (x, y)
                    for name, _, x, y in R.REAR_CV_INPUTS})
+    placed.update({f"S_audio_output_{name}": (x, y)
+                   for name, _, x, y in R.REAR_AUDIO_OUTPUTS})
     placed.update({f'S_status_{item["name"]}': (item["x"], R.ENGINE_STATUS_Y)
                    for item in R.ENGINE_STATUS})
     key_mode_x = next(
@@ -211,6 +213,18 @@ def sync_gui_lua(placed):
         r"(transform = )\{ (-?[\d.]+), (-?[\d.]+) \}"
         r"((?:(?!transform = \{)[\s\S])*?value = )property\(\"(\w+)\"\)",
         block, chunk))
+
+    def socket_transform(match):
+        head, kind, name = match.groups()
+        node = f"S_cv_input_{name[:-3]}" if kind == "cv_inputs" else f"S_audio_output_{name}"
+        x, y = placed[node]
+        seen.add(node)
+        return f'{head}transform = {{ {x}, {y} }},\n\t\t\tsocket = "/{kind}/{name}"'
+
+    text = re.sub(
+        r'(jbox\.(?:cv_input|audio_output)_socket\{\s*\n\s*)'
+        r'transform = \{ -?[\d.]+, -?[\d.]+ \},\s*'
+        r'socket = "/(cv_inputs|audio_outputs)/([^\"]+)"', socket_transform, text)
     GUI_LUA.write_text(text)
     return seen
 

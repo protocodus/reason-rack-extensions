@@ -2,8 +2,8 @@
 """Build the complete deterministic YouKnow Reason GUI asset set.
 
 The rack face is rendered directly at Reason's 5x authoring resolution. All
-panel geometry, furniture, labels, and branding are drawn by this renderer;
-no external reference bitmap is embedded.
+panel geometry, furniture, labels, and branding are drawn by this renderer.
+The front's material uses the original YouKnow charcoal-plastic texture.
 
 `LAYOUT`, `REAR_CONTROLS`, and `REAR_CV_INPUTS` below define control geometry.
 The silkscreen is drawn from them and `validate()` asserts that GUI2D and
@@ -12,13 +12,15 @@ can never drift away from the control it names.
 """
 
 from pathlib import Path
+from functools import lru_cache
 import math
 import os
+import random
 import re
 import shutil
 import xml.etree.ElementTree as ET
 
-from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
+from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps
 
 
 Q = 5
@@ -29,6 +31,7 @@ OUT = PROJECT / "GUI2D"
 HD = PROJECT / "GUI" / "Output" / "HD"
 SDK_ROOT = Path(os.environ.get("JUKEBOX_SDK_DIR", PROJECT.parents[1])).expanduser().resolve()
 STANDARD_GUI2D = SDK_ROOT / "Examples" / "SimpleInstrument" / "GUI2D"
+FRONT_MATERIAL = PROJECT / "Design" / "Assets" / "used-charcoal-plastic.png"
 
 PANEL_FILES = {
     "Reason_GUI_front_root_Panel.png",
@@ -47,8 +50,8 @@ DISPLAY_FONT = FONT_DIR / "DIN Condensed Bold.ttf"
 LABEL_FONT = FONT_DIR / "DIN Alternate Bold.ttf"
 SECTION_FONT = FONT_DIR / "DIN Condensed Bold.ttf"
 
-# A brushed graphite chassis with white silkscreen. The neutral-warm grey reads
-# as painted aluminium rather than a dark user-interface surface, and leaves
+# A satin graphite chassis with white silkscreen. The neutral-warm grey reads
+# as finely textured moulded plastic, and leaves
 # the accent hues below as the only saturated colour on the panel.
 INK = (240, 242, 240)
 MUTED = (176, 182, 180)
@@ -56,6 +59,7 @@ DIM = (119, 125, 122)
 RED = (216, 96, 66)
 ICE = (126, 198, 214)
 PANEL = (54, 56, 56)
+FRONT_RECESS = (43, 44, 45)
 PANEL_DARK = (28, 30, 31)
 EDGE_HIGHLIGHT = (94, 97, 96)
 CAPTION = (238, 240, 238)
@@ -122,7 +126,11 @@ FRONT_HEADER_BOTTOM = 70
 REAR_HEADER_BOTTOM = 70
 # The maker mark and wordmark sit at exactly these coordinates on both faces,
 # so a flipped rack shows the same nameplate in the same place.
-WORDMARK_X = 20
+# Keep the nameplate beyond Reason's collapse-button overlay on either face.
+HEADER_LEFT_INSET = 40
+WORDMARK_X = HEADER_LEFT_INSET
+FOLDED_WORDMARK_X = HEADER_LEFT_INSET
+FOLDED_MAKER_X = FOLDED_WORDMARK_X + 81
 MAKER_Y = 13
 MAKER_SIZE = 11.5
 WORDMARK_Y = 32
@@ -136,7 +144,8 @@ VERSION_SIZE = 9.5
 # each caption beside its own value instead puts the whole strip on one line,
 # lets it use the full width of the panel, and gives every field the room its
 # own caption needs. Positions are derived, exactly like the control rows.
-STATUS_MARGIN = 20
+STATUS_LEFT_MARGIN = HEADER_LEFT_INSET
+STATUS_RIGHT_MARGIN = 20
 STATUS_CAPTION_GAP = 5
 STATUS_CENTRE_Y = 56
 
@@ -514,42 +523,47 @@ def family_by_node():
                     mapping[node] = item["family"]
     return mapping
 
-REAR_INPUT_BOX = (60, 84, 360, 300)
-REAR_OUTPUT_BOX = (394, 84, 694, 300)
-REAR_ENGINE_BOX = (60, 316, 500, 518)
-REAR_UNIT_BOX = (510, 316, 694, 518)
+# Settings sit above all connections, leaving downward cable runs clear.
+REAR_ENGINE_BOX = (60, 84, 500, 286)
+REAR_UNIT_BOX = (510, 84, 694, 286)
+REAR_INPUT_BOX = (60, 316, 360, 532)
+REAR_OUTPUT_BOX = (394, 316, 694, 532)
+REAR_CONTROL_CAPTION_Y = REAR_ENGINE_BOX[1] + 44
+REAR_PERSISTENCE_Y = REAR_ENGINE_BOX[1] + 177
 # Stock jack top-lefts; captions share the jack's horizontal centre.
 REAR_CV_INPUTS = (
-    ("note", "NOTE", 95, 155),
-    ("gate", "GATE", 167, 155),
-    ("cutoff", "CUTOFF", 239, 155),
-    ("resonance", "RES", 311, 155),
-    ("volume", "VOLUME", 95, 245),
-    ("vca_level", "AMP", 167, 245),
-    ("sub", "SUB", 239, 245),
-    ("noise", "NOISE", 311, 245),
+    ("note", "NOTE", 95, 387),
+    ("gate", "GATE", 167, 387),
+    ("cutoff", "CUTOFF", 239, 387),
+    ("resonance", "RES", 311, 387),
+    ("volume", "VOLUME", 95, 477),
+    ("vca_level", "AMP", 167, 477),
+    ("sub", "SUB", 239, 477),
+    ("noise", "NOISE", 311, 477),
 )
+REAR_AUDIO_OUTPUTS = (("left", "LEFT", 485, 462), ("right", "RIGHT", 575, 462))
+AUDIO_JACK_SIZE = (19, 21)
 CV_CAPTION_SIZE = 12.0
 CV_CAPTION_OFFSET = 22
 REAR_CONTROLS = (
     {"kind": "radio", "name": "quality", "x": 0, "caption": "OVERSAMPLE",
-     "x": 80, "center": 122, "top": 378,
+     "x": 80, "center": 122, "top": 146,
      "labels": ("1x", "2x", "4x"), "remote": True, "automation": True},
     {"kind": "radio", "name": "vcfTanhMode", "x": 0, "caption": "SATURATION",
-     "x": 188, "center": 230, "top": 378,
+     "x": 188, "center": 230, "top": 146,
      "labels": ("EXACT", "FAST", "POLY"), "remote": True, "automation": True},
     {"kind": "radio", "name": "vcfFastEarlyMode", "x": 0, "caption": "EARLY MODEL",
-     "x": 296, "center": 338, "top": 393,
+     "x": 296, "center": 338, "top": 161,
      "labels": ("HERMITE", "CUBIC"), "remote": True, "automation": True},
     {"kind": "radio", "name": "vcfSolverMode", "x": 0, "caption": "FILTER SOLVER",
-     "x": 404, "center": 446, "top": 378,
+     "x": 404, "center": 446, "top": 146,
      "labels": ("MAX", "HIGH", "NORMAL"), "remote": True, "automation": True},
     {"kind": "fader", "name": "calibration", "x": 0, "caption": "CHARACTER",
-     "x": 544, "center": 554, "top": 378,
+     "x": 544, "center": 554, "top": 146,
      "scale": span("0", "100", "200%"), "ticks": 5,
      "remote": True, "automation": True},
     {"kind": "fader", "name": "aging", "x": 0, "caption": "AGING",
-     "x": 636, "center": 646, "top": 378,
+     "x": 636, "center": 646, "top": 146,
      "scale": span("0", "50", "100%"), "ticks": 5,
      "remote": True, "automation": True},
 )
@@ -590,9 +604,9 @@ def place_status_strip():
     note_caption = text_width("NOTE", STATUS_SIZE, track=TRACK_SCALE)
     widths.append(note_caption + STATUS_CAPTION_GAP + LAMP_SIZE)
 
-    available = WIDTH - 2 * STATUS_MARGIN
+    available = WIDTH - STATUS_LEFT_MARGIN - STATUS_RIGHT_MARGIN
     spacing = (available - sum(widths)) / (len(widths) - 1)
-    cursor = float(STATUS_MARGIN)
+    cursor = float(STATUS_LEFT_MARGIN)
     for item, width in zip(ENGINE_STATUS, widths):
         item["x"] = int(round(cursor + width - display_width))
         cursor += width + spacing
@@ -727,22 +741,42 @@ def vertical_gradient(size, top, bottom, mode="RGB"):
     return image
 
 
-def brushed(size, strength=7.0, coarse=5.0):
-    """Horizontal brush grain, as on a painted-aluminium instrument chassis.
+def plastic_grain(size, seed):
+    """Quiet, non-directional mould grain with irregular finish variation.
 
-    The grain is high frequency across the panel's height and low frequency
-    along its width, which is what makes a machine-brushed surface read as
-    long fine streaks rather than as film noise.
+    Independent isotropic fields give the plastic fine pores and much softer
+    changes in sheen. Fixed seeds keep regenerated artwork byte-reproducible;
+    none of the fields repeats or stretches into horizontal brush marks.
     """
-    width, height = size
-    fine = Image.effect_noise((max(1, width // 220), height), strength)
-    fine = fine.resize(size, Image.BILINEAR)
-    # A second, slower pass gives the surface broad tonal drift so the grain
-    # does not tile visibly across a panel this wide.
-    broad = Image.effect_noise((max(1, width // 900), max(1, height // 26)), coarse)
-    broad = broad.resize(size, Image.BICUBIC)
-    return ImageChops.add(fine.point(lambda v: v // 2),
-                          broad.point(lambda v: v // 2))
+    rng = random.Random(seed)
+    grain = Image.new("L", size, 128)
+    for cell, amplitude in ((0.35, 6), (1.15, 4), (8, 2), (37, 3)):
+        field_size = tuple(max(2, math.ceil(edge / (cell * Q))) for edge in size)
+        field = Image.frombytes("L", field_size, rng.randbytes(math.prod(field_size)))
+        field = field.resize(size, Image.Resampling.BICUBIC)
+        field = field.point(lambda value: 128 + round((value - 127.5) * amplitude / 127.5))
+        grain = ImageChops.add(grain, field, offset=-128)
+    return grain
+
+
+@lru_cache(maxsize=1)
+def front_material():
+    """One continuous, aspect-preserved piece of the original ABS material."""
+    with Image.open(FRONT_MATERIAL) as source:
+        material = ImageOps.fit(source.convert("L"), px((WIDTH, HEIGHT)),
+                                method=Image.Resampling.BICUBIC)
+    return material.filter(ImageFilter.GaussianBlur(px(0.2)))
+
+
+def front_plastic(height, top, bottom, contrast=0.55):
+    """Warm matte plastic, retaining only quiet pores and sparse satin wear."""
+    size = px((WIDTH, height))
+    surface = vertical_gradient(size, top, bottom)
+    grain = front_material().crop((0, 0, *size))
+    # The source's mean luminance is 58.87. Centering it before compositing
+    # keeps the chosen warm tint independent of the source material tones.
+    grain = grain.point(lambda value: 128 + round((value - 59) * contrast))
+    return ImageChops.add(surface, Image.merge("RGB", (grain, grain, grain)), offset=-128)
 
 
 def vignette(image, depth=26):
@@ -755,19 +789,20 @@ def vignette(image, depth=26):
 
 
 def base_panel(height=HEIGHT, rear=False):
-    top = (62, 64, 64) if not rear else (46, 47, 48)
-    bottom = (40, 42, 43) if not rear else (30, 31, 32)
-    image = vertical_gradient((px(WIDTH), px(height)), top, bottom)
-    grain = brushed(image.size)
-    # Overlay the grain symmetrically about mid-grey so it lightens and darkens
-    # the paint instead of only dusting it lighter.
-    image = ImageChops.add(image, Image.merge("RGB", (grain, grain, grain)), scale=1.0, offset=-64)
-    image = vignette(image)
+    if rear:
+        image = vertical_gradient((px(WIDTH), px(height)), (109, 110, 111), (93, 94, 95))
+        grain = plastic_grain(image.size, seed=1709)
+        image = ImageChops.add(image, Image.merge("RGB", (grain, grain, grain)), offset=-128)
+        image = vignette(image)
+    else:
+        image = front_plastic(height, (83, 79, 74), (73, 70, 66))
+        image = vignette(image, depth=12)
     draw = ImageDraw.Draw(image)
     # Chassis edge: a dark folded rim with a lit top lip, so the panel reads as
     # a physical plate seated in the rack rather than a flat rectangle.
     draw.rectangle((0, 0, image.width - 1, image.height - 1), outline=(11, 12, 13), width=Q)
-    draw.line((Q, Q, image.width - Q, Q), fill=(126, 129, 128), width=px(0.4))
+    draw.line((Q, Q, image.width - Q, Q),
+              fill=(126, 129, 128) if rear else (99, 98, 95), width=px(0.4))
     draw.line((Q, image.height - Q, image.width - Q, image.height - Q),
               fill=(20, 21, 22), width=px(0.4))
     return image, draw
@@ -792,18 +827,18 @@ def screws(draw, height=HEIGHT):
         screw(draw, x, y)
 
 
-def section_title(draw, box, title, title_size=TITLE_SIZE, family="play"):
-    """A title and its accent rule, with no surrounding recess."""
+def section_title(draw, box, title, title_size=TITLE_SIZE):
+    """Rear titles share one neutral rule, with no surrounding recess."""
     x0, y0, _, y1 = box
     label(draw, (x0, y0 + TITLE_H / 2 + TITLE_OPTICAL_OFFSET), title, title_size,
           strong=True, anchor="lm", track=TRACK_TITLE)
     rule_x = x0 + text_width(title, title_size, strong=True, track=TRACK_TITLE) + 7
     rule_y = y0 + TITLE_H / 2 + TITLE_OPTICAL_OFFSET
-    draw.line(px((rule_x, rule_y, box[2], rule_y)), fill=FAMILY[family]["rule"],
+    draw.line(px((rule_x, rule_y, box[2], rule_y)), fill=FAMILY["play"]["rule"],
               width=px(0.8))
 
 
-def section(draw, box, title, title_size=TITLE_SIZE, family="play"):
+def section(image, draw, surface, box, title, title_size=TITLE_SIZE, family="play"):
     """A shallow machined recess, titled and colour-coded by signal stage.
 
     The pocket is drawn as a real edge rather than a flat card: a dark lip
@@ -813,13 +848,18 @@ def section(draw, box, title, title_size=TITLE_SIZE, family="play"):
     """
     x0, y0, x1, y1 = box
     accent = FAMILY[family]["rule"]
-    draw.rounded_rectangle(px(box), radius=px(2.5), fill=PANEL)
+    left, top, right, bottom = px(box)
+    bounds = (left, top, right + 1, bottom + 1)
+    mask = Image.new("L", (right - left + 1, bottom - top + 1))
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, mask.width - 1, mask.height - 1),
+                                          radius=px(2.5), fill=255)
+    image.paste(surface.crop(bounds), (left, top), mask)
     # Recess edges. Top/left shadow first, then the catch-light underneath.
     draw.arc(px((x0, y0, x0 + 5, y0 + 5)), 180, 270, fill=(26, 27, 28), width=px(0.5))
     draw.line(px((x0 + 2.5, y0, x1 - 2.5, y0)), fill=(26, 27, 28), width=px(0.5))
     draw.line(px((x0, y0 + 2.5, x0, y1 - 2.5)), fill=(30, 31, 32), width=px(0.5))
-    draw.line(px((x0 + 2.5, y1, x1 - 2.5, y1)), fill=(96, 99, 98), width=px(0.5))
-    draw.line(px((x1, y0 + 2.5, x1, y1 - 2.5)), fill=(84, 87, 86), width=px(0.5))
+    draw.line(px((x0 + 2.5, y1, x1 - 2.5, y1)), fill=(70, 71, 69), width=px(0.5))
+    draw.line(px((x1, y0 + 2.5, x1, y1 - 2.5)), fill=(63, 65, 63), width=px(0.5))
     label(draw, (x0 + GROUP_PADDING, y0 + TITLE_H / 2 + TITLE_OPTICAL_OFFSET),
           title, title_size, strong=True, anchor="lm", track=TRACK_TITLE)
     # The accent rule runs from the title to the section's right edge, which
@@ -854,19 +894,19 @@ def fader_scale(draw, x, y, values, ticks, room):
 
 
 def header_plate(image, draw, bottom=None, dark=False):
-    """The name plate strip: a darker brushed band with a machined lower step."""
+    """The nameplate strip: darker satin plastic with a shallow lower step."""
     bottom = FRONT_HEADER_BOTTOM if bottom is None else bottom
     band = px((0, 0, WIDTH, bottom))
-    top_tone = (36, 37, 38) if dark else (46, 48, 48)
-    bottom_tone = (26, 27, 28) if dark else (34, 36, 37)
-    plate = vertical_gradient((band[2], band[3]), top_tone, bottom_tone)
-    grain = brushed(plate.size)
-    plate = ImageChops.add(plate, Image.merge("RGB", (grain, grain, grain)),
-                           scale=1.0, offset=-64)
+    if dark:
+        plate = vertical_gradient((band[2], band[3]), (99, 100, 101), (89, 90, 91))
+        grain = plastic_grain(plate.size, seed=2909)
+        plate = ImageChops.add(plate, Image.merge("RGB", (grain, grain, grain)), offset=-128)
+    else:
+        plate = front_plastic(bottom, (67, 64, 60), (61, 59, 56), contrast=0.45)
     image.paste(plate, (0, 0))
     draw.line(px((0, bottom, WIDTH, bottom)), fill=(22, 23, 24), width=px(0.7))
     draw.line(px((0, bottom + 0.7, WIDTH, bottom + 0.7)),
-              fill=(96, 99, 98), width=px(0.4))
+              fill=(96, 99, 98) if dark else (74, 74, 71), width=px(0.4))
 
 
 def device_version():
@@ -890,6 +930,7 @@ def wordmark(draw, version=None):
 
 def render_front():
     image, draw = base_panel()
+    recess_surface = front_plastic(HEIGHT, (46, 47, 48), (40, 41, 42), contrast=0.32)
     header_plate(image, draw)
     wordmark(draw)
     # Patch window: a recessed smoked panel, lit along its lower edge.
@@ -910,7 +951,7 @@ def render_front():
         y0, y1 = row["y"], row["y"] + row["h"]
         body = body_top(row)
         for title, x0, x1, controls in row["sections"]:
-            section(draw, (x0, y0, x1, y1), title,
+            section(image, draw, recess_surface, (x0, y0, x1, y1), title,
                     fitted(title, x1 - x0 - 2 * GROUP_PADDING - 10, TITLE_SIZE,
                            10.5, strong=True, track=TRACK_TITLE),
                     SECTION_FAMILY[title])
@@ -961,18 +1002,18 @@ def render_back():
     # you reach for, and drawing them back here only fences off sockets.
     section_title(draw, REAR_INPUT_BOX, "CV INPUTS")
     section_title(draw, REAR_OUTPUT_BOX, "AUDIO OUTPUTS")
-    section_title(draw, REAR_ENGINE_BOX, "PROCESSING QUALITY", family="shape")
-    section_title(draw, REAR_UNIT_BOX, "UNIT MODEL", family="effect")
+    section_title(draw, REAR_ENGINE_BOX, "PROCESSING QUALITY")
+    section_title(draw, REAR_UNIT_BOX, "UNIT MODEL")
     for name, title, x, y in REAR_CV_INPUTS:
         centre = x + CV_JACK_SIZE[0] / 2
         label(draw, (centre, y - CV_CAPTION_OFFSET), title,
               CV_CAPTION_SIZE, CAPTION, strong=True)
         if name == "note":
             label(draw, (centre, y + 33), "1 V/OCT", 9.5, MUTED)
-    for x, title in ((494, "LEFT"), (584, "RIGHT")):
-        label(draw, (x, 204), title, 12, CAPTION, strong=True)
+    for _, title, x, y in REAR_AUDIO_OUTPUTS:
+        label(draw, (x + (AUDIO_JACK_SIZE[0] - 1) / 2, y - 26), title, 12, CAPTION, strong=True)
     for item in REAR_CONTROLS:
-        label(draw, (item["center"], 360), item["caption"], 10.0, CAPTION)
+        label(draw, (item["center"], REAR_CONTROL_CAPTION_Y), item["caption"], 10.0, CAPTION)
         if item["kind"] == "fader":
             fader_scale(draw, item["x"], item["top"], item["scale"],
                         item["ticks"], 42)
@@ -981,9 +1022,9 @@ def render_back():
             label(draw, (item["x"] + TOGGLE_SIZE + 6,
                          item["top"] + index * RADIO_PITCH + TOGGLE_SIZE / 2),
                   text if text[0].isdigit() else text.title(), 10.0, CAPTION, anchor="lm")
-    label(draw, (280, 493), "SONG", 9.0, MUTED)
-    label(draw, (554, 493), "PATCH", 9.0, MUTED)
-    label(draw, (646, 493), "SONG", 9.0, MUTED)
+    label(draw, (280, REAR_PERSISTENCE_Y), "SONG", 9.0, MUTED)
+    label(draw, (554, REAR_PERSISTENCE_Y), "PATCH", 9.0, MUTED)
+    label(draw, (646, REAR_PERSISTENCE_Y), "SONG", 9.0, MUTED)
     save_panel(image, "Reason_GUI_back_root_Panel.png")
     return image
 
@@ -993,9 +1034,9 @@ def render_folded(front=True):
     # The folded strip is the same name plate as the full face, cropped to a
     # single rack unit, so a folded YouKnow still reads as the same hardware.
     header_plate(image, draw, bottom=FOLDED_HEIGHT, dark=not front)
-    label(draw, (17, 15), "YOUKNOW", 18.0, INK, display=True, anchor="lm",
+    label(draw, (FOLDED_WORDMARK_X, 15), "YOUKNOW", 18.0, INK, display=True, anchor="lm",
           track=TRACK_CAPTION)
-    label(draw, (98, 15), "PROTOCODUS", 11.0, ICE, strong=True, anchor="lm",
+    label(draw, (FOLDED_MAKER_X, 15), "PROTOCODUS", 11.0, ICE, strong=True, anchor="lm",
           track=TRACK_TITLE)
     if front:
         draw.rounded_rectangle(px((297, 7, 507, 23)), radius=px(1.8),
@@ -1223,7 +1264,7 @@ def composite_back(panel, assets):
     image.alpha_composite(assets["Placeholder"], px(PLACEHOLDER_POS))
     for _, _, x, y in REAR_CV_INPUTS:
         image.alpha_composite(copy_frame(assets["CVJack"], 3, 0), px((x, y)))
-    for x, y in ((485, 230), (575, 230)):
+    for _, _, x, y in REAR_AUDIO_OUTPUTS:
         image.alpha_composite(copy_frame(assets["AudioJack"], 3, 0), px((x, y)))
     for node, kind, name, x, y in rear_widgets():
         if kind == "fader":
@@ -1276,7 +1317,8 @@ def compact_face(size, front=True):
     draw = ImageDraw.Draw(image)
     radius = max(1, round(panel_h * 0.045))
     draw.rounded_rectangle((0, top, right, bottom), radius=radius,
-                           fill=PANEL_DARK, outline=EDGE_HIGHLIGHT)
+                           fill=(73, 70, 66) if front else PANEL_DARK,
+                           outline=EDGE_HIGHLIGHT)
     header_h = max(2, round(panel_h * 0.16))
     if width >= 30:
         face = ImageFont.truetype(str(DISPLAY_FONT), max(6, round(panel_h * 0.2)))
@@ -1291,7 +1333,7 @@ def compact_face(size, front=True):
         left = round(margin + index * (bay_width + gap))
         bay_right = round(left + bay_width)
         draw.rounded_rectangle((left, bay_top, bay_right, bay_bottom),
-                               radius=max(1, radius // 2), fill=PANEL)
+                               radius=max(1, radius // 2), fill=FRONT_RECESS if front else PANEL)
     return image
 
 
@@ -1401,6 +1443,8 @@ def check_layout():
                      for node, (x, y) in HEADER_NODES.items()})
     expected.update({f"S_cv_input_{name}": (float(x), float(y))
                      for name, _, x, y in REAR_CV_INPUTS})
+    expected.update({f"S_audio_output_{name}": (float(x), float(y))
+                     for name, _, x, y in REAR_AUDIO_OUTPUTS})
     expected.update({
         f'S_status_{item["name"]}': (float(item["x"]), float(ENGINE_STATUS_Y))
         for item in ENGINE_STATUS
@@ -1514,6 +1558,11 @@ def check_layout():
         assert (f'transform = {{ {x}, {y} }},\n\t\t\tsocket = "{socket}",') in gui_back
         assert re.search(rf'\b{name}_cv\s*=\s*jbox\.cv_input\s*\{{', motherboard), (
             f"{socket}: missing motherboard input")
+    for name, _, x, y in REAR_AUDIO_OUTPUTS:
+        node, socket = f"S_audio_output_{name}", f"/audio_outputs/{name}"
+        assert f'{node} = widget({x}, {y}, "AudioJack", 3)' in device_back
+        assert (f'graphics = {{ node = "{node}" }},\n\t\t\tsocket = "{socket}",') in hdgui_back
+        assert (f'transform = {{ {x}, {y} }},\n\t\t\tsocket = "{socket}",') in gui_back
     for item in REAR_CONTROLS:
         automation_suffix = "" if item["automation"] else (
             ", true, false" if item["remote"] else ", false, false")
@@ -1613,6 +1662,7 @@ def check_spacing():
     # Small functional legends use the brighter secondary ink. Keep them at
     # normal-text contrast even if the palette is adjusted later.
     assert contrast_ratio(MUTED, PANEL) >= 4.5
+    assert contrast_ratio(MUTED, FRONT_RECESS) >= 4.5
     assert abs(TITLE_H / 2 + TITLE_OPTICAL_OFFSET
                - (1 + TITLE_H) / 2) < 0.01, (
         "section-title target must be centred in the dark header")
@@ -1625,7 +1675,7 @@ def check_spacing():
         assert WIDTH - row["sections"][-1][2] >= BOX_GAP
         for left, right in zip(row["sections"], row["sections"][1:]):
             assert right[1] - left[2] >= BOX_GAP
-    rear_top_boxes = (REAR_INPUT_BOX, REAR_OUTPUT_BOX)
+    rear_top_boxes = (REAR_ENGINE_BOX, REAR_UNIT_BOX)
     assert rear_top_boxes[0][0] >= BOX_GAP
     assert WIDTH - rear_top_boxes[-1][2] >= BOX_GAP
     assert rear_top_boxes[1][0] - rear_top_boxes[0][2] >= BOX_GAP
@@ -1633,8 +1683,12 @@ def check_spacing():
     assert REAR_ENGINE_BOX[0] == REAR_INPUT_BOX[0]
     assert REAR_UNIT_BOX[2] == REAR_OUTPUT_BOX[2]
     assert REAR_UNIT_BOX[0] - REAR_ENGINE_BOX[2] == BOX_GAP
-    assert REAR_ENGINE_BOX[1] - rear_top_boxes[0][3] >= BOX_GAP
-    assert HEIGHT - REAR_ENGINE_BOX[3] >= BOX_GAP
+    assert REAR_INPUT_BOX[1] - rear_top_boxes[0][3] >= BOX_GAP
+    assert HEIGHT - REAR_INPUT_BOX[3] >= BOX_GAP
+    for _, _, x, y in REAR_AUDIO_OUTPUTS:
+        assert y > REAR_PERSISTENCE_Y + LABEL_GAP, "audio cable run crosses settings"
+        assert REAR_OUTPUT_BOX[0] <= x and x + AUDIO_JACK_SIZE[0] <= REAR_OUTPUT_BOX[2]
+        assert y + AUDIO_JACK_SIZE[1] <= REAR_OUTPUT_BOX[3]
     x0, y0, x1, y1 = REAR_INPUT_BOX
     for _, caption, x, y in REAR_CV_INPUTS:
         centre = x + CV_JACK_SIZE[0] / 2
@@ -1657,8 +1711,12 @@ def check_spacing():
     assert wordmark_end + BOX_GAP <= PATCH_BOX[0], "nameplate runs into the patch window"
     assert PATCH_BOX[3] < STATUS_CENTRE_Y - ENGINE_STATUS_SIZE[1] / 2, (
         "the patch window overlaps the readout strip")
-    assert 17 + text_width("YOUKNOW", 18.0, True) + 16 <= 98
-    assert 98 + font(12, strong=True).getlength("PROTOCODUS") / Q + 12 <= 202
+    assert WORDMARK_X >= 40 and FOLDED_WORDMARK_X >= 40, "branding overlaps collapse-button area"
+    assert STATUS_LEFT_MARGIN == WORDMARK_X, "QUALITY and branding must share the left inset"
+    assert (FOLDED_WORDMARK_X + text_width("YOUKNOW", 18.0, True, track=TRACK_CAPTION)
+            + 12 <= FOLDED_MAKER_X)
+    assert (FOLDED_MAKER_X + text_width("PROTOCODUS", 11.0, strong=True, track=TRACK_TITLE)
+            + 12 <= 297)
 
     # The readout strip is one line of caption/value pairs. Nothing in it may
     # touch its neighbour, and it has to sit inside the header band.
@@ -1667,7 +1725,7 @@ def check_spacing():
     assert ENGINE_STATUS_Y + status_height <= FRONT_HEADER_BOTTOM
     # Display positions are placed as floats and emitted as whole units, so the
     # left margin absorbs that rounding exactly as the control rows do.
-    previous_end = STATUS_MARGIN - ROUNDING_GUARD
+    previous_end = STATUS_LEFT_MARGIN - ROUNDING_GUARD
     for item in ENGINE_STATUS:
         caption_start = (item["x"] - STATUS_CAPTION_GAP
                          - text_width(item["caption"], STATUS_SIZE, track=TRACK_SCALE))
@@ -1678,7 +1736,7 @@ def check_spacing():
     note_start = (NOTE_LAMP_X - STATUS_CAPTION_GAP
                   - text_width("NOTE", STATUS_SIZE, track=TRACK_SCALE))
     assert note_start >= previous_end, "NOTE collides with the last readout"
-    assert NOTE_LAMP_X + LAMP_SIZE <= WIDTH - STATUS_MARGIN + LAMP_SIZE
+    assert NOTE_LAMP_X + LAMP_SIZE <= WIDTH - STATUS_RIGHT_MARGIN + ROUNDING_GUARD
 
     for row in LAYOUT:
         check_label_row([

@@ -12,7 +12,7 @@ python3 Tests/validate_patches.py
 python3 Design/render_panels.py
 ```
 
-The metadata check covers localization, all 77 authored patches, ranges,
+The metadata check covers localization, all 93 authored patches, ranges,
 versions, identity, level trims, permanent automation IDs, socket order, and CV
 notifications. The renderer checks both GUI formats, property bindings,
 widget geometry, stock sprites, asset inventory, and readable label spacing.
@@ -85,7 +85,7 @@ analogue trims at once, so the wrapper glides it over 30 ms
 (`AdvanceCalibrationGlide` in YouKnow.cpp); the test reproduces that glide so it
 measures the path the instrument ships rather than the bare engine.
 [DSP/SYNC.md](../DSP/SYNC.md) identifies the exact upstream revision, source
-hashes, Rack adaptations, and retained fourteen-program scalar parity evidence.
+hashes, Rack adaptations, and retained 26-program scalar parity evidence.
 Recheck parity when shared DSP changes; retain labelled results when its bytes
 are unchanged.
 

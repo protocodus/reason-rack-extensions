@@ -2,7 +2,22 @@
 
 Notable customer-facing changes to YouKnow are recorded here.
 
-## 1.0.0f11 - Unreleased
+## 1.0.0f12 - Unreleased
+
+- Synced DSP from the original YouKnow project at `72e1d448`, including the
+  updated VCA, SUB, filter calibration, PWM, and chorus models. Preserved Rack
+  real-time safeguards, quality controls, and fixed latency.
+- Reduced six preset level trims by 0.234–1.139 dB for the updated signal path;
+  all 93 patches retain their musical settings.
+- Refined the front with warm charcoal ABS, fine matte grain, faint wear,
+  darker textured control recesses, and softer edge highlights.
+- Increased the branding and QUALITY left inset to clear Reason's collapse
+  triangle, with matching branding clearance on front, rear, and folded views.
+- Unified rear section rules in neutral gray and placed settings above the
+  CV and stereo output sockets so downward cables leave the controls clear.
+- Assigned a distinct build version across metadata, patches, and rear artwork.
+
+## 1.0.0f11 - Earlier candidate
 
 Fixes the cloud `render_gui` failure in `1.0.0f10`. The folded front panel's
 Note lamp had been moved to the full front panel's coordinates, `(724, 51)`,

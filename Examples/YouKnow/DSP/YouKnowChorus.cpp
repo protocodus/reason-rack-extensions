@@ -583,7 +583,8 @@ float Chorus::deterministicToneStep(double& phase, float frequencyHz,
     return static_cast<float>(std::sin(2.0 * pi * phase));
 }
 
-Chorus::ModeSettings Chorus::settingsFor(ChorusMode mode) noexcept
+Chorus::ModeSettings Chorus::settingsFor(
+    ChorusMode mode, bool useA11EffectiveTimingProfile) noexcept
 {
     // The rates are this instrument's own, straight from its circuit:
     // derivedRateHz() evaluates f = 1/(4 * beta * R_eff * C3) with the
@@ -620,7 +621,21 @@ Chorus::ModeSettings Chorus::settingsFor(ChorusMode mode) noexcept
     constexpr float rateTwo = static_cast<float>(derivedRateHz(false));
     switch (mode)
     {
-        case ChorusMode::One:  return { rateOne, centre, sweep, lineGain };
+        case ChorusMode::One:
+            // Comparison-only profile identified by AnalyzeChorusCapture.py
+            // from the hash-pinned bank_A1x recording below. Complete C1/C3/C5
+            // notes fit the model-based effective timing; C2/C4 are withheld.
+            // The shipped-support estimator recovers a known model within
+            // 20 us centre / 12 us depth / 0.000006 Hz rate. Hardware held-out
+            // residual is 0.113 versus 0.095 training, appreciably above the
+            // known-model 0.015 residual. Thus these are effective coordinates
+            // under that support/triangle hypothesis, not direct chip-delay
+            // measurements, a population nominal, or a Mode-II calibration.
+            // AIFF SHA256: b235ba2236c1a509627ce1e84fa35004b0d7c3e99eb36899c4c5de63cc668662
+            // https://github.com/kayrockscreenprinting/ultramaster_kr106/issues/16#issuecomment-4184997000
+            if (useA11EffectiveTimingProfile)
+                return { 0.5159334275f, 0.00338027575f, 0.00176176683f, lineGain };
+            return { rateOne, centre, sweep, lineGain };
         case ChorusMode::Two:  return { rateTwo, centre, sweep, lineGain };
         // Product compatibility policy, not a claim about a third resistance
         // in the original circuit. The audited Roland Cloud original instrument exposes
@@ -835,6 +850,23 @@ Chorus::SupportChain Chorus::supportChainFor(float sampleRate) noexcept
     chain.exactOutputConnected = exactTransition(
         outputSupportMatrix(true), outputSupportDrive(), outputEquilibrium,
         sampleRate);
+    // Tr5 open: C16 and C13 are two physical coordinates joined by R48,
+    // not cascaded independent RCs. Prepare exp(A / fs) once; the audio path
+    // only advances the two voltages relative to their loaded DC rest.
+    const double dt = 1.0 / static_cast<double>(sampleRate);
+    const double pullUp = 1.0 / muteDrivePullUpOhms;
+    const double series = 1.0 / muteDriveSeriesOhms;
+    const double lower = 1.0 / (muteDriveBaseOhms + muteDriveEmitterOhms);
+    FixedMatrix<2> muteDriveMatrix {{
+        {{ -dt * (pullUp + series) / muteDriveNodeFarads,
+            dt * series / muteDriveNodeFarads }},
+        {{  dt * series / muteDriveHoldFarads,
+           -dt * (series + lower) / muteDriveHoldFarads }}
+    }};
+    chain.muteDriveOpenTransition = matrixExponential(muteDriveMatrix);
+    // Tr5 conducting clamps C16 to -15 V, leaving C13's one-pole discharge.
+    chain.muteDriveHoldGlide = -std::expm1(
+        -dt * (series + lower) / muteDriveHoldFarads);
     return chain;
 }
 
@@ -971,7 +1003,7 @@ void Chorus::Line::rememberBlepEvent(float jump,
 }
 
 double Chorus::Line::deterministicBlepCorrection(
-    double clockIncrement) const noexcept
+    double clockIncrement, float noiseScale) const noexcept
 {
     double correction = 0.0;
 
@@ -993,11 +1025,17 @@ double Chorus::Line::deterministicBlepCorrection(
     // Buckets that will emerge during the residual's two-sample lookahead are
     // already in the ring: even at 200 kHz / 8 kHz there are at most 50, short
     // of one 128-cell revolution. Advance a local copy of the aggregate
-    // transfer-loss state through those known values. Nothing physical --
-    // bucket contents/index, phase, held noise, transfer state or RNG -- moves.
+    // transfer-loss state through those known values. The random edge source
+    // is equally reproducible: advance a LOCAL RNG copy, never the live one.
+    // Including its steps reconstructs the declared held-noise process before
+    // sampling it on this numerical grid. Omitting those steps instead folded
+    // extra broadband power into the audible band at low processing rates.
+    // No physical state (bucket/index/phase/held/transfer/RNG) moves here.
     const double inverseIncrement = 1.0 / clockIncrement;
     double distance = (1.0 - clockPhase) * inverseIncrement;
     float predictedTransferState = transferState;
+    float predictedHeld = held;
+    std::uint32_t predictedNoiseState = noiseState;
     int futureIndex = writeIndex;
 
     for (int event = 0;
@@ -1008,11 +1046,14 @@ double Chorus::Line::deterministicBlepCorrection(
         YOUKNOW_COUNT_DOMAIN_WORK(blepFuturePredictionVisits, 1);
 #endif
         futureIndex = futureIndex + 1 < cellPairs ? futureIndex + 1 : 0;
-        const float before = predictedTransferState;
+        const float before = predictedHeld;
         Chorus::transferLossStep(
             predictedTransferState,
             cells[static_cast<std::size_t>(futureIndex)]);
-        const float jump = predictedTransferState - before;
+        predictedNoiseState = nextNoiseState(predictedNoiseState);
+        predictedHeld = predictedTransferState + noiseFromState(predictedNoiseState)
+            * Chorus::independentLineRandomAmplitude * noiseScale;
+        const float jump = predictedHeld - before;
 
         // A future change s[0] -> s[1] enters the authors' correction with
         // the opposite sign: s[0] - (s[1] - s[0]) * beta(timeUntilEdge).
@@ -1066,18 +1107,22 @@ float Chorus::Line::processClockedCore(float limitedInput, float clockHz,
         const float emerging = cells[static_cast<std::size_t>(writeIndex)];
         cells[static_cast<std::size_t>(writeIndex)] = bounded;
 
-        const float transferBefore = transferState;
+        const float heldBefore = held;
         Chorus::transferLossStep(transferState, emerging);
-        rememberBlepEvent(transferState - transferBefore, ageInSamples);
 
-        // Noise remains a literal random, edge-held BBD contribution. BLEP is
-        // applied later as a deterministic delta to this already-rounded held
-        // value, so neither its spectrum nor the RNG sequence is predicted or
-        // altered by the numerical reconstruction.
+        // Keep the literal per-edge source and its rounded physical held
+        // value unchanged. Its discontinuity needs the same host-grid
+        // reconstruction as the signal; no new physical color or amplitude is
+        // inferred. The continuous iid staircase's averaged PSD is
+        // variance/fcp*sinc(f/fcp)^2 before the external reconstruction filter.
+        // AuditChorusNoise checks an independently integrated staircase and
+        // the high-rate limit, not a fitted noise spectrum from this part's
+        // single A-weighted maximum row.
         noiseState = nextNoiseState(noiseState);
         held = transferState
              + noiseFromState(noiseState)
                * Chorus::independentLineRandomAmplitude * noiseScale;
+        rememberBlepEvent(held - heldBefore, ageInSamples);
     }
     // If the ratio somehow exceeded even that bound, drop the remainder rather
     // than carrying it: a backlog would make the line run slower than the clock
@@ -1088,7 +1133,7 @@ float Chorus::Line::processClockedCore(float limitedInput, float clockHz,
     previousInput2 = previousInput;
     previousInput = limitedInput;
 
-    return held + static_cast<float>(deterministicBlepCorrection(increment));
+    return held + static_cast<float>(deterministicBlepCorrection(increment, noiseScale));
 }
 
 float Chorus::Line::process(
@@ -1145,8 +1190,6 @@ void Chorus::prepare(double sampleRate, bool preserveState) noexcept
     sampleRate_ = static_cast<float>(std::clamp(sampleRate, 8000.0, 768000.0));
     inverseSampleRate_ = 1.0f / sampleRate_;
     wetMuteGlide_ = 1.0f - std::exp(-inverseSampleRate_ / wetMuteTimeConstantSeconds);
-    muteDriveNodeGlide_ = 1.0f - std::exp(-inverseSampleRate_ / muteDriveNodeSeconds);
-    muteDriveHoldGlide_ = 1.0f - std::exp(-inverseSampleRate_ / muteDriveHoldSeconds);
     const auto cached = supportRatesPrepared_
         ? std::find(preparedSupportRates_.begin(), preparedSupportRates_.end(),
                     sampleRate_)
@@ -1197,8 +1240,8 @@ void Chorus::reset(bool preserveLfoPhase) noexcept
     // reset takes the mode as it stands, and only changes made afterwards
     // glide. The mute drive is primed to the same rest on that first sample.
     primed_ = false;
-    muteDriveNodeVolts_ = muteDriveRailVolts;
-    muteDriveHoldVolts_ = muteDriveHoldRestVolts(muteDriveRailVolts);
+    muteDriveNodeVolts_ = muteDriveMutedNodeRestVolts();
+    muteDriveHoldVolts_ = muteDriveHoldRestVolts(muteDriveNodeVolts_);
     muteDriveMuted_ = true;
     muteDriveEnabled_ = false;
 }
@@ -1247,15 +1290,27 @@ bool Chorus::processBypassedWhenSettled(float input, float& left,
 
 void Chorus::advanceMuteDrive(bool commandMute) noexcept
 {
-    // Existing nominal RC/0.6 V junction model; the 5 ms JFET glide is separate.
+    // Same 0.6 V junction prior and 5 ms JFET glide; only the passive
+    // network's missing reciprocal R48 current is corrected here.
     if (commandMute)
-        muteDriveNodeVolts_ += (muteDriveRailVolts - muteDriveNodeVolts_)
-                             * muteDriveNodeGlide_;
+    {
+        constexpr double nodeRest = muteDriveMutedNodeRestVolts();
+        constexpr double holdRest = muteDriveHoldRestVolts(nodeRest);
+        const double node = muteDriveNodeVolts_ - nodeRest;
+        const double hold = muteDriveHoldVolts_ - holdRest;
+        muteDriveNodeVolts_ = nodeRest
+            + support_.muteDriveOpenTransition[0][0] * node
+            + support_.muteDriveOpenTransition[0][1] * hold;
+        muteDriveHoldVolts_ = holdRest
+            + support_.muteDriveOpenTransition[1][0] * node
+            + support_.muteDriveOpenTransition[1][1] * hold;
+    }
     else
+    {
         muteDriveNodeVolts_ = -muteDriveRailVolts;
-    muteDriveHoldVolts_ += (muteDriveHoldRestVolts(muteDriveNodeVolts_)
-                            - muteDriveHoldVolts_)
-                         * muteDriveHoldGlide_;
+        muteDriveHoldVolts_ += (-muteDriveRailVolts - muteDriveHoldVolts_)
+                             * support_.muteDriveHoldGlide;
+    }
     muteDriveMuted_ = muteDriveHoldVolts_ >= muteDriveThresholdVolts;
 }
 
@@ -1267,7 +1322,8 @@ void Chorus::process(float input, ChorusMode mode, float noiseScale,
                      bool useRateProportionalNoiseHypothesis,
                      bool enableNarrowOneTwo,
                      bool enableMuteDrive,
-                     bool enableLineGainSpread) noexcept
+                     bool enableLineGainSpread,
+                     bool useA11EffectiveTimingProfile) noexcept
 {
 #if defined(YOUKNOW_WORK_AUDIT)
     YOUKNOW_COUNT_DOMAIN_WORK(chorusFrames, 1);
@@ -1284,7 +1340,7 @@ void Chorus::process(float input, ChorusMode mode, float noiseScale,
         clockSpurPhaseB_ = 0.0;
     }
 
-    const auto target = settingsFor(mode);
+    const auto target = settingsFor(mode, useA11EffectiveTimingProfile);
 
     const bool commandMute = mode == ChorusMode::Off;
     if (!primed_)
@@ -1296,7 +1352,7 @@ void Chorus::process(float input, ChorusMode mode, float noiseScale,
         // The drive rests where the command has held it: Tr5 open and both
         // capacitors at their positive rests when muted, both on the
         // negative rail when conducting.
-        muteDriveNodeVolts_ = commandMute ? muteDriveRailVolts
+        muteDriveNodeVolts_ = commandMute ? muteDriveMutedNodeRestVolts()
                                           : -muteDriveRailVolts;
         muteDriveHoldVolts_ = muteDriveHoldRestVolts(muteDriveNodeVolts_);
         muteDriveMuted_ = commandMute;

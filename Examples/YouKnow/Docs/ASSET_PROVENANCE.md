@@ -1,6 +1,6 @@
 # YouKnow asset and SDK provenance inventory
 
-Updated 2026-09-05 CEST for the YouKnow `1.0.0f11` production candidate. This
+Updated 2026-09-08 CEST for the YouKnow `1.0.0f12` production candidate. This
 is an engineering traceability record, not a legal conclusion, ownership
 opinion, or grant of rights. Commercial permission and distribution scope stay
 subject to the open owner/legal and Reason Studios release gates.
@@ -156,14 +156,27 @@ recorded licensing and deployment evidence belongs to the support-site history.
   (`FaderSource`, `FaderShape`, `FaderEffect`, `FaderPlay`), `Knob`, `Toggle`,
   `MomentaryOverlay`, `Lamp`, and `EngineDisplay`, then assembles front, rear,
   folded, navigator, palette, icon, and track-list images in both consumed GUI
-  trees. The chassis is a brushed-grain plate with an edge falloff; sections are
-  shallow recesses titled with a stage-coloured rule. Control positions are
+  trees. The rear chassis uses seeded, non-directional grain at several scales.
+  The front uses the original YouKnow ABS material below, with a warm charcoal
+  surround, darker textured recesses, and subdued edge highlights, following
+  the supplied plastic references. Front sections carry a stage-coloured rule;
+  rear rules share one neutral ink. The rear settings sit above the sockets
+  to keep downward cable runs clear. Control positions are
   derived from each control's own caption, tick ladder and scale legend, and
   `Design/sync_panel_lua.py` stamps the resulting coordinates and cap-art paths
   into `GUI2D/device_2D.lua` and `GUI/Output/gui.lua`.
+- `Design/Assets/used-charcoal-plastic.png` is copied byte-for-byte from
+  `/Users/vojta/Dev/virtual-instrument-youknow/Assets/used-charcoal-plastic.png`.
+  SHA-256: `cfcdd00f5d885eff061ebee8e3b120dd619a704849e128999bf08ac5feb6b920`.
+  Upstream `THIRD_PARTY_NOTICES.md` records it as an original 1024px material
+  generated with OpenAI image generation for this instrument: fine mould
+  pores, soft satin wear, and sparse hairline scuffs on maintained charcoal ABS.
+  The Rack renderer fits one continuous, aspect-preserved piece across the
+  front, softly filters it, and composites it at low contrast. The loose input
+  is a build asset; only the resulting panel/browser images ship in the U45.
 - The single `Fader` strip that preceded the four stage-coloured strips is no
   longer generated or shipped.
-- The `1.0.0f11` rear CV grid and automation indications are implemented in the
+- The `1.0.0f12` rear CV grid and automation indications are implemented in the
   project renderer and GUI Lua sources. All eight CV sockets reuse the listed
   SDK CV jack input; this change introduces no new external artwork or fonts.
   CV behavior and control metadata are defined in the Rack adapter and

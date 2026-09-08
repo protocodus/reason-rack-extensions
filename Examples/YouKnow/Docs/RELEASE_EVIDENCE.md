@@ -1,4 +1,60 @@
-# YouKnow 1.0.0f9 release evidence
+# YouKnow 1.0.0f12 candidate
+
+Prepared 2026-09-08 for the `main` source update and a distinct U45 build.
+The candidate carries the validated DSP and reference-based plastic artwork
+described below. Relative to that iteration, only the version in metadata,
+all 93 patch headers, current documentation, and rear silkscreen changes.
+Patch musical values, level trims, property contracts, and DSP remain identical.
+
+Current build and validation records are under `Release/validation/1.0.0f12`.
+The package is `Output/Universal45/YouKnow.u45`; `archive.json` records its
+size, SHA-256, SDK chip inventory, version, and source-file comparisons.
+`installed.json` records the local45 payload comparison. Native audio,
+automation, sanitizer, bank, and timing evidence is retained from the same
+audio source below. A compatible SDK 5 host/cloud acceptance remains separate
+from this source push and local U45 packaging.
+
+## Retained 1.0.0f11 refinement validation
+
+Validated 2026-09-08 with `JukeboxSDK_500_028`, target 5.0. This update syncs
+the nominated upstream DSP, clears the header collapse button, softens the
+plastic finish, unifies rear rules, and moves settings above the cable sockets.
+Current records are under `Release/validation/1.0.0f11-refinement`.
+
+The subsequent reference-based front finish uses the original synth's fine ABS
+material, a warm charcoal surround, darker textured recesses, and softer edge
+highlights. Its GUI checks, regenerated artwork, local45/universal45 builds,
+and payload verification are recorded in `Release/validation/1.0.0f11-front-plastic`.
+All 138 recorded DSP, metadata, patch, mapping, and rear-art inputs are unchanged;
+the audio evidence below is retained. The reviewed 1x front preview exactly
+matches the generated panel, and full/folded/browser artwork was inspected.
+
+| Check | Result |
+| --- | --- |
+| Upstream DSP | Local and fetched `origin/main` at `72e1d4482324465993c8e62609fa345e848d3b70`; 26 scalar comparison scenarios match bit-for-bit |
+| Native contracts | Frozen data, expanded engine, wrapper/CV, and ASan/UBSan checks pass; engine 42,264 bytes, wrapper 43,368 bytes |
+| Automation | 40 parameters, step/ramp, dry/chorused pass; held notes survive switches; worst continuous slew ratio 1.02 against limit 3.0 |
+| Public bank | 93/93 pass at Aging 0% and 50% and low/high six-note stress; six level trims reduced 0.234–1.139 dB; musical settings unchanged |
+| Default native CPU | Six voices, 1x/Poly/Cubic/Normal, Aging 50%, 48 kHz/64 frames: 0/1875 deadline misses; median CPU 0.101913 times realtime |
+| Metadata and GUI | 184 text keys, 93 patches, 74 bounded widgets across four panels, 78 matching nodes, 14 GUI2D/HD artwork twins; both GUI mappings and socket bindings pass |
+| Visual review | Front, rear, and folded previews reviewed at 1x; shared 40-pixel branding inset, neutral rear rules, settings above descending cable runs |
+| Local45 Deployment | Intel and Apple Silicon libraries built and installed; 118 source-backed byte matches and all 93 patches verified |
+| Universal45 | ZIP integrity and 138 source-backed byte matches pass; 93 patches and four Testing/Deployment 32/64-bit chip binaries verified |
+
+The updated archive is `Output/Universal45/YouKnow.u45`, 19,779,380 bytes,
+SHA-256 `c1024d8867f5903e96f86645fe3ca34ab1c0fe62487703fdedbbb7e6d4513c5f`.
+Current 1x front previews are `Release/ui-review/front-plastic-reference/front.png`
+and `folded-front.png`; rear previews remain in `Release/ui-review/refinement`.
+`DSP/SYNC.md` records the exact upstream changes, Rack adaptations, and
+comparison/performance evidence, including the retained baseline timing outlier.
+
+The existing user-owned Reason process was left running. These results verify
+native contracts, generated assets, installed payload, and SDK packaging;
+a fresh Reason session has not been used to verify this update in the host.
+Earlier manual/Shop/host records below are historical and were not regenerated
+or repeated for this focused update.
+
+## Historical 1.0.0f9 release evidence
 
 Prepared 2026-09-05. This candidate adds modulation CV and corrects intra-block
 automation timing. It has not been uploaded or published. Records for this

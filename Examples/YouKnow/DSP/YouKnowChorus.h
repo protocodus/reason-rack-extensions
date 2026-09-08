@@ -122,18 +122,19 @@ public:
 
     // ------------------------------------------------------------------
     // Panasonic specifies noise at the MN3009 output under fixed conditions:
-    // Ta=25 C, VDD=VCPL=-15 V, VCPH=0 V, VGG=-14 V, RL=100 kOhm. The part
-    // datasheet's electrical table, read at 600 dpi from the scan, gives one
-    // noise row and no other:
+    // Ta=25 C, VDD=VCPL=-15 V, VCPH=0 V, VGG=-14 V, RL=100 kOhm. The
+    // four-page MN3009 sheet (printed p.43) gives:
     //
     //   Noise            Vno  fcp = 100kHz Weighted by "A" curve   Max 0.2  mVrms
     //   Signal to Noise  S/N  Maximum output voltage to noise volt. Typ 88  dB
     //
-    // So 0.200 mVrms is a MAXIMUM and the part publishes NO typical noise
-    // figure. The 0.150 mVrms this comment used to set against it does not
-    // appear in that table at all, so the "two conflicting maxima" reading is
-    // retired: there is one maximum, and the other figure belongs to some
-    // other part or revision. HISS 100% keeps the 0.200 mVrms endpoint, still
+    // https://www.experimentalistsanonymous.com/diy/Datasheets/MN3009.pdf
+    // The separate Panasonic BBD book, printed p.37, instead gives 150 uVrms
+    // MAX under the same stated noise conditions (its bandwidth/swing rows
+    // also differ). Neither scan states a revision date or typical noise PSD;
+    // preserve that source distinction rather than silently choosing a
+    // typical amplitude from either maximum. HISS 100% keeps the established
+    // 0.200 mVrms product endpoint, still
     // as an upper limit and still not a measurement after Roland's external
     // tap-sum/reconstruction network.
     //
@@ -170,22 +171,21 @@ public:
     // The established HISS-100 product normalization chooses a recovered wet
     // line of the same numerical 0.200 mVrms. That equality is explicit policy,
     // not a claim that the external board belongs inside Panasonic's
-    // measurand. The constant below is the complete modelled board chain's
-    // A-weighted transfer from uniform edge-noise amplitude to the wet line:
-    // 1/sqrt(3) times 0.6745 for hold/tap sum/reconstruction/output coupling.
+    // measurand. The constant below preserves the legacy numerical
+    // normalization from uniform edge-noise amplitude to the wet line.
     static constexpr float productWetLineNoiseTargetAWeightedVrms =
         mn3009OutputNoiseAWeightedMaximumVrms;
     //
     // Stated at 192 kHz, which is what HQ targets from the 48 kHz host-rate
     // family and is also the engine's `noiseReferenceRateHz`. The combined
-    // exact output support measures 0.3894 there; this is a derived numerical
+    // exact output support originally measured 0.3894 there: a numerical
     // transfer update, not a change to the part's 0.2 mVrms row or its noise
-    // law. Across HQ the recovered result moves less than 0.004 dB between the
-    // 192 and 176.4 kHz internal grids. HQ-off's separately audited folded
-    // power remains numerical-grid error rather than a property of the part.
+    // law. The later correction of noise steps removes host-grid folded
+    // power (about 0.026 dB in the 48k/4x shipping silence fixture) without
+    // renormalizing this amplitude or claiming a new hardware noise level.
     //
-    // Known to about +/-0.1%, and no better: it is estimated from a finite
-    // random sequence. Fixed-seed 128 s measurements put the effective
+    // The legacy estimate was known to about +/-0.1% from a finite random
+    // sequence. Fixed-seed 128 s measurements put the effective
     // transfer at 0.38948-0.38953 on the 176.4 kHz family and
     // 0.38937-0.38941 on the 192 kHz family. Four figures is all the
     // measurand supports, which is why the suites allow estimator margin on
@@ -240,7 +240,8 @@ public:
                  bool useRateProportionalNoiseHypothesis = false,
                  bool enableNarrowOneTwo = true,
                  bool enableMuteDrive = false,
-                 bool enableLineGainSpread = false) noexcept;
+                 bool enableLineGainSpread = false,
+                 bool useA11EffectiveTimingProfile = false) noexcept;
 
     // ------------------------------------------------------------------
     // The wet-mute drive, jack board p. 15. The CHORUS on/off line reaches
@@ -253,17 +254,21 @@ public:
     // return; Tr4 off lets the gates float to their sources and the JFETs
     // conduct. So the button reaches the JFETs only after two RCs and a
     // junction threshold:
-    //   - chorus OFF: Tr5 opens, C16 charges through R50 (22 ms), C13
-    //     follows through R48 against R49+R42 (120 ms) and mutes when Tr4's
-    //     base reaches one junction drop -- about 81 ms after the command;
+    //   - chorus OFF: Tr5 opens; R50/C16 and R48/C13 exchange current in
+    //     both directions, against R49+R42. The coupled network mutes when
+    //     Tr4's base reaches one junction drop -- about 84.5 ms later;
     //   - chorus ON: Tr5 saturates, C16 is emptied at once, C13 decays from
-    //     its +9.0 V rest toward -15 V and un-mutes about 115 ms in.
+    //     its +8.68 V rest toward -15 V and un-mutes about 113 ms in.
     // Both are derived from the drawn parts with the same 0.6 V junction
     // prior the resonance and NOISE onsets use; the JFET transition itself
-    // keeps the declared 5 ms glide policy below, because the 2SK30A's
+    // keeps the declared 5 ms glide policy, because the 2SK30A's
     // pinch-off spread is not fixed by any source. Off by default at this
     // level so the bare-chorus suites keep their immediate switching; the
-    // engine enables it.
+    // engine enables it. The passive two-node solve includes R48's loading
+    // back into C16; Tr4's base-current loading above the threshold and the
+    // transistor's actual junction voltage still need device data. These
+    // are circuit-prior timings, not measured original-unit switching times.
+    // https://www.synfo.nl/servicemanuals/Roland/ROLAND_JUNO-106_SERVICE_NOTES_1st.pdf#page=15
     static constexpr float muteDrivePullUpOhms = 10.0e3f;        // R50
     static constexpr float muteDriveNodeFarads = 2.2e-6f;        // C16
     static constexpr float muteDriveSeriesOhms = 150.0e3f;       // R48
@@ -286,12 +291,21 @@ public:
            / (muteDriveSeriesOhms + muteDriveBaseOhms + muteDriveEmitterOhms));
     static constexpr float muteDriveNodeSeconds =
         muteDrivePullUpOhms * muteDriveNodeFarads;                // 22 ms
-    // Where C13 rests for a given Tr5 node voltage: the R48 / (R49+R42)
-    // divider between that node and the -15 V rail.
-    [[nodiscard]] static constexpr float muteDriveHoldRestVolts(
-        float nodeVolts) noexcept
+    // With Tr5 open, R50, R48, R49 and R42 form one series DC path.
+    // C16 therefore rests below +15 V: treating it as an ideal +15 V
+    // source would overcharge C13 and delay the next return opening.
+    [[nodiscard]] static constexpr double muteDriveMutedNodeRestVolts() noexcept
     {
-        const float lower = muteDriveBaseOhms + muteDriveEmitterOhms;
+        return muteDriveRailVolts - 2.0 * muteDriveRailVolts
+            * muteDrivePullUpOhms
+            / (muteDrivePullUpOhms + muteDriveSeriesOhms
+               + muteDriveBaseOhms + muteDriveEmitterOhms);
+    }
+    // C13's rest for a fixed Tr5 node voltage.
+    [[nodiscard]] static constexpr double muteDriveHoldRestVolts(
+        double nodeVolts) noexcept
+    {
+        const double lower = muteDriveBaseOhms + muteDriveEmitterOhms;
         return (nodeVolts * lower - muteDriveRailVolts * muteDriveSeriesOhms)
              / (lower + muteDriveSeriesOhms);
     }
@@ -469,7 +483,10 @@ public:
         float wetGain { 0.0f };
     };
 
-    [[nodiscard]] static ModeSettings settingsFor(ChorusMode mode) noexcept;
+    // Optional offline comparison of the identified A11 Mode-I timing.
+    // Off/II/I+II keep their ordinary programs; nothing is inferred for them.
+    [[nodiscard]] static ModeSettings settingsFor(
+        ChorusMode mode, bool useA11EffectiveTimingProfile = false) noexcept;
 
     // The legacy low-rate input fallback, exposed as a coefficient and a
     // single step so the suites can measure where its corner actually lands
@@ -527,6 +544,10 @@ public:
         ExactTransition exactInput {};
         ExactTransition exactOutputMuted {};
         ExactTransition exactOutputConnected {};
+        // Prepared with the audio support at every cached numerical rate, so
+        // live quality changes also avoid building the control transition.
+        std::array<std::array<double, 2>, 2> muteDriveOpenTransition {};
+        double muteDriveHoldGlide { 0.0 };
     };
     [[nodiscard]] static SupportChain supportChainFor(float sampleRate) noexcept;
 
@@ -614,8 +635,9 @@ private:
         // The BBD's clock-grid images are physical and remain in the modeled
         // staircase. Sampling that asynchronous staircase on the numerical
         // grid creates a second, non-physical family of aliases. A short
-        // polyBLEP history removes only that host-grid error before the five
-        // hardware output poles. It is numerical state: unlike buckets,
+        // polyBLEP history reduces that host-grid error for both the signal
+        // and held random noise before the five hardware output poles. It is
+        // numerical state: unlike buckets,
         // clock phase, transfer loss and held noise, it is cleared when the
         // engine changes processing rate.
         std::array<double, 6> exactOutputState {};
@@ -632,7 +654,7 @@ private:
         void ageBlepEvents() noexcept;
         void rememberBlepEvent(float jump, double ageInSamples) noexcept;
         [[nodiscard]] double deterministicBlepCorrection(
-            double clockIncrement) const noexcept;
+            double clockIncrement, float noiseScale = 0.0f) const noexcept;
         [[nodiscard]] float processClockedCore(
             float limitedInput, float clockHz, float sampleRate,
             float noiseScale) noexcept;
@@ -714,12 +736,10 @@ private:
     ChorusMode runningMode_ { ChorusMode::One };
     // Whether the glided settings have a starting point yet.
     bool primed_ { false };
-    // The wet-mute drive's two capacitor voltages and Tr4's state; the
-    // per-sample glides are solved in prepare().
-    float muteDriveNodeVolts_ { 15.0f };
-    float muteDriveHoldVolts_ { 0.0f };
-    float muteDriveNodeGlide_ { 0.0f };
-    float muteDriveHoldGlide_ { 0.0f };
+    // The wet-mute drive's physical capacitor coordinates and Tr4's state;
+    // its prepared numerical transitions live in the cached support chain.
+    double muteDriveNodeVolts_ { 15.0 };
+    double muteDriveHoldVolts_ { 0.0 };
     bool muteDriveMuted_ { true };
     bool muteDriveEnabled_ { false };
     // Per-line insertion gains at the last calibration they were solved for.

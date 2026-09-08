@@ -11,6 +11,120 @@
       "preset_gain_after": 0.95672323,
       "preset_gain_before": 1.0,
       "target_peak": 0.18
+    },
+    "Pads - Lunar Drift.repatch": {
+      "gain_change_db": -1.138763709492114,
+      "method": "Retain baseline Aging 0% measurements and all musical parameters; attenuate only stored presetGain after the upstream DSP update. Use the maximum of Aging 0% and 50% calibration-chord peak/RMS, with a 0.0000005 measurement-rounding allowance, and floor the trim to nine decimals.",
+      "observed_before": {
+        "0": {
+          "peak": 0.202391,
+          "rms": 0.045603
+        },
+        "50": {
+          "peak": 0.202194,
+          "rms": 0.045514
+        }
+      },
+      "preset_gain_after": 0.747979361,
+      "preset_gain_before": 0.779503454,
+      "target_peak": 0.18,
+      "target_rms": 0.04,
+      "upstream_revision": "72e1d4482324465993c8e62609fa345e848d3b70"
+    },
+    "Pads/Dark Motion Pad.repatch": {
+      "gain_change_db": -0.2340514838947358,
+      "method": "Retain baseline Aging 0% measurements and all musical parameters; attenuate only stored presetGain after the upstream DSP update. Use the maximum of Aging 0% and 50% calibration-chord peak/RMS, with a 0.0000005 measurement-rounding allowance, and floor the trim to nine decimals.",
+      "observed_before": {
+        "0": {
+          "peak": 0.155355,
+          "rms": 0.041092
+        },
+        "50": {
+          "peak": 0.155295,
+          "rms": 0.041088
+        }
+      },
+      "preset_gain_after": 0.513484928,
+      "preset_gain_before": 0.519964113,
+      "target_peak": 0.18,
+      "target_rms": 0.04,
+      "upstream_revision": "72e1d4482324465993c8e62609fa345e848d3b70"
+    },
+    "Pads/Drifting Organ.repatch": {
+      "gain_change_db": -0.2604331265723364,
+      "method": "Retain baseline Aging 0% measurements and all musical parameters; attenuate only stored presetGain after the upstream DSP update. Use the maximum of Aging 0% and 50% calibration-chord peak/RMS, with a 0.0000005 measurement-rounding allowance, and floor the trim to nine decimals.",
+      "observed_before": {
+        "0": {
+          "peak": 0.141629,
+          "rms": 0.041217
+        },
+        "50": {
+          "peak": 0.141535,
+          "rms": 0.0412
+        }
+      },
+      "preset_gain_after": 0.446603525,
+      "preset_gain_before": 0.453813026,
+      "target_peak": 0.18,
+      "target_rms": 0.04,
+      "upstream_revision": "72e1d4482324465993c8e62609fa345e848d3b70"
+    },
+    "Slow Sweep.repatch": {
+      "gain_change_db": -0.8947792472012508,
+      "method": "Retain baseline Aging 0% measurements and all musical parameters; attenuate only stored presetGain after the upstream DSP update. Use the maximum of Aging 0% and 50% calibration-chord peak/RMS, with a 0.0000005 measurement-rounding allowance, and floor the trim to nine decimals.",
+      "observed_before": {
+        "0": {
+          "peak": 0.199531,
+          "rms": 0.022162
+        },
+        "50": {
+          "peak": 0.198678,
+          "rms": 0.022118
+        }
+      },
+      "preset_gain_after": 0.975230064,
+      "preset_gain_before": 1.0,
+      "target_peak": 0.18,
+      "target_rms": 0.04,
+      "upstream_revision": "72e1d4482324465993c8e62609fa345e848d3b70"
+    },
+    "Strings/Dark String Ensemble.repatch": {
+      "gain_change_db": -0.3194481787950876,
+      "method": "Retain baseline Aging 0% measurements and all musical parameters; attenuate only stored presetGain after the upstream DSP update. Use the maximum of Aging 0% and 50% calibration-chord peak/RMS, with a 0.0000005 measurement-rounding allowance, and floor the trim to nine decimals.",
+      "observed_before": {
+        "0": {
+          "peak": 0.15203,
+          "rms": 0.041498
+        },
+        "50": {
+          "peak": 0.151938,
+          "rms": 0.041489
+        }
+      },
+      "preset_gain_after": 0.460559836,
+      "preset_gain_before": 0.469403035,
+      "target_peak": 0.18,
+      "target_rms": 0.04,
+      "upstream_revision": "72e1d4482324465993c8e62609fa345e848d3b70"
+    },
+    "Strings/Soft String Section.repatch": {
+      "gain_change_db": -0.23468556143640068,
+      "method": "Retain baseline Aging 0% measurements and all musical parameters; attenuate only stored presetGain after the upstream DSP update. Use the maximum of Aging 0% and 50% calibration-chord peak/RMS, with a 0.0000005 measurement-rounding allowance, and floor the trim to nine decimals.",
+      "observed_before": {
+        "0": {
+          "peak": 0.157466,
+          "rms": 0.041095
+        },
+        "50": {
+          "peak": 0.157429,
+          "rms": 0.04109
+        }
+      },
+      "preset_gain_after": 0.531832335,
+      "preset_gain_before": 0.538329073,
+      "target_peak": 0.18,
+      "target_rms": 0.04,
+      "upstream_revision": "72e1d4482324465993c8e62609fa345e848d3b70"
     }
   },
   "format": 1,
@@ -543,12 +657,12 @@
     "Leads/Neon Glide.repatch": 0.245947588,
     "Leads/Pulse Whistle.repatch": 0.837676361,
     "Organ.repatch": 0.289481743,
-    "Pads - Lunar Drift.repatch": 0.779503454,
+    "Pads - Lunar Drift.repatch": 0.747979361,
     "Pads/8441 Pad.repatch": 0.524833434,
     "Pads/Aurora Veil.repatch": 0.631006839,
     "Pads/Bright Air Pad.repatch": 0.654874053,
-    "Pads/Dark Motion Pad.repatch": 0.519964113,
-    "Pads/Drifting Organ.repatch": 0.453813026,
+    "Pads/Dark Motion Pad.repatch": 0.513484928,
+    "Pads/Drifting Organ.repatch": 0.446603525,
     "Pads/Moon Choir.repatch": 0.639135564,
     "Pads/Simple Saw Pad.repatch": 0.595497316,
     "Pads/Slow String Pad.repatch": 0.447039882,
@@ -558,7 +672,7 @@
     "Pads/Warm Horizon.repatch": 0.432670563,
     "Percussive Comb.repatch": 0.717918881,
     "Self-Oscillating Sine.repatch": 0.588222165,
-    "Slow Sweep.repatch": 1.0,
+    "Slow Sweep.repatch": 0.975230064,
     "Strings - Dark Bowed.repatch": 0.455076906,
     "Strings - PWM Ensemble.repatch": 0.555207578,
     "Strings/8414 Str Brass.repatch": 0.388019649,
@@ -570,14 +684,14 @@
     "Strings/8426 Str Tremolo.repatch": 0.448621085,
     "Strings/Bright String Ensemble.repatch": 0.471892994,
     "Strings/Cello Current.repatch": 0.439563935,
-    "Strings/Dark String Ensemble.repatch": 0.469403035,
+    "Strings/Dark String Ensemble.repatch": 0.460559836,
     "Strings/Frozen Harmonics.repatch": 0.650923117,
     "Strings/Shimmer String Ensemble.repatch": 0.628894695,
     "Strings/Short Bow.repatch": 0.466159249,
     "Strings/Short String Section.repatch": 0.457357244,
     "Strings/Silk Section.repatch": 0.409947686,
     "Strings/Slow String Section.repatch": 0.43489789,
-    "Strings/Soft String Section.repatch": 0.538329073,
+    "Strings/Soft String Section.repatch": 0.531832335,
     "Strings/Solo Low Strings.repatch": 0.449540381,
     "Strings/Warm String Ensemble.repatch": 0.470023111,
     "Vibrato Lead.repatch": 0.496995205

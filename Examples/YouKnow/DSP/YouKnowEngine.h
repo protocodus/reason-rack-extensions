@@ -1,6 +1,11 @@
 #pragma once
 
 #include "YouKnowChorus.h"
+#include "YouKnowCoupledMixer.h"
+#include "YouKnowSubLevel.h"
+#include "YouKnowNoiseCalibration.h"
+#include "YouKnowHighPassSwitch.h"
+#include "YouKnowPwmControl.h"
 
 #include <array>
 #include <cmath>
@@ -9,6 +14,7 @@
 
 namespace youknow
 {
+class VcaControlCircuit;
 
 // Panel switch positions. Every enumerator is a physical detent on the
 // modelled front panel, so the order is the panel order and the integer value
@@ -181,10 +187,12 @@ struct EngineParameters
     static constexpr float calibrationCeiling = 2.0f;
     float chorusNoise { Chorus::defaultNoiseScale };
     // Comparison-only, not serialised: a linear scale on the shared Tr21
-    // noise rail for listening tests of the scope-crest convention behind
-    // the 4 Vp-p TP8 anchor (OQ-16). 1.0 is the shipped, conservative
-    // reading; the anchored bracket admits up to about +3.5 dB.
+    // noise rail for measurement/audition candidates (OQ-16). The 0..4
+    // sanitizer is a comparison guard, not a manufacturer tolerance. 1.0
+    // preserves the chosen profile; Nominal preserves the shipped reading.
     float mainNoiseLevelScale { 1.0f };
+    MainNoiseCalibrationProfile mainNoiseCalibrationProfile {
+        MainNoiseCalibrationProfile::Nominal };
     int polyphony { 6 };           // 6 is the hardware voice count.
     // Exact preserves the established always-running sound and state.
     // ZonedHermite and PolyZoned trade bounded kernel error for lower VCF CPU
@@ -211,7 +219,8 @@ struct EngineParameters
     bool enablePulseOffWaveNodeCoupling { true };
     // On by default: the sub reaches the WAVE node as the half-cycle current
     // its R102/R101/D6 leg passes from the SUB LEVEL rail, so its mean rides
-    // on the node and C56/C50 remove it; the level law is unchanged. False
+    // on the node and C56/C50 remove it. Its separately selected diode law
+    // acts on the held rail before both the AC and mean terms. False
     // retains the former zero-mean bipolar square solely for controlled A/B
     // renders.
     bool enableSubHalfWaveNodeCoupling { true };
@@ -221,6 +230,10 @@ struct EngineParameters
     // drawing's 47 kOhm load (see VoiceVcaSignalLaw). False retains the former
     // linear multiply, bit for bit, solely for controlled A/B renders.
     bool enableVoiceVcaSignalSaturation { true };
+    // C58 and Tr20 form one loaded control circuit. Its time constant tends
+    // to 1ms as Tr20 closes and to (10k||22k)*0.1uF at high current. Retains
+    // the same DC junction calibration; false is the former fixed-RC A/B.
+    bool enableCoupledVoiceVcaControl { true };
     // On by default: Tr21/C42 feed the BA662 level OTA, whose output is then
     // loaded by C41/R79. Putting the scanned NOISE control before that output
     // pole lets C41 discharge while muted and recharge when the level returns.
@@ -242,13 +255,18 @@ struct EngineParameters
     bool enableNarrowOneTwoChorus { true };
     // On by default: the chorus button reaches the wet-return JFETs through
     // the drawn Tr5/C16/R48/C13/Tr4 drive (see Chorus::muteDrive*), so the
-    // wet return mutes about 60 ms after CHORUS goes off and returns about
-    // 115 ms after it comes on. False switches at the command, as before.
+    // wet return mutes about 84.5 ms after CHORUS goes off and returns about
+    // 113.2 ms after it comes on. False switches at the command, as before.
     bool enableChorusMuteDrive { true };
     // On by default: each MN3009 line carries its own fixed-seed insertion
     // gain inside Panasonic's +/-4 dB row, scaled by Unit Character. False
     // keeps the two returns identical for controlled A/B renders.
     bool enableChorusLineGainSpread { true };
+    // Comparison-only, off by default: Mode I uses the effective timing
+    // identified from Lewis Francis's A11 capture (Chorus::settingsFor).
+    // The engine still uses its ordinary gains, noise, mute circuit and
+    // other chorus modes. Not a host parameter or a saved factory setting.
+    bool useA11EffectiveChorusTimingProfile { false };
     // Only the heterodyne clock-bleed tone is implemented (see
     // Chorus::process); no Thiran fractional-delay filter exists. Off by
     // default -- its amplitude is an unvalidated placeholder pending OQ-03.
@@ -301,6 +319,17 @@ struct EngineParameters
     // family still owns the final calibration; the physical topology is the
     // stronger prior in its absence.
     bool useCircuitDerivedResonanceShape { true };
+    // FREQ/WIDTH are fixed trimmers adjusted at the service self-oscillation
+    // amplitude. Keep that pole calibration when RES changes instead of
+    // dynamically cancelling the
+    // cascade's amplitude-dependent pitch droop. False restores the previous
+    // dynamic correction for comparisons. Not serialised.
+    bool useFixedVcfServiceFrequencyTrim { true };
+    // Fixed-slot FREQ/WIDTH/current-ceiling comparison coordinates from the
+    // six-card 192kHz sweep of serviced #439522 (Borish replacement cards).
+    // Fit at Unit Character zero; also selects the existing measured DAC
+    // carry steps independently of Character. Not serialised.
+    bool useServiced439522VcfCalibration { false };
     // Which reading of the resonance input-compensation bracket the voice
     // applies. Both derivable readings put the coefficient between 0.2751 and
     // 0.3078; the shipped default is that bracket's floor, and Legacy restores
@@ -348,6 +377,10 @@ struct EngineParameters
     // Ignored by Exact. The opt-in cubic replaces only the small
     // Character/Early multiplier transfer in the Fast kernel.
     VcfFastEarlyMode vcfFastEarlyMode { VcfFastEarlyMode::Hermite };
+    // Reference-unit diode onset/soft knee on the held SUB rail. False keeps
+    // the former linear law for controlled baseline renders. The optional
+    // fully coupled mixer handles its own diode and does not apply this twice.
+    bool enableSubDiodeControl { true };
 
     // Hosts commonly present the same complete parameter snapshot on every
     // block. Value equality is the right test for that public control image:
@@ -392,6 +425,7 @@ struct EngineParameters
             && calibration == other.calibration
             && chorusNoise == other.chorusNoise
             && mainNoiseLevelScale == other.mainNoiseLevelScale
+            && mainNoiseCalibrationProfile == other.mainNoiseCalibrationProfile
             && polyphony == other.polyphony
             && vcfTanhMode == other.vcfTanhMode
             && vcfSolverMode == other.vcfSolverMode
@@ -402,24 +436,29 @@ struct EngineParameters
             && enablePulseOffWaveNodeCoupling == other.enablePulseOffWaveNodeCoupling
             && enableSubHalfWaveNodeCoupling == other.enableSubHalfWaveNodeCoupling
             && enableVoiceVcaSignalSaturation == other.enableVoiceVcaSignalSaturation
+            && enableCoupledVoiceVcaControl == other.enableCoupledVoiceVcaControl
             && enableNoiseLevelBeforeC41 == other.enableNoiseLevelBeforeC41
             && useCircuitDerivedNoiseLevelShape == other.useCircuitDerivedNoiseLevelShape
             && enableNarrowOneTwoChorus == other.enableNarrowOneTwoChorus
             && enableChorusMuteDrive == other.enableChorusMuteDrive
             && enableChorusLineGainSpread == other.enableChorusLineGainSpread
+            && useA11EffectiveChorusTimingProfile == other.useA11EffectiveChorusTimingProfile
             && enableChorusClockBleed == other.enableChorusClockBleed
             && enableChorusHyperbolicSweep == other.enableChorusHyperbolicSweep
             && useChorusRateNoiseHypothesis == other.useChorusRateNoiseHypothesis
             && enableElectrolyticC14Nonlinearity == other.enableElectrolyticC14Nonlinearity
             && enableHighPassDepartingLegTail == other.enableHighPassDepartingLegTail
             && useCircuitDerivedResonanceShape == other.useCircuitDerivedResonanceShape
+            && useFixedVcfServiceFrequencyTrim == other.useFixedVcfServiceFrequencyTrim
+            && useServiced439522VcfCalibration == other.useServiced439522VcfCalibration
             && resonanceCompensationShape == other.resonanceCompensationShape
             && enableDifferentialResonanceInput == other.enableDifferentialResonanceInput
             && useSoftplusVoiceVcaCompatibilityLaw == other.useSoftplusVoiceVcaCompatibilityLaw
             && enableCommonVcaNoise == other.enableCommonVcaNoise
             && enableCardJohnsonFloor == other.enableCardJohnsonFloor
             && aging == other.aging
-            && vcfFastEarlyMode == other.vcfFastEarlyMode;
+            && vcfFastEarlyMode == other.vcfFastEarlyMode
+            && enableSubDiodeControl == other.enableSubDiodeControl;
     }
 };
 
@@ -475,6 +514,11 @@ public:
     // for ten minutes is still warm when the transport stops.
     void resetForHostStop();
     void setParameters(const EngineParameters& parameters);
+    // Comparison-only circuit calibration. Call before prepare(); an invalid
+    // calibration or a prepared engine is rejected without changing state.
+    // No public plug-in parameter, preset byte or shipping default selects it.
+    [[nodiscard]] bool configureCoupledMixer(
+        const CoupledSubMixer::Calibration& calibration) noexcept;
     void noteOn(int midiNote, float velocity);
     void noteOff(int midiNote);
     // Reason's monophonic Note/Gate CV changes pitch while Gate remains high.
@@ -950,10 +994,12 @@ public:
 
     // Complete default-profile cutoff after the compatibility profile's
     // frequency correction and the transconductor's control-current
-    // saturation. The explicit product safety cap applies after every
-    // correction so no composition can exceed the declared boundary.
-    [[nodiscard]] static float vcfEffectiveCutoffHz(
-        float counts, float feedback) noexcept;
+    // saturation. The nominal profile caps the pole at 50 kHz; the optional
+    // serviced-card profile permits 72.9 kHz to retain its measured ultrasonic
+    // fundamentals. Both render paths additionally enforce 0.45*internalRate.
+    [[nodiscard]] static float vcfEffectiveCutoffHz(float counts,
+                                                    float feedback,
+                                                    int referenceCard = -1) noexcept;
 
     // Integral non-linearity of the R-2R cutoff converter, in counts, for a
     // summed count value. A measured code-to-frequency table for a real voice
@@ -1021,7 +1067,10 @@ public:
     {
         NormalizedServiceChart,
         PhaseZeroDiagnostic,
-        MeasuredChartGeometry
+        MeasuredChartGeometry,
+        // Comparison-only partial reconstruction: chart anchors outside the
+        // DCO train, instruction-count intervals inside it. Not serialised.
+        FirmwareDcoNoInterrupt
     };
     // NormalizedServiceChart is an explicit compatibility/product profile: it
     // preserves the chart's sequential writes across one pass without claiming
@@ -1040,6 +1089,15 @@ public:
     // selection is consumed by the next reset/prepare, never mid-pass.
     [[nodiscard]] static std::array<double, converterWritesPerPass>
         converterEventPhases(ConverterTimingProfile profile) noexcept;
+    // B-2 0493 -> next 0493, at the nominal 4 MHz CPU-state rate, excluding
+    // interrupts. pitchHighByte is the *next* voice's unsigned 8.8 word high
+    // byte before the table clamp. The next voice owns the reset/clamp cost.
+    [[nodiscard]] static constexpr int firmwareDcoInterWriteStates(
+        bool nextVoiceReset, std::uint8_t pitchHighByte) noexcept
+    {
+        return 867 + (nextVoiceReset ? 106 : 0)
+            + (pitchHighByte <= 47 ? 12 : pitchHighByte >= 151 ? 26 : 0);
+    }
     // Selects the profile reset()/prepare() install, so a comparison profile
     // can drive the complete shipping signal path (the A-Z rules forbid
     // offline approximations). Mid-pass switching is deliberately
@@ -1048,7 +1106,13 @@ public:
     // has, so a selection takes effect at the next reset()/prepare().
     void selectConverterTimingProfile(ConverterTimingProfile profile) noexcept;
 
-    // Output calibration is a product convention, not a original instrument voltage.
+    // Comparison-only, before prepare(): solve the literal C14/IC3/HPF
+    // network with an explicit finite switch resistance (50..1000 ohms).
+    // This supersedes the legacy C14/HPF approximation switches. No installed
+    // Ron or signal-dependent switching law is implied; host state is unchanged.
+    bool configureHighPassSwitch(double onResistanceOhms) noexcept;
+
+    // Output calibration is a product convention, not an original instrument voltage.
     // One internal unit is still the established 2.6 V model coordinate used
     // to drive the chorus. Choosing this provisional reference makes the new
     // -18 dBFS RMS boundary exactly unity and therefore preserves sessions.
@@ -1612,6 +1676,7 @@ private:
     // own comment for why the constant nonetheless stands.) The suites solve
     // the same ODE.
     static constexpr float thermalVoltage = 0.026f;
+    [[nodiscard]] static const VcaControlCircuit& voiceVcaControlCircuit() noexcept;
     // Roland's JUNO-6/JUNO-60 CPU BOARD p. 9 prints the four IR3109 stage
     // capacitors as "240PJ" -- C1, C2, C3, C4 alongside the seven 68K -- so
     // both the value and its tolerance class come from the drawing rather than
@@ -1719,12 +1784,15 @@ private:
     // it.
     static constexpr float vcfBenderCounts = 4064.0f;
     // Hold-capacitor slew after the converter. VCF and voice-VCA use the
-    // supported 522/687 us values; the common VCA derives its separate value
+    // 522us VCF value and retained 687us linear VCA reference. The default VCA
+    // instead couples C58 to Tr20's current-dependent incremental resistance
+    // (YouKnowVcaControl.h); the common VCA derives its separate value
     // from C7 and its loaded jack-board resistor network. PWM and SUB derive
     // theirs from p. 13's designator-complete post-hold smoothing networks
-    // (OQ-07): the PWM hold reaches the comparators through R117/C62 and then
-    // R116/C63 around IC17a -- two cascaded poles -- and the stored SUB level
-    // reaches its mixer OTA through R11 into C1 ahead of the R9/R10 inverter.
+    // (OQ-07): the PWM hold reaches the comparators through IC17a's parallel
+    // R118+VR31/C62 feedback and the R119/C63 output pole (YouKnowPwmControl),
+    // and the stored SUB level reaches its mixer OTA through R11 into C1
+    // ahead of the R9/R10 inverter.
     // Both networks settle to their held value, so the calibrated DC laws are
     // untouched; what they add is the lag the hardware's PWM LFO and level
     // staircase actually cross. IC26's RESO channel instead shares IC24's
@@ -1757,15 +1825,11 @@ private:
     // against a 2.44 mV LSB (its 1 uA 25 C leakage maximum is a test limit,
     // not a measurement).
     static constexpr float vcfHoldSlewSeconds = 522.0e-6f;
-    static constexpr float voiceVcaHoldSlewSeconds = 687.0e-6f;
-    static constexpr float pwmSmoothingR117Ohms = 100.0e3f;
-    static constexpr float pwmSmoothingC62Farads = 47.0e-9f;
-    static constexpr float pwmSmoothingR116Ohms = 560.0e3f;
-    static constexpr float pwmSmoothingC63Farads = 4.7e-9f;
-    static constexpr float pwmHoldFirstPoleSeconds =         // 4.7 ms
-        pwmSmoothingR117Ohms * pwmSmoothingC62Farads;
-    static constexpr float pwmHoldSecondPoleSeconds =        // 2.632 ms
-        pwmSmoothingR116Ohms * pwmSmoothingC63Farads;
+    static constexpr float voiceVcaHoldSlewSeconds = 687.0e-6f; // linear A/B reference
+    static constexpr float pwmHoldFirstPoleSeconds =        // ~3.249 ms
+        static_cast<float>(PwmControlCircuit::feedbackPoleSeconds);
+    static constexpr float pwmHoldSecondPoleSeconds =       // 0.2209 ms
+        static_cast<float>(PwmControlCircuit::outputPoleSeconds);
     static constexpr float subSmoothingR11Ohms = 1.0e3f;
     static constexpr float subSmoothingC1Farads = 10.0e-6f;
     static constexpr float subHoldSlewSeconds =              // 10 ms
@@ -2426,7 +2490,9 @@ private:
         // Unlike the former TPT coefficient this is consumed directly by the
         // continuous-time RK step and therefore needs no tan/atan round trip.
         float filterOmegaStep { 0.1f };
-        // The counts and loop gain `filterOmegaStep` was last solved for.
+        // The counts and calibration feedback `filterOmegaStep` was last
+        // solved for. The latter is the card's fixed full-RES setting by
+        // default, or the live loop gain for the legacy dynamic comparison.
         // Both are compared for exact equality, so this memo cannot return
         // anything the chain would not have recomputed; a sentinel that no
         // real count can equal forces the first solve. The internal rate is
@@ -2442,9 +2508,10 @@ private:
         float cutoffCountsTarget { 0.0f };
         float cutoffCounts { 0.0f };
         float vcaControlTarget { 0.0f };
-        // Physical capacitor charge. Double precision keeps very slow tails
-        // moving at high internal rates after their float-sized increment has
-        // fallen below half an ULP of the present state.
+        // Equivalent settled CV u, mapped to C58 voltage by the coupled
+        // circuit's q(u). The linear comparison uses u directly. Double
+        // precision keeps very slow tails moving at high internal rates after
+        // their float-sized increment falls below half an ULP of this state.
         double vcaControl { 0.0 };
         // Oscillator compensation hold in the firmware's unshifted 12-bit DAC
         // code. The timer's count steps independently; this code slews, and
@@ -2508,6 +2575,7 @@ private:
         // summed WAVE node and pin 1 VCF IN, so no mixer DC reaches the
         // filter core or the voice VCA behind it.
         HighPass moduleCoupling {};
+        CoupledSubMixer coupledMixer {};
         // C59, the per-voice coupling out of pin 3 VCF OUT and into pin 9
         // VCA IN. The filter core makes DC of its own -- stage offsets and the
         // duty-asymmetric pulse the cascade only partly removes -- and this is
@@ -2615,6 +2683,7 @@ private:
     // still-unpublished serial wire phase and NMOS interrupt-entry delay out.
     void finishProtectedPitWritesBeforeSerialVoiceCommand() noexcept;
     void restartVoiceBoardScanAfterSerialVoiceCommand() noexcept;
+    void refreshFirmwareDcoTiming() noexcept;
     void noteOffInternal(int midiNote) noexcept;
     [[nodiscard]] static bool pitchChangeRequestsDcoReset(
         const Voice& voice, int voiceMidi) noexcept;
@@ -2884,6 +2953,8 @@ private:
     // replace it without changing destination ownership or queue order.
     ConverterTimingProfile converterTimingProfile_ {
         ConverterTimingProfile::NormalizedServiceChart };
+    ConverterTimingProfile activeConverterTimingProfile_ {
+        ConverterTimingProfile::NormalizedServiceChart };
     std::array<double, converterWritesPerPass> converterEventPhases_ {};
     std::size_t nextConverterWrite_ { 0 };
     // Delayed float path for VCF and extension-voice scans. DCO pitch uses its
@@ -2943,9 +3014,9 @@ private:
     // and noise level. Every voice card consumes these shared voltages, while
     // its downstream comparator and level errors remain card-specific.
     // The PWM hold crosses two smoothing poles on its way to the comparators
-    // -- R117/C62, then R116/C63 around IC17a -- so it carries the R117/C62
-    // node as a second continuous state between the target and the value the
-    // cards see.
+    // -- IC17a's R118+VR31/C62 feedback, then R119/C63 -- so it carries the
+    // opamp output as a second continuous state between the target and the
+    // value the cards see.
     float pwmVoltsTarget_ { 6.0f };
     double pwmVoltsFirstPole_ { 6.0 };
     double pwmVolts_ { 6.0 };
@@ -3031,6 +3102,8 @@ private:
     // networks occur once on the jack board rather than once per voice, which
     // is why they live here and carry no per-voice dispersion.
     HighPass voiceBusCoupling_ {};
+    HighPassSwitchCircuit highPassSwitch_ {};
+    double highPassSwitchResistance_ { 0.0 };
     float voiceBusCouplingG_ { 0.0001f };
     // Shared by all six cards: one part number, one nominal corner. The state
     // is per voice because each card has its own capacitor.
@@ -3153,6 +3226,9 @@ private:
     // envelopeLaw* cache above memoizes ATTACK/DECAY/RELEASE: comparison is
     // exact equality against the same parameters.portamento source, so the
     // memo can never return anything the unconditional call would not have.
+    CoupledSubMixer::Calibration coupledMixerCalibration_ {};
+    bool coupledMixerEnabled_ { false };
+
     float glideLawPortamento_ { -1.0f };
     float glideLawStepPerScan_ { 0.0f };
 };
