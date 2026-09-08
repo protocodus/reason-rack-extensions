@@ -1,4 +1,76 @@
-# YouKnow 1.0.0f15 candidate
+# YouKnow 1.0.0f16 candidate
+
+The full-panel branding now reads YOUKNOW followed by a smaller blue
+“by Protocodus” on one line. The full front balances that signature, the complete
+preset selector, and the device-name tape as one row. Actual visible bounds
+are x94.4–659.6 in the 754-pixel panel: both outer margins are 94.4 pixels.
+The brand's glyph ink spans y13.2–30.8 within the 44-pixel nameplate, preserving
+equal vertical padding. The full rear uses the same inline signature at its
+protected x40 inset; the compact folded layout remains unchanged.
+
+Both consumed GUI layouts use the measured front positions: patch name
+(284,16), browse controls (502,13), and device name (580,17). The selector
+retains 25.6 pixels after the maker byline and 20 pixels before the tape canvas.
+Existing renderer checks enforce the actual ink margins and native-widget
+clearances. The quality strip remains full width.
+
+## Final local validation
+
+| Check | Result |
+| --- | --- |
+| Independent code and visual review | PASS: final inline header, both GUI formats, full/folded panel composites; no actionable findings |
+| GUI and patch validation | PASS: 74 widgets, 78 nodes, 18 image paths, 14 GUI asset twins, 184 text keys, and 93 patches with deterministic trims |
+| Local45 Deployment | PASS: 118 source-backed byte matches, 93 patches, and both native libraries match the completed build |
+| Universal45 | PASS: ZIP integrity, 143 members, 138 source-backed byte matches, 93 patches, and four LLVM chip binaries |
+| Audio compatibility | PASS: all 28 audio/property inputs, both native libraries and four universal chips are byte-identical to f15; all 93 patches differ only in their version attribute |
+| Release materials | PASS: matching six-page manual and all three Shop PNGs reviewed and copied into the candidate folder |
+
+The verified package is `Release/1.0.0f16/YouKnow-1.0.0f16.u45`,
+19,849,842 bytes. SHA-256:
+`a8e838f1054c92a5f6d54ca4186d7b31daf3b1b053a600546a43d3c4f694291a`.
+The manual SHA-256 is
+`d426a0ab142b0cca912fcecc8fc1cf514f07ff461feab7a553e2e8a269d76bc2`.
+Detailed build/payload records are under `Release/validation/1.0.0f16`;
+final panel comparisons are under `Release/ui-review/1.0.0f16`.
+The candidate folder includes a build manifest and verified `SHA256SUMS`.
+
+The user authorized upload. The browser file chooser rejected the final f16
+archive with `Not allowed` before submission, so no f16 cloud result is claimed.
+The browser tool's troubleshooting guidance recommends enabling “Allow access
+to file URLs” for the ChatGPT extension; the setting itself was not inspected.
+This browser-side rejection is separate from the prior f15 server failure.
+
+## Investigation of the f15 cloud failure
+
+The Reason Studios portal confirms that f15 Deployment build
+`8d852fdd-c51b-419d-882a-e216c23b3228` failed. The server timestamps are
+`2026-09-08T20:42:41.299944+00:00` through
+`2026-09-08T20:48:32.015879+00:00`. Expanding its log displays only
+“Unknown error”; the portal's normal build-list response includes no failing
+stage or technical diagnostic. No additional log request occurs on expansion.
+The service does not expose the uploaded archive checksum in that response.
+
+Targeted investigation records are in `Release/validation/cloud-f15-debug`:
+
+- All four archived chips pass the SDK's forbidden-global check.
+- The official optimized45 64-bit Deployment path successfully translates,
+  links, and checks undefined symbols for both Mac Intel and Apple Silicon.
+- The exact SDK Windows x64 optimization/code-generation sequence produces a
+  valid AMD64 COFF object. Windows DLL linking and its dependency check were
+  not tested because the required Windows linker, wrapper and CRT are absent.
+- All 38 archived PNGs pass format, CRC, decompression and decode checks;
+  their formats/dimensions match the retained f11 source. SDK Lua evaluation
+  finds all 86 rendered leaves within their panels. The exact successfully
+  uploaded f11 bytes are unavailable, so that source comparison is not a
+  cloud-payload identity claim.
+
+No concrete local GUI, DSP, or package defect was reproduced. This investigation
+does not establish the cause of the service failure or a fix. The requested
+f16 UI revision uses a new version because the f15 upload consumed that version.
+A support-request draft with the build ID is preserved but has not been sent.
+Actual host/performance qualification and Reason Studios acceptance remain open.
+
+## Retained 1.0.0f15 candidate
 
 Validated on 2026-09-08 for the requested header refinement. Actual
 PROTOCODUS/YOUKNOW glyph ink spans y6–38 in the 44-pixel nameplate, giving
@@ -34,9 +106,10 @@ source `d36663e4311427a5914fd9d3efb932d32b4d7610`; the website checkout and
 live site remain unchanged. Historical f14 evidence is labelled separately.
 
 The retained f14 engine, wrapper, and sanitizer results apply to the identical
-audio binaries. Its wall-clock timing qualification remains open. No fresh host
-creation test, cloud upload, or publication was performed for f15; the earlier
-unanswered f14 upload request does not authorize this revised artifact.
+audio binaries. Its wall-clock timing qualification remains open. At the initial
+local handoff, no fresh host creation test, cloud upload, or publication had been
+performed. The user subsequently authorized upload; the resulting f15 cloud
+failure and investigation are recorded above.
 
 ## Retained 1.0.0f14 candidate
 

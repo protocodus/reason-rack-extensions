@@ -2,7 +2,13 @@
 
 Notable customer-facing changes to YouKnow are recorded here.
 
-## 1.0.0f15 - Unreleased
+## 1.0.0f16 - Unreleased
+
+- Set YOUKNOW followed by a smaller blue “by Protocodus” on one line, and
+  balance the branding, preset selector, and device-name label with equal
+  outer margins across the front header.
+
+## 1.0.0f15 - Earlier candidate
 
 - Balance the stacked PROTOCODUS/YOUKNOW logo with equal visible padding
   above and below the nameplate on both full panels.

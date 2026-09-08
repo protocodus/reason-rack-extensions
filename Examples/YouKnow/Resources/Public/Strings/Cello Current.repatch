@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <JukeboxPatch version="1.0">
     <DeviceNameInEnglish>YouKnow</DeviceNameInEnglish>
-    <Properties deviceProductID="cz.protocodus.YouKnow" deviceVersion="1.0.0f15">
+    <Properties deviceProductID="cz.protocodus.YouKnow" deviceVersion="1.0.0f16">
         <Object name="custom_properties">
             <Value property="volume" type="number">0.62</Value>
             <Value property="presetGain" type="number">0.439563935</Value>

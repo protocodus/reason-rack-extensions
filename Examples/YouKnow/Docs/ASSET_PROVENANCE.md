@@ -1,6 +1,7 @@
 # YouKnow asset and SDK provenance inventory
 
-Current candidate: YouKnow `1.0.0f15`, with local artifact validation complete.
+Current candidate: YouKnow `1.0.0f16`, with local artifact validation passed;
+host and Reason Studios acceptance remain pending.
 The dated `1.0.0f14` audits and hashes below retain their historical scope.
 This is an engineering traceability record, not a legal conclusion, ownership
 opinion, or grant of rights. Commercial permission and distribution scope stay

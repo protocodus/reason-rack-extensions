@@ -86,13 +86,13 @@ end
 front = jbox.panel{
 	backdrop = jbox.image{ path = "Reason_GUI_front_root_Panel" },
 	widgets = {
-		patch_name(299, 16, 16, "Arial medium font"),
+		patch_name(284, 16, 16, "Arial medium font"),
 		jbox.patch_browse_group{
-			transform = { 517, 13 },
+			transform = { 502, 13 },
 			fx_patch = false,
 		},
 		jbox.device_name{
-			transform = { 589, 17 },
+			transform = { 580, 17 },
 		},
 		jbox.sequence_meter{
 			transform = { 724, 51 },

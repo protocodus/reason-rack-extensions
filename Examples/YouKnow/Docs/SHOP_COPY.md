@@ -7,13 +7,14 @@
 - Device name: YouKnow
 - Manufacturer: Protocodus
 - Product ID: `cz.protocodus.YouKnow`
-- Candidate: `1.0.0f15`
-  Local visual/package checks pass; upload and acceptance are pending.
+- Candidate: `1.0.0f16`
+  Local visual/package checks pass; the browser rejected file selection for
+  the authorized upload. Host and Reason Studios acceptance remain pending.
 - Requirement: Reason 14 or later
 - Category: Instrument / Synth
 - Support URL: <https://protocodus.cz/product/youknow/>
 - Support email: [protocodus+support@proton.me](mailto:protocodus+support@proton.me)
-- Article: `PENDING` - select `1.0.0f15` after Reason Studios acceptance
+- Article: `PENDING` - select `1.0.0f16` after Reason Studios acceptance
 - Price category: `PENDING`
 - Upgrade price category: `0` - free updates, no special upgrade price
 - Tags: Type `Synth`; Character `Analog / Vintage` and `Hardware emulation`.
@@ -84,13 +85,15 @@ was saved and reopened on 2026-09-08. It retains the version-neutral tagline,
 three features, product/support URLs, description, and the tags above. At that
 review, product association was empty because the selector offered no accepted
 product; no images/PDF, publication, or price selection had been submitted.
-The portal listed f11 as testing. This saved text is historical draft evidence,
-not an uploaded or accepted f15 listing.
+The portal listed f11 as testing at that review. This saved text is historical
+draft evidence, not an accepted listing for the current candidate.
 
-The requested panel refinement supersedes the reviewed f14 artifact. The
-unanswered f14 upload request does not authorize the new f15 package: f15 upload is
-pending approval. Retain the existing draft text,
-then attach the matching f15 images/PDF and accepted Article when ready.
+The later f15 upload consumed version `1.0.0f15`; cloud build
+`8d852fdd-c51b-419d-882a-e216c23b3228` ended with status `error`. The portal
+reported “Unknown error” without a diagnostic. The f16 header refinement is a
+new candidate, with no demonstrated fix for that cloud failure. Retain the
+existing version-neutral draft text, then attach the matching f16 images/PDF
+and accepted Article when ready.
 
 ## Portal assets and submission
 

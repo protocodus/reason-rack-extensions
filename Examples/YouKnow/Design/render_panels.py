@@ -128,19 +128,17 @@ MAX_CONTROL_EXTRA = 15
 ROUNDING_GUARD = 0.75
 FRONT_HEADER_BOTTOM = 70
 REAR_HEADER_BOTTOM = 70
-# The maker mark and wordmark sit at exactly these coordinates on both faces,
-# so a flipped rack shows the same nameplate in the same place.
-# Keep the nameplate beyond Reason's collapse-button overlay on either face.
+# Rear and folded branding retain the protected left inset. The full front
+# centers its inline logo, native preset selector and device-name tape as one row.
 HEADER_LEFT_INSET = 40
 WORDMARK_X = HEADER_LEFT_INSET
 FOLDED_WORDMARK_X = HEADER_LEFT_INSET
 FOLDED_MAKER_X = FOLDED_WORDMARK_X + 81
-# Actual glyph ink spans y=6..38 in the 44px nameplate: six pixels of
-# plastic above and below the two-line logo, with the same spacing on both faces.
-MAKER_Y = 10.2
-MAKER_SIZE = 11.5
-WORDMARK_Y = 29.2
+# Full panels use a single-line signature; folded panels retain their existing
+# compact inline lettering. Actual full-panel ink is centered in the nameplate.
 WORDMARK_SIZE = 24.0
+BYLINE_SIZE = 11.0
+BYLINE_GAP = 10
 VERSION_Y = 51          # rear only: the build the panel was made for
 VERSION_SIZE = 9.5
 
@@ -151,6 +149,7 @@ VERSION_SIZE = 9.5
 # lets it use the full width of the panel, and gives every field the room its
 # own caption needs. Positions are derived, exactly like the control rows.
 STATUS_STRIP_TOP = 44
+WORDMARK_Y = STATUS_STRIP_TOP / 2
 STATUS_RIGHT_MARGIN = 20
 STATUS_CAPTION_GAP = 5
 STATUS_CENTRE_Y = 56
@@ -245,6 +244,26 @@ def label(draw, xy, value, size, colour=INK, *, display=False, strong=False,
 def text_width(value, size, display=False, strong=False, track=0.0):
     """Rendered width in logical units, tracking included."""
     return tracked_width(value, font(size, display, strong), track) / Q
+
+
+def wordmark(draw, version=None, x=WORDMARK_X):
+    """YOUKNOW followed by its smaller maker byline on both full faces."""
+    label(draw, (x, WORDMARK_Y), "YOUKNOW", WORDMARK_SIZE, INK,
+          display=True, anchor="lm", track=TRACK_CAPTION)
+    byline_x = x + text_width(
+        "YOUKNOW", WORDMARK_SIZE, display=True, track=TRACK_CAPTION) + BYLINE_GAP
+    label(draw, (byline_x, WORDMARK_Y), "by Protocodus", BYLINE_SIZE, ICE,
+          anchor="lm", track=TRACK_CAPTION)
+    if version:
+        label(draw, (x, VERSION_Y), f"VERSION {version}", VERSION_SIZE,
+              MUTED, anchor="lm", track=TRACK_SCALE)
+
+
+def wordmark_ink_bounds(x=WORDMARK_X):
+    """Measure the exact inline signature for grouping, including tracked glyph ink."""
+    mask = Image.new("RGB", px((WIDTH, FRONT_HEADER_BOTTOM)))
+    wordmark(ImageDraw.Draw(mask), x=x)
+    return tuple(coordinate / Q for coordinate in mask.getbbox())
 
 
 def contrast_ratio(foreground, background):
@@ -638,11 +657,32 @@ PLACEHOLDER_POS = (347, 15)
 # Header widgets, which sit outside the three control rows.
 # Band one carries identity and the patch; band two is the readout strip that
 # place_status_strip() spreads across the full width beneath it.
-PATCH_BOX = (296, 12, 507, 36)
+PATCH_BOX_WIDTH = 211
+PATCH_BROWSE_GAP = 10
+PATCH_BROWSE_SIZE = (58, 22)
+HEADER_GROUP_GAP = 26
+DEVICE_NAME_GAP = 20
+DEVICE_NAME_SIZE = (80, 13)
+with Image.open(OUT / "TapeHorz.png") as tape_image:
+    DEVICE_NAME_INK_BOUNDS = tuple(value / Q for value in tape_image.getchannel("A").getbbox())
+WORDMARK_INK_BOUNDS = wordmark_ink_bounds()
+WORDMARK_INK_WIDTH = WORDMARK_INK_BOUNDS[2] - WORDMARK_INK_BOUNDS[0]
+PRESET_WIDTH = PATCH_BOX_WIDTH + PATCH_BROWSE_GAP + PATCH_BROWSE_SIZE[0]
+HEADER_GROUP_WIDTH = (WORDMARK_INK_WIDTH + HEADER_GROUP_GAP + PRESET_WIDTH
+                      + DEVICE_NAME_GAP + DEVICE_NAME_INK_BOUNDS[2])
+# Keep native widget transforms on whole logical pixels. The logo absorbs the
+# fractional ink-width remainder so its left ink edge and the tape's visible
+# right edge leave exactly equal margins to the panel edges.
+PATCH_X = round((WIDTH - HEADER_GROUP_WIDTH) / 2 + WORDMARK_INK_WIDTH + HEADER_GROUP_GAP)
+PRESET_RIGHT = PATCH_X + PRESET_WIDTH
+DEVICE_NAME_X = PRESET_RIGHT + DEVICE_NAME_GAP
+HEADER_GROUP_RIGHT = DEVICE_NAME_X + DEVICE_NAME_INK_BOUNDS[2]
+FRONT_WORDMARK_X = px(WORDMARK_X + WIDTH - HEADER_GROUP_RIGHT - WORDMARK_INK_BOUNDS[0]) / Q
+PATCH_BOX = (PATCH_X, 12, PATCH_X + PATCH_BOX_WIDTH, 36)
 HEADER_NODES = {
-    "S_patch_name": (299, 16),
-    "S_patch_browse_group": (517, 13),
-    "S_device_name": (589, 17),
+    "S_patch_name": (PATCH_X + 3, 16),
+    "S_patch_browse_group": (PATCH_X + PATCH_BOX_WIDTH + PATCH_BROWSE_GAP, 13),
+    "S_device_name": (DEVICE_NAME_X, 17),
     "S_note_on": (NOTE_LAMP_X, STATUS_CENTRE_Y - LAMP_SIZE // 2),
 }
 
@@ -922,19 +962,6 @@ def device_version():
     return match.group(1)
 
 
-def wordmark(draw, version=None):
-    """The maker mark and instrument name, identically placed on both faces."""
-    centre = WORDMARK_X + text_width(
-        "YOUKNOW", WORDMARK_SIZE, display=True, track=TRACK_CAPTION) / 2
-    label(draw, (centre, MAKER_Y), "PROTOCODUS", MAKER_SIZE, ICE,
-          strong=True, track=TRACK_TITLE)
-    label(draw, (centre, WORDMARK_Y), "YOUKNOW", WORDMARK_SIZE, INK,
-          display=True, track=TRACK_CAPTION)
-    if version:
-        label(draw, (WORDMARK_X, VERSION_Y), f"VERSION {version}", VERSION_SIZE,
-              MUTED, anchor="lm", track=TRACK_SCALE)
-
-
 def status_plate(image, draw):
     """A subtly darker readout band, retaining the continuous plastic grain."""
     bounds = px((0, STATUS_STRIP_TOP, WIDTH, FRONT_HEADER_BOTTOM))
@@ -949,7 +976,7 @@ def render_front():
     recess_surface = front_plastic(HEIGHT, (46, 47, 48), (40, 41, 42), contrast=0.32)
     header_plate(image, draw)
     status_plate(image, draw)
-    wordmark(draw)
+    wordmark(draw, x=FRONT_WORDMARK_X)
     # Patch window: a recessed smoked panel, lit along its lower edge.
     x0, y0, x1, y1 = PATCH_BOX
     draw.rounded_rectangle(px(PATCH_BOX), radius=px(2),
@@ -1712,11 +1739,29 @@ def check_spacing():
 
     # The fixed header and folded furniture must retain breathing room around
     # Reason's native patch/name widgets.
-    # The nameplate is identical on both faces and must clear the patch window.
-    wordmark_end = WORDMARK_X + max(
-        text_width("YOUKNOW", WORDMARK_SIZE, True, track=TRACK_CAPTION),
-        text_width("PROTOCODUS", MAKER_SIZE, strong=True, track=TRACK_TITLE))
-    assert wordmark_end + BOX_GAP <= PATCH_BOX[0], "nameplate runs into the patch window"
+    # Center the inline brand, complete preset selector and device-name tape.
+    # The rear has no preset selector and retains its protected left nameplate.
+    front_logo = wordmark_ink_bounds(FRONT_WORDMARK_X)
+    browse_x, browse_y = HEADER_NODES["S_patch_browse_group"]
+    browse_size = Image.open(OUT / "PatchBrowseGroup.png").size
+    assert browse_size == px(PATCH_BROWSE_SIZE), "native preset browse dimensions changed"
+    preset_right = browse_x + browse_size[0] / Q
+    assert abs(PATCH_BOX[0] - front_logo[2] - HEADER_GROUP_GAP) <= 1, (
+        "logo and preset selector must retain their compact gap")
+    tape_x, _ = HEADER_NODES["S_device_name"]
+    with Image.open(OUT / "TapeHorz.png") as tape:
+        assert tape.size == px(DEVICE_NAME_SIZE)
+        tape_right = tape_x + tape.getchannel("A").getbbox()[2] / Q
+    assert abs(front_logo[0] - (WIDTH - tape_right)) <= 1 / Q, (
+        "YOUKNOW and the visible device-name tape must have equal edge margins")
+    assert preset_right + DEVICE_NAME_GAP <= tape_x, (
+        "preset selector must leave clearance before the device-name tape")
+    assert tape_x + DEVICE_NAME_SIZE[0] <= WIDTH - HEADER_LEFT_INSET, (
+        "device-name tape must retain the panel's right margin")
+    assert browse_y + browse_size[1] / Q <= STATUS_STRIP_TOP
+    assert front_logo[0] >= HEADER_LEFT_INSET, "front logo overlaps collapse-button area"
+    assert abs(front_logo[1] - (STATUS_STRIP_TOP - front_logo[3])) <= 1 / Q, (
+        "inline branding must retain equal vertical padding")
     assert PATCH_BOX[3] < STATUS_CENTRE_Y - ENGINE_STATUS_SIZE[1] / 2, (
         "the patch window overlaps the readout strip")
     assert WORDMARK_X >= 40 and FOLDED_WORDMARK_X >= 40, "branding overlaps collapse-button area"

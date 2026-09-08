@@ -1,13 +1,16 @@
 # YouKnow Rack Extension
 
 YouKnow is a native circuit-modelled polysynth for Reason 14 and later.
-Production candidate `1.0.0f15` includes 93 original Protocodus patches, up to
+Production candidate `1.0.0f16` includes 93 original Protocodus patches, up to
 16 voices, stereo chorus, eight CV inputs, and 41 automatable custom controls
 alongside Reason's pitch wheel, modulation wheel, and sustain support.
 
-The refined header and both SDK 5 packages pass local review and validation.
-Reason Studios upload and host acceptance remain pending. The unchanged audio
-binaries retain the recorded `1.0.0f14` runtime evidence.
+The f16 header balances the inline branding, preset selector, and device-name
+label with equal visible outer margins. Its code/visual review, local45 and
+universal45 builds, and installed/archive checks pass. Chrome rejected file
+selection for the authorized f16 upload with `Not allowed`. The earlier f15 cloud
+build ended in an unknown error without a diagnostic; no cloud-build remedy
+has been established. Host and Reason Studios acceptance remain pending.
 
 Start with the [user guide](Docs/USER_GUIDE.md) and
 [patch catalog](PRESETS.md). Support:

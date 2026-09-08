@@ -39,15 +39,15 @@ front = {
 	S_backdrop = { { path = "Reason_GUI_front_root_Panel" } },
 	{
 		S_patch_name = {
-			offset = { 299 * Q, 16 * Q },
+			offset = { 284 * Q, 16 * Q },
 			{ size = { 204 * Q, 16 * Q } },
 		},
 		S_patch_browse_group = {
-			offset = { 517 * Q, 13 * Q },
+			offset = { 502 * Q, 13 * Q },
 			{ path = "PatchBrowseGroup" },
 		},
 		S_device_name = {
-			offset = { 589 * Q, 17 * Q },
+			offset = { 580 * Q, 17 * Q },
 			{ path = "TapeHorz" },
 		},
 		S_note_on = lamp(724, 51),
