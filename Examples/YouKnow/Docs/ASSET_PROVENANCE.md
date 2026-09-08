@@ -1,6 +1,6 @@
 # YouKnow asset and SDK provenance inventory
 
-Updated 2026-09-08 CEST for the YouKnow `1.0.0f13` production candidate. This
+Updated 2026-09-08 CEST for the YouKnow `1.0.0f14` production candidate. This
 is an engineering traceability record, not a legal conclusion, ownership
 opinion, or grant of rights. Commercial permission and distribution scope stay
 subject to the open owner/legal and Reason Studios release gates.
@@ -108,8 +108,10 @@ The production bank contains 93 Protocodus patches, including Init:
 - The 30 universal expansion patches are explicit parameter overrides added
   in commit `662809a`. That commit also removed all 128 historical A/B factory
   patches, their source tone corpus, and the importer.
+- Sixteen further numbered patches are explicit parameter overrides in
+  `CLASSIC_PRESETS` and `STRING_PRESETS` in `Design/generate_presets.py`.
 
-The 2026-09-05 audit compared all 93 current patch states with the 128 deleted
+The 2026-09-05 audit compared the then-current 77 patch states with the 128 deleted
 factory states from commit `3d9b284`. None matched across the 16 continuous
 tone parameters and eight waveform, range, filter, envelope, VCA, and chorus
 switches. The deleted tone corpus has SHA-256
@@ -119,7 +121,7 @@ checkout. That corpus and its archival labels are excluded from this Rack
 release. The comparison establishes absence of exact tone-state copies;
 source history supplies the separate authorship record.
 
-The generator and patch validator require the exact reviewed 77-path catalog,
+The generator and patch validator require the exact reviewed 93-path catalog,
 rejecting additional or renamed files even if the total patch count stays the
 same. Revalidating these source records does not confer rights to unrelated
 third-party banks or replace the remaining release approvals.
@@ -181,7 +183,7 @@ recorded licensing and deployment evidence belongs to the support-site history.
   is a build asset; only the resulting panel/browser images ship in the U45.
 - The single `Fader` strip that preceded the four stage-coloured strips is no
   longer generated or shipped.
-- The `1.0.0f13` rear CV grid and automation indications are implemented in the
+- The `1.0.0f14` rear CV grid and automation indications are implemented in the
   project renderer and GUI Lua sources. All eight CV sockets reuse the listed
   SDK CV jack input; this change introduces no new external artwork or fonts.
   CV behavior and control metadata are defined in the Rack adapter and

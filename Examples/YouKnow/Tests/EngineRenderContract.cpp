@@ -18,6 +18,11 @@ struct YouKnowTestAccess
         return engine.heldNoteCounts_[static_cast<std::size_t>(note)];
     }
 
+    static float heldVelocity(const YouKnowEngine& engine, int note) noexcept
+    {
+        return engine.heldNoteVelocities_[static_cast<std::size_t>(note)];
+    }
+
     static int keyedSlotFor(const YouKnowEngine& engine, int note) noexcept
     {
         for (int slot = 0; slot < YouKnowEngine::maxVoices; ++slot)
@@ -606,7 +611,10 @@ bool testLegatoRetarget()
     const auto level = Access::envelopeLevel(engine, slot);
     const float current = Access::currentMidi(engine, slot);
     const bool resetPending = Access::dcoResetPending(engine, slot);
-    if (!engine.retargetHeldNoteLegato(60, 67)
+    if (!engine.retargetHeldNoteLegato(60, 60)
+        || Access::heldCount(engine, 60) != 1
+        || Access::heldVelocity(engine, 60) != 0.75f
+        || !engine.retargetHeldNoteLegato(60, 67)
         || Access::heldCount(engine, 60) != 0
         || Access::heldCount(engine, 67) != 1
         || Access::keyedSlotFor(engine, 67) != slot
@@ -636,8 +644,10 @@ bool testLegatoRetarget()
     duplicate.setParameters(parameters);
     duplicate.noteOn(60, 1.0f);
     duplicate.noteOn(60, 0.5f);
-    if (duplicate.retargetHeldNoteLegato(60, 67)
+    if (!duplicate.retargetHeldNoteLegato(60, 60)
+        || duplicate.retargetHeldNoteLegato(60, 67)
         || Access::heldCount(duplicate, 60) != 2
+        || Access::heldVelocity(duplicate, 60) != 1.0f
         || Access::heldCount(duplicate, 67) != 0)
         return false;
 
@@ -650,6 +660,39 @@ bool testLegatoRetarget()
         || Access::heldCount(collision, 60) != 1
         || Access::heldCount(collision, 67) != 1)
         return false;
+
+    // CV Gate can rise while MIDI fills the entire voice pool. A later Note
+    // CV change must fall back to a fresh assignment once a slot is free;
+    // accepting a nonexistent legato source would leave the CV note silent.
+    for (const auto mode : { youknow::KeyMode::Poly1, youknow::KeyMode::Poly2 })
+    {
+        auto limited = parameters;
+        limited.keyMode = mode;
+        limited.polyphony = 1;
+        Engine dropped;
+        dropped.setParameters(limited);
+        dropped.prepare(48000.0, blockSize, 2);
+        dropped.noteOn(60, 1.0f);
+        dropped.noteOn(64, 0.75f);
+        if (Access::keyedVoiceCount(dropped, 64) != 0
+            || !dropped.retargetHeldNoteLegato(64, 64))
+            return false;
+        dropped.noteOff(60);
+        if (dropped.retargetHeldNoteLegato(64, 67)
+            || Access::heldCount(dropped, 64) != 1
+            || Access::heldVelocity(dropped, 64) != 0.75f
+            || Access::heldCount(dropped, 67) != 0
+            || Access::heldVelocity(dropped, 67) != 0.0f
+            || Access::keyedVoiceCount(dropped, 67) != 0
+            || dropped.retargetHeldNoteLegato(67, 67))
+            return false;
+        dropped.noteOff(64);
+        dropped.noteOn(67, 0.75f);
+        if (Access::heldCount(dropped, 64) != 0
+            || Access::heldCount(dropped, 67) != 1
+            || Access::keyedVoiceCount(dropped, 67) != 1)
+            return false;
+    }
 
     parameters.keyMode = youknow::KeyMode::Unison;
     Engine unisonSingle;

@@ -1,6 +1,6 @@
 # YouKnow user guide
 
-Version 1.0.0f13
+Version 1.0.0f14
 
 YouKnow is a circuit-modelled analogue polysynth from Protocodus for Reason 14
 and later. It combines subtractive synthesis, stereo chorus, up to 16 voices,
@@ -9,8 +9,8 @@ and later. It combines subtractive synthesis, stereo chorus, up to 16 voices,
 ## Install and first sound
 
 Install and update YouKnow through your Reason Studios account and the Reason
-Rack Extension browser. After installation, find **YouKnow Circuit-Modelled
-Synth** under Instruments in the device palette.
+Rack Extension browser. After installation, find **YouKnow** under Instruments
+in the device palette.
 
 1. Create YouKnow and play MIDI notes. The Init patch loads by default, and
    Reason creates a sequencer track and routes stereo audio when a suitable
@@ -25,17 +25,17 @@ Synth** under Instruments in the device palette.
 
 ## Front panel
 
-**LFO** sets modulation rate and delayed onset. **Oscillator** selects octave
-range, PWM source and depth, and oscillator modulation. **Mixer** contains the
-pulse/saw switches and sub/noise levels. **High Pass** provides four positions;
+**LFO** sets modulation rate and delayed onset. **DCO** selects octave
+range, PWM source and depth, and oscillator modulation. **MIXER** contains the
+pulse/saw switches and sub/noise levels. **HPF** provides four positions;
 the lowest, labelled 0, retains the bass-boost setting.
 
-**Filter** controls cutoff (CUT), resonance (RES), envelope polarity (POL, +/−)
-and amount (ENV), LFO amount (LFO), and keyboard tracking (TRACK). At high
-resonance the filter can self-oscillate. **Amplifier** chooses envelope or gate
-behavior and sets the VCA level. **Envelope** supplies attack (ATT), decay
-(DEC), sustain (SUS), and release (REL). **Chorus** offers Off, I, II, and a
-dedicated narrow I+II combination; Chorus Hiss sets its noise level.
+**VCF** controls cutoff (FREQ), resonance (RES), envelope polarity (POL, +/−)
+and amount (ENV), LFO amount (LFO), and keyboard tracking (KYBD). At high
+resonance the filter can self-oscillate. **VCA** chooses envelope or gate
+behavior and sets the amplifier level. **ENV** supplies attack (A), decay
+(D), sustain (S), and release (R). **CHORUS** offers Off, I, II, and a
+dedicated narrow I+II combination; NOISE sets its hiss level.
 
 **Performance** contains the pitch and modulation wheels, Volume, and
 performance modulation depths. **Keyboard** contains glide, key mode,

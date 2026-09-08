@@ -1,4 +1,4 @@
-# YouKnow 1.0.0f13 release checklist
+# YouKnow 1.0.0f14 release checklist
 
 Current results and retained failures are recorded in
 [RELEASE_EVIDENCE.md](RELEASE_EVIDENCE.md).
@@ -14,12 +14,13 @@ Product support: https://protocodus.cz/product/youknow/
 - [x] Pass final localization/patch metadata and both GUI layout/asset checks.
 - [x] Pass timed automation/CV, reset, disconnection, sample-rate, and sanitizer contracts.
 - [x] Render all 93 patches at the shipped Aging 50% default.
-- [x] Record the current native default timing pass (0/1875 misses), retaining earlier failures.
+- [ ] Qualify current wall-clock timing without background contention; paired
+  native CPU results and deadline failures are recorded in the release evidence.
 - [x] Build local45 Deployment and inspect installed source-backed payload bytes.
 - [x] Build universal45 and verify ZIP, four chips, source bytes, and SHA-256.
 - [ ] Create this candidate in a fresh SDK 5-compatible host and record its identity.
-- [ ] Generate and visually inspect matching PDF and Shop materials; panel previews are current.
-- [ ] Assemble the publication handoff with a verified SHA256SUMS manifest.
+- [x] Generate and visually inspect matching PDF and Shop materials; panel previews are current.
+- [x] Assemble the candidate handoff with a verified SHA256SUMS manifest.
 
 ## Host and publication acceptance
 

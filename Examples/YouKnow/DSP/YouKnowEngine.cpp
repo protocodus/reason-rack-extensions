@@ -6407,6 +6407,18 @@ bool YouKnowEngine::retargetHeldNoteLegato(int oldMidiNote,
                 return false;
     }
 
+    // A held key can lack an assignment because it arrived while every voice
+    // was keyed. There is then no envelope/pitch to retarget. Leave the held
+    // table intact so the wrapper's note-off/note-on fallback can allocate a
+    // now-free slot, rather than accepting a legato change that stays silent.
+    const bool hasKeyedSource = std::any_of(
+        voices_.begin(), voices_.end(), [this, oldMidiNote](const Voice& voice) {
+            return voice.active && voice.keyDown && voice.rootMidi == oldMidiNote
+                && (activeParameters_.keyMode != KeyMode::Unison || voice.unisonMember);
+        });
+    if (!hasKeyedSource)
+        return false;
+
     const float velocity = heldNoteVelocities_[oldIndex];
     heldNoteCounts_[oldIndex] = 0;
     heldNoteVelocities_[oldIndex] = 0.0f;

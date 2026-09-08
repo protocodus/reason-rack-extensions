@@ -33,6 +33,9 @@ The SDK host shim exercises property snapshots, event timing, parameter
 reachability, saved defaults, reset, tuning, quality transitions, silent-output
 handling, Note/Gate CV, and the six modulation inputs. It checks automation
 and CV together without writing modulation back into stored panel values.
+Regressions compare same-frame pitch/gate notification orders, preserve gate
+retriggers, recover dropped CV notes, retain assignment-scan onsets, and restore
+Character correctly after audio reset.
 For memory/undefined-behavior checks, build this same contract with
 `-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer` in place of `-O3`.
 

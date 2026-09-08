@@ -140,7 +140,7 @@ def composed_panels():
     assets = {
         name: Image.open(panels.OUT / f"{name}.png").convert("RGBA")
         for name in (
-            "Fader", "Knob", "Toggle", "MomentaryOverlay", "Lamp",
+            *panels.FADER_ASSETS, "Knob", "Toggle", "MomentaryOverlay", "Lamp",
             "PitchWheel", "ModWheel", "AudioJack", "CVJack", "TapeHorz",
             "TapeVert", "Placeholder",
         )
@@ -282,6 +282,7 @@ def markdown_flowables(markdown, styles, back_image):
 def build_manual(front_image, back_image):
     PDF_OUTPUT.mkdir(parents=True, exist_ok=True)
     markdown = GUIDE.read_text(encoding="utf-8")
+    patch_count = sum(1 for _ in (PROJECT / "Resources" / "Public").rglob("*.repatch"))
     forbidden_dashes = {"\u2010", "\u2011", "\u2012", "\u2013", "\u2014"}
     assert forbidden_dashes.isdisjoint(markdown), "manual source must use ASCII hyphens"
 
@@ -348,7 +349,7 @@ def build_manual(front_image, back_image):
         PdfImage(str(front_image), width=176 * mm, height=128.9 * mm),
         Spacer(1, 6 * mm),
         Paragraph(
-            "Direct subtractive synthesis, 77 original patches, polyphonic "
+            f"Direct subtractive synthesis, {patch_count} original patches, polyphonic "
             "MIDI, monophonic Note/Gate CV, stereo chorus, and scalable "
             "rear-panel engine quality.",
             styles["BodyYK"],

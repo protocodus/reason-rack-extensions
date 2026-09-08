@@ -1,7 +1,7 @@
 # YouKnow Preset Catalog
 
-`Resources/Public` contains 77 original Protocodus patches: Init, 18 featured
-sounds at the browser root, and 58 more organized into seven category folders.
+`Resources/Public` contains 93 original Protocodus patches: Init, 18 featured
+sounds at the browser root, and 74 more organized into seven category folders.
 The generator and validator require this exact catalog. The provenance audit
 and historical factory-bank removal are recorded in
 [ASSET_PROVENANCE.md](Docs/ASSET_PROVENANCE.md#patch-bank-provenance).
@@ -144,6 +144,19 @@ roles without deriving names or parameter states from a third-party bank.
 - **Dark Motion Pad** — muted pad animated by slow filter movement.
 - **Simple Saw Pad** — straightforward saw pad that responds well to arrangement.
 - **Soft Choir Pad** — smooth vowel-like pad for restrained ensemble layers.
+
+## Numbered sounds
+
+Sixteen further sounds are stored in the same category folders:
+
+- **Brass:** 8411 Brass, 8413 Brass Ens.
+- **Bass:** 8421 Bass, 8424 Bass Pluck.
+- **Leads:** 8432 Lead.
+- **Pads:** 8441 Pad.
+- **Keys:** 8452 Organ, 8467 Bell.
+- **Effects:** 8474 Sweep.
+- **Strings:** 8414 Str Brass, 8415 Str Octave, 8416 Strings, 8417 Str Vibrato,
+  8418 Str Marcato, 8425 Str Wash, 8426 Str Tremolo.
 
 Every shipped patch has a panel-less Preset Level trim calibrated from a
 deterministic three-second reference chord. It is smoothed during patch changes

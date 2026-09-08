@@ -82,7 +82,11 @@ adaptations:
   for silence and complete the safety fade before reporting readiness.
 - `retargetHeldNoteLegato()` supports the Rack Note/Gate CV adapter;
   `hasPendingVoiceAssignment()` lets the wrapper advance deferred assignment
-  scans while Reason elides silent output.
+  scans while Reason elides silent output. The f14 release review added a
+  keyed-source check before a legato retarget: a CV note dropped by a full
+  voice pool must fall back to allocation when its pitch later changes.
+  Wrapper regressions cover this recovery, simultaneous pitch/gate ordering,
+  and preserving the onset when a deferred scan assigns a voice mid-block.
 - Cold `reset()` meets Reason's audio-reset contract and clears the chorus's
   pending bypass flush. Reason transport-stop behavior is wrapper-owned.
 - Master tune accepts +/-150 cents to combine Reason global tuning with the

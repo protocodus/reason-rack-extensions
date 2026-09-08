@@ -629,6 +629,200 @@ void checkTimedAutomationAndCV()
     assert(differs);
 }
 
+void checkSameFrameCVPitchAndGate()
+{
+    using Access = youknow::YouKnowTestAccess;
+    // Check initial restore as well as stable playback. At one frame, neither
+    // socket is promised to precede the other in SDK 5's notification list.
+    for (bool restored : { false, true })
+    {
+        configureCVHost();
+        set("/custom_properties", "keyMode", Kind::Number, 0.0);
+        set("/custom_properties", "portamento", Kind::Number, 0.80);
+        set("/cv_inputs/gate_cv", "connected", Kind::Boolean, 1.0);
+        set("/cv_inputs/note_cv", "connected", Kind::Boolean, 1.0);
+        CYouKnow gateFirst(sampleRate);
+        CYouKnow pitchFirst(sampleRate);
+        if (!restored)
+        {
+            renderBatch(gateFirst);
+            renderBatch(pitchFirst);
+        }
+        std::array start {
+            change("/cv_inputs/gate_cv", "value", Kind::Number, 1.0, 17),
+            change("/cv_inputs/note_cv", "value", Kind::Number, 67.0 / 127.0, 17),
+        };
+        const auto a = renderBatch(gateFirst, start.data(), start.size());
+        std::reverse(start.begin(), start.end());
+        const auto b = renderBatch(pitchFirst, start.data(), start.size());
+        assert(a.left == b.left && a.right == b.right);
+        auto& gateEngine = CYouKnowTestAccess::engine(gateFirst);
+        auto& pitchEngine = CYouKnowTestAccess::engine(pitchFirst);
+        const int slot = Access::keyedSlotFor(gateEngine, 67);
+        assert(slot >= 0 && Access::currentMidi(gateEngine, slot) == 67.0f);
+        for (int batch = 0; batch < 40; ++batch)
+        {
+            const auto x = renderBatch(gateFirst);
+            const auto y = renderBatch(pitchFirst);
+            assert(x.left == y.left && x.right == y.right);
+        }
+
+        // Keep both gate edges while moving their same-frame pitch change.
+        // This must release 67 and retrigger 70, not retarget 67 before release.
+        std::array retrigger {
+            change("/cv_inputs/gate_cv", "value", Kind::Number, 0.0, 20),
+            change("/cv_inputs/gate_cv", "value", Kind::Number, 1.0, 20),
+            change("/cv_inputs/note_cv", "value", Kind::Number, 70.0 / 127.0, 20),
+        };
+        const auto gateThenPitch = renderBatch(gateFirst, retrigger.data(), retrigger.size());
+        std::rotate(retrigger.begin(), retrigger.end() - 1, retrigger.end());
+        const auto pitchThenGate = renderBatch(pitchFirst, retrigger.data(), retrigger.size());
+        assert(gateThenPitch.left == pitchThenGate.left
+               && gateThenPitch.right == pitchThenGate.right);
+        assert(Access::heldCount(gateEngine, 67) == 0);
+        assert(Access::heldCount(gateEngine, 70) == 1);
+        assert(Access::heldCount(pitchEngine, 67) == 0);
+        assert(Access::heldCount(pitchEngine, 70) == 1);
+
+        // A disconnect/reconnect at a high gate has the same release/restart
+        // contract, including when pitch is last in that frame's diff group.
+        std::array reconnect {
+            change("/cv_inputs/gate_cv", "connected", Kind::Boolean, 0.0, 31),
+            change("/cv_inputs/gate_cv", "connected", Kind::Boolean, 1.0, 31),
+            change("/cv_inputs/note_cv", "value", Kind::Number, 74.0 / 127.0, 31),
+        };
+        const auto disconnectFirst = renderBatch(gateFirst, reconnect.data(), reconnect.size());
+        std::rotate(reconnect.begin(), reconnect.end() - 1, reconnect.end());
+        const auto reconnectPitchFirst = renderBatch(pitchFirst, reconnect.data(), reconnect.size());
+        assert(disconnectFirst.left == reconnectPitchFirst.left
+               && disconnectFirst.right == reconnectPitchFirst.right);
+        assert(Access::heldCount(gateEngine, 70) == 0);
+        assert(Access::heldCount(gateEngine, 74) == 1);
+        assert(Access::heldCount(pitchEngine, 70) == 0);
+        assert(Access::heldCount(pitchEngine, 74) == 1);
+        for (int batch = 0; batch < 16; ++batch)
+        {
+            const auto x = renderBatch(gateFirst);
+            const auto y = renderBatch(pitchFirst);
+            assert(x.left == y.left && x.right == y.right);
+        }
+    }
+}
+
+void checkResetSnapsCalibration()
+{
+    using Access = youknow::YouKnowTestAccess;
+    configureCVHost();
+    set("/custom_properties", "keyMode", Kind::Number, 0.0);
+    set("/custom_properties", "calibration", Kind::Number, 0.50);
+    CYouKnow running(sampleRate);
+    renderBatch(running);
+    auto& engine = CYouKnowTestAccess::engine(running);
+    const auto move = change("/custom_properties", "calibration", Kind::Number,
+                              1.0, 32);
+    renderBatch(running, &move, 1);
+    assert(Access::parameters(engine).calibration > 1.0f
+           && Access::parameters(engine).calibration < 2.0f);
+    resetCounter = 1.0;
+    renderBatch(running);
+    assert(Access::parameters(engine).calibration == 2.0f);
+    resetCounter = 0.0;
+    CYouKnow restored(sampleRate);
+    renderBatch(restored);
+    assert(Access::parameters(engine).calibration
+           == Access::parameters(CYouKnowTestAccess::engine(restored)).calibration);
+
+    // Reset sees final MOM state, but a later event in this batch must not
+    // replace the frame-zero restored value. Its glide starts at that event.
+    const auto laterMove = change("/custom_properties", "calibration", Kind::Number,
+                                   0.0, 31);
+    resetCounter = 2.0;
+    renderBatch(running, &laterMove, 1);
+    const float expected = 2.0f - 2.0f * static_cast<float>(
+        33.0 / (0.030 * sampleRate));
+    assert(std::abs(Access::parameters(engine).calibration - expected) < 1.0e-6f);
+    resetCounter = 0.0;
+}
+
+void checkRescanPreservesRenderedAudio()
+{
+    configureCVHost();
+    set("/custom_properties", "keyMode", Kind::Number, 2.0);
+    set("/custom_properties", "polyphony", Kind::Number, 5.0);
+    set("/custom_properties", "chorus", Kind::Number, 0.0);
+    CYouKnow whole(sampleRate);
+    CYouKnow segmented(sampleRate);
+    const auto note = noteDiff(60, 127, 0);
+    // Notifications for the output lamp do not change engine state. They may
+    // split a render interval but cannot reveal samples discarded by another
+    // interval size when a pending assigner rescan starts voices mid-batch.
+    std::array<TJBox_PropertyDiff, 64> ignored {};
+    for (int frame = 0; frame < 64; ++frame)
+    {
+        ignored[frame] = customDiff("noteOn");
+        ignored[frame].fAtFrameIndex = static_cast<TJBox_UInt16>(frame);
+    }
+    for (int batch = 0; batch < 12; ++batch)
+    {
+        const auto a = renderBatch(whole, batch == 0 ? &note : nullptr,
+                                    batch == 0 ? 1 : 0);
+        const auto firstIgnored = ignored[0];
+        if (batch == 0)
+            ignored[0] = note;
+        const auto b = renderBatch(segmented, ignored.data(), ignored.size());
+        ignored[0] = firstIgnored;
+        assert(a.left == b.left && a.right == b.right);
+    }
+    assert(CYouKnowTestAccess::engine(whole).getActiveVoiceCount() == 6);
+}
+
+// A pitch CV may remain held after its note was dropped by a full poly pool.
+// Once MIDI releases a slot, a gate-high pitch move must retry assignment.
+void checkCVDroppedNoteRecovery()
+{
+    using Access = youknow::YouKnowTestAccess;
+    for (double mode : { 0.0, 1.0 })
+    {
+        configureCVHost();
+        set("/custom_properties", "keyMode", Kind::Number, mode);
+        set("/custom_properties", "polyphony", Kind::Number, 0.0);
+        set("/cv_inputs/gate_cv", "connected", Kind::Boolean, 1.0);
+        set("/cv_inputs/note_cv", "connected", Kind::Boolean, 1.0);
+        set("/cv_inputs/note_cv", "value", Kind::Number, 64.0 / 127.0);
+        CYouKnow device(sampleRate);
+        // Let a restored Poly 2 assigner rescan finish before filling its pool.
+        for (int batch = 0; batch < 8; ++batch)
+            renderBatch(device);
+        auto& engine = CYouKnowTestAccess::engine(device);
+        const auto midiOn = noteDiff(60, 127, 0);
+        renderBatch(device, &midiOn, 1);
+        assert(Access::keyedSlotFor(engine, 60) >= 0);
+        const auto cvOn = change("/cv_inputs/gate_cv", "value", Kind::Number,
+                                  1.0, 19);
+        renderBatch(device, &cvOn, 1);
+        assert(Access::heldCount(engine, 64) == 1);
+        assert(Access::keyedSlotFor(engine, 64) < 0);
+
+        const auto midiOff = noteDiff(60, 0, 5);
+        renderBatch(device, &midiOff, 1);
+        const auto cvPitch = change("/cv_inputs/note_cv", "value", Kind::Number,
+                                     67.0 / 127.0, 23);
+        renderBatch(device, &cvPitch, 1);
+        assert(Access::heldCount(engine, 60) == 0);
+        assert(Access::heldCount(engine, 64) == 0);
+        assert(Access::heldCount(engine, 67) == 1);
+        assert(Access::keyedSlotFor(engine, 67) >= 0);
+        assert(CYouKnowTestAccess::lastCVNote(device) == 67);
+        assert(CYouKnowTestAccess::cvActive(device));
+
+        const auto cvOff = change("/cv_inputs/gate_cv", "value", Kind::Number,
+                                   0.0, 11);
+        renderBatch(device, &cvOff, 1);
+        assert(Access::heldCount(engine, 67) == 0);
+        assert(!CYouKnowTestAccess::cvActive(device));
+    }
+}
+
 void checkCVRangesAndLifecycle()
 {
     using Access = youknow::YouKnowTestAccess;
@@ -1296,6 +1490,10 @@ int main()
 
     checkTimedAutomationAndCV();
     checkCVRangesAndLifecycle();
+    checkCVDroppedNoteRecovery();
+    checkSameFrameCVPitchAndGate();
+    checkRescanPreservesRenderedAudio();
+    checkResetSnapsCalibration();
     std::puts("Wrapper: frame-accurate automation, six modulation CVs, gates/reset/restore, and five host rates PASS");
     return 0;
 }

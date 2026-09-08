@@ -1,4 +1,67 @@
-# YouKnow 1.0.0f13 candidate
+# YouKnow 1.0.0f14 candidate
+
+Final code review on 2026-09-08 corrected four reproduced playback/reset bugs:
+
+- Simultaneous Note/Gate CV updates could start the old pitch and glide to the
+  new one when Gate arrived first. The wrapper now resolves the frame's pitch
+  before replaying gate edges, including retriggers and reconnections.
+- A CV note dropped by a full voice pool could stay silent on later pitch
+  changes. Legato retargeting now requires a keyed source voice; otherwise the
+  wrapper retries normal allocation without corrupting the held-note counts.
+- Deferred voice-assignment scans could create audio that was discarded in a
+  scratch buffer. Newly assigned voices now retain their onset and output tail.
+- Audio reset could preserve an in-flight Character glide. Reset now restores
+  the current control image immediately, while later-frame automation retains
+  its event timing.
+
+Focused before/after reproducers and expanded engine/wrapper regressions cover
+all four cases. The strict engine and wrapper contracts pass; the wrapper also
+passes AddressSanitizer, UndefinedBehaviorSanitizer, and float-cast-overflow
+checks. Leak detection is unavailable in this macOS sanitizer runtime. All
+three normal quality fingerprints match f13, and object sizes remain 42,264
+bytes for the engine and 43,368 bytes for the wrapper.
+
+The release-material builder now loads all four colored fader assets and derives
+the manual cover's patch count from the shipped bank. The guide, patch catalog,
+and notices match the current panel and 93-patch bank. The six-page f14 PDF and
+all three Shop images pass visual review. Full renderer and portable GUI/patch
+validators pass; front, folded-front, and icon artwork are byte-identical to
+f13, with only the rear version silkscreen and its previews regenerated.
+All 93 patch sound values, property identities, and socket mappings remain.
+
+## Native timing qualification remains open
+
+A default six-voice, 1x/Poly/Cubic/Normal, Aging 50%, 48 kHz/64-frame timing
+run encountered 4/1875 wall-clock misses on a machine with unrelated background
+work. One controlled f13/f14 comparison followed, without concurrent builds or
+renders from this task: median thread CPU was 0.114177 times realtime for f13
+and 0.114014 for f14. Both failed the wall-clock deadline gate (14/1875 and
+7/1875 misses; maxima 9.435291 ms and 31.505458 ms against a 1.333333 ms budget).
+The earlier candidate's failure and essentially equal CPU cost point to
+scheduling contention rather than an observed DSP CPU regression. All three
+runs are retained; no current wall-clock timing pass is claimed. Qualification
+in a quiet, compatible SDK 5 host remains required.
+
+## Build and package records
+
+Records are under `Release/validation/final-review`. SDK 5 local45 Deployment
+and universal45 builds pass. Installed payload verification finds 118 matching
+source-backed files, 93 patches, and both native libraries matching the completed
+Intel/Apple Silicon builds. The U45 passes ZIP integrity with 143 members,
+138 source-backed byte matches, 93 patches, and four Testing/Deployment 32/64-bit
+LLVM chip binaries. Patch regeneration preserves all 93 patches and metadata
+byte-for-byte. The source audit permits only the two reviewed runtime files;
+25 other audio/property inputs remain unchanged.
+
+The preserved package is `Release/1.0.0f14/YouKnow-1.0.0f14.u45`,
+19,852,536 bytes. SHA-256:
+`e93bb2a07bed3b6571ca9272dbcc3355f86df4ee801550961fc7062bd891676a`.
+The same folder contains the reviewed PDF, three Shop images, build manifest,
+and a verified `SHA256SUMS`. `archive.json`, `installed.json`, and
+`compatibility.json` record the detailed source and payload comparisons.
+No fresh compatible SDK 5 host creation test or cloud acceptance was performed.
+
+## Retained 1.0.0f13 candidate
 
 Validated 2026-09-08 with `JukeboxSDK_500_028`, target 5.0, for the refined
 front panel and a distinct U45 build. The first two control rows gain space
@@ -99,7 +162,7 @@ automation timing. It has not been uploaded or published. Records for this
 candidate are in `Release/validation/1.0.0f9`. Current local gates passed;
 confirmed SDK 5 host and publication acceptance remain open.
 
-## Changes and compatibility
+### Changes and compatibility
 
 - SDK `JukeboxSDK_500_028`, target 5.0; permanent product/module identity
   `cz.protocodus.YouKnow` / `YouKnow`; default patch `/Public/Init.repatch`.
@@ -119,7 +182,7 @@ confirmed SDK 5 host and publication acceptance remain open.
 - Removed five unused historical design inputs (5,068,645 bytes), condensed
   current documentation, and made Aging selection a supported patch-test option.
 
-## Current checks
+### Current checks
 
 | Check | Result |
 | --- | --- |
@@ -143,7 +206,7 @@ Timed-diff handling follows the installed SDK's `API/Jukebox.h` notification
 contract and `TJBox_PropertyDiff` in `API/JukeboxTypes.h`. The bundled
 `Tools/Build/motherboard_diff.lua` verifies update compatibility.
 
-## Retained evidence
+### Retained evidence
 
 `DSP/SYNC.md` records exact source hashes and intentional Rack adaptations.
 Unchanged engine/table code retains its f4 deterministic engine, frozen-table,
@@ -159,7 +222,7 @@ builds and rendering finished. Workload: six voices, 1x/Poly/Cubic/Normal,
 Aging 50%, 48kHz, 64-frame blocks. Native timing excludes the Rack wrapper,
 Reason scheduling, and target translation; it does not replace host acceptance.
 
-## Release artifacts and acceptance
+### Release artifacts and acceptance
 
 - U45: `Output/Universal45/YouKnow.u45`, 9,296,243 bytes.
 - U45 SHA-256: `2b53212bab8e0be21f6016d46a0a9c4280c64643fd044f10baedb707956e0574`.

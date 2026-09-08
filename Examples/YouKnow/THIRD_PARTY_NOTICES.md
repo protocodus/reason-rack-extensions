@@ -37,7 +37,7 @@ with these publications.
 
 ## Patches
 
-The shipped bank contains 77 patch names and parameter states created for
+The shipped bank contains 93 patch names and parameter states created for
 YouKnow by Protocodus. No third-party factory tone-memory records or archival
 factory labels are included.
 The source-history and sound-state comparison behind this inventory are

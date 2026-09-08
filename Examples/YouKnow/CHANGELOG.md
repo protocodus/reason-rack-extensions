@@ -2,7 +2,22 @@
 
 Notable customer-facing changes to YouKnow are recorded here.
 
-## 1.0.0f13 - Unreleased
+## 1.0.0f14 - Unreleased
+
+- Start simultaneous Note/Gate CV updates at the new pitch regardless of
+  same-frame socket notification order, while preserving gate retriggers.
+- Retry voice allocation when a held CV note was dropped by a full voice pool
+  and its pitch changes after a slot becomes available.
+- Preserve the first audio samples when a deferred voice-assignment scan
+  activates held notes inside a processing interval.
+- Restore the current Character value immediately on audio reset, including
+  resets during an automated calibration glide.
+- Repair the PDF/Shop-image builder to load the current colored fader assets,
+  derive the manual's patch count from the shipped bank, and match the guide's
+  labels to the current panel.
+- Keep all 93 patch sound values and permanent control identities unchanged.
+
+## 1.0.0f13 - Earlier candidate
 
 - Added clearance below control labels in the first two front rows and moved
   the Bend and Mod wheels down six pixels.

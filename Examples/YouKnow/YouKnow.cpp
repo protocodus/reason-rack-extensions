@@ -278,7 +278,7 @@ void CYouKnow::LoadEngineParameters(double reasonMasterTune)
         reasonMasterTune + (Number(kMasterTune) * 100.0 - 50.0));
     parameters.velocityDepth = static_cast<float>(Number(kVelocity));
     fCalibrationTarget = static_cast<float>(Number(kCalibration) * 2.0);
-    // A patch load or a reset adopts the new unit outright; only a move made
+    // An initial restore or reset adopts the new unit outright; only a move made
     // while the instrument is already running is glided.
     if (!fParametersLoaded)
         fCalibrationCurrent = fCalibrationTarget;
@@ -353,6 +353,9 @@ bool CYouKnow::ResetIfRequested()
     if (counter != 0.0 && counter != fLastResetCounter)
     {
         fEngine.reset();
+        // The reset snapshot is a fresh control image, including a Character
+        // value that may have been gliding when the host requested silence.
+        fParametersLoaded = false;
         fTailSamplesRemaining = 0;
         fCVActive = false;
         fLastResetCounter = counter;
@@ -393,7 +396,8 @@ void CYouKnow::RenderRange(TJBox_AudioSample left[], TJBox_AudioSample right[],
     AdvanceCalibrationGlide(count);
 
     const bool voicesActive = fEngine.getActiveVoiceCount() > 0;
-    if (voicesActive || fTailSamplesRemaining > 0)
+    if (voicesActive || fTailSamplesRemaining > 0
+        || fEngine.hasPendingVoiceAssignment())
     {
         fEngine.process(left + first, right + first, count);
         if (fEngine.getActiveVoiceCount() > 0)
@@ -403,11 +407,10 @@ void CYouKnow::RenderRange(TJBox_AudioSample left[], TJBox_AudioSample right[],
             fTailSamplesRemaining = std::max(0, fTailSamplesRemaining - count);
     }
 
-    // A live quality change and a Key Mode assigner rescan both need private
-    // processing while no voice is active. Without the latter, an idle preset
-    // switch can leave the next Note On held but unassigned forever because
-    // Reason is correctly told that every skipped output buffer is silent.
-    else if (!qualityReady || fEngine.hasPendingVoiceAssignment())
+    // Only quality maintenance is guaranteed silent. A pending Key Mode
+    // rescan above may assign held notes during this interval, so its samples
+    // must reach the outputs and its newly active voices must arm the tail.
+    else if (!qualityReady)
     {
         TJBox_AudioSample scratchLeft[kBatchSize] {};
         TJBox_AudioSample scratchRight[kBatchSize] {};
@@ -510,13 +513,34 @@ void CYouKnow::RenderBatch(const TJBox_PropertyDiff propertyDiffs[],
             LoadEngineParameters(reasonMasterTune);
         qualityReady = fEngine.setOversamplingFactor(fRequestedOversamplingFactor);
 
+        // SDK 5 orders events by frame, not by socket within a frame. Capture
+        // that frame's pitch before replaying gates, so Gate -> Note and
+        // Note -> Gate start the same pitch. Defer HandleCV until the gates:
+        // a falling gate must release its old note without a spurious retarget.
+        bool hasGateEdges = false;
         for (TJBox_UInt32 item = index; item < end; ++item)
         {
             const auto& diff = propertyDiffs[item];
-            if (diff.fObjectRef == fCVInputs[kNoteCVInput].object
-                || diff.fObjectRef == fCVInputs[kGateCVInput].object)
+            if (diff.fObjectRef == fCVInputs[kNoteCVInput].object)
+                ApplyPropertyDiff(diff);
+            else if (diff.fObjectRef == fCVInputs[kGateCVInput].object)
+                hasGateEdges = true;
+        }
+        bool handledPitch = false;
+        for (TJBox_UInt32 item = index; item < end; ++item)
+        {
+            const auto& diff = propertyDiffs[item];
+            if (diff.fObjectRef == fCVInputs[kNoteCVInput].object)
             {
-                // Note/Gate edges are events, including same-frame retriggers.
+                if (!hasGateEdges && !handledPitch)
+                {
+                    HandleCV();
+                    handledPitch = true;
+                }
+            }
+            else if (diff.fObjectRef == fCVInputs[kGateCVInput].object)
+            {
+                // Replay every gate/connection edge, including off/on pairs.
                 ApplyPropertyDiff(diff);
                 HandleCV();
             }
