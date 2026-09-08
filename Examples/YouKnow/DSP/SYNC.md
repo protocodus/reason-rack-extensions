@@ -1,16 +1,23 @@
 # DSP synchronization
 
-Candidate `1.0.0f9` was rechecked on 2026-09-05 against the nominated checkout
-`/Users/vojta/Dev/vst-instruments/youknow/Source/DSP`. Local `main` is at
-`1e20b3191bd1bd18d25dafcc143f75f1809a07fe`; YouKnow has no local changes,
-although other products in the monorepo have unrelated edits.
+Upstream now lives in its own repository. YouKnow left the `vst-instruments`
+monorepo in `3a5d0e399a973f974d73638912555980ccb3038f` ("Move Electry, Taikor
+and YouKnow into their own repositories", 2026-09-06) and arrived at
+`8ab52dc2473261d0227fa4742c28c2fda9249ea4` ("Import YouKnow from the
+vst-instruments monorepo") in
+`git@github.com:protocodus/virtual-instrument-youknow.git`. **The nominated
+checkout is `/Users/vojta/Dev/virtual-instrument-youknow/Source/DSP`**; the
+former monorepo path in earlier revisions of this file no longer exists.
 
-An authorized `git fetch --no-tags origin` verified `origin/main` at
-`412347383290f3a7d998754ac5946f4372716933`. Local `main` is one commit behind;
-that demo-audio commit changes no YouKnow files. Both local and fetched remote
-shared DSP match the original synchronization from
-`14615838b90e1a6edd2a9e6d91d4f62ea38e418d` byte for byte. No source port,
-checkout, upstream edits, or DSP implementation cleanup was needed.
+Rechecked on 2026-09-08 against that checkout. Local `main` and `origin/main`
+are both `7ed16c42046ed0c2966096ca4c4b8664cf64dcc2` after an authorized
+`git fetch --no-tags origin`, with `Source/DSP` clean and the import its only
+commit. The move carried the shared DSP across unchanged: the four files are
+byte-identical at the original synchronization
+`14615838b90e1a6edd2a9e6d91d4f62ea38e418d`, at the last monorepo state
+`3a5d0e39^`, and at today's `origin/main`. The relocation is therefore a path
+change only. No source port, checkout, upstream edits, or DSP implementation
+cleanup was needed.
 
 | Upstream source | SHA-256 |
 | --- | --- |
