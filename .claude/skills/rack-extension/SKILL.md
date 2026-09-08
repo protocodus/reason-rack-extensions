@@ -189,9 +189,21 @@ samples must be wav or aif.
 
 ## Testing
 
-**Load the device in Reason** (`/Applications/Reason 14.app`) — it reads `RackExtensions_Dev`
-just like Recon, and its error dialogs are the fastest real signal. `info.lua` changes need a
-restart; `.lua`-only changes need only the song reloaded.
+**Retail Reason does not load `RackExtensions_Dev`.** Verified on 2026-09-08: with the
+cloud-built RE uninstalled, a `local45` build in that folder is invisible to
+`/Applications/Reason 14.app` (14.1d100). That folder is read by the RESDK *testing* builds
+only — which is what Recon is for. A YouKnow appearing in retail Reason's browser is the
+signed RE in `RackExtensions/`, not your `local45` output.
+
+So `local45` is for iteration under a matching RESDK host. **To put a build in front of a
+retail Reason, upload the `.u45`** at [developer.reasonstudios.com](https://developer.reasonstudios.com/developer-area/builds),
+let it cloud-build, and install it — that is how any previously installed version got there.
+
+A same-identity collision is silent and costs hours: an installed RE with the *same*
+`product_id` **and** `version_number` as a development build wins, so the dev build never
+appears no matter how often the device is recreated. Bump `version_number` for every build you
+intend to see. `info.lua` changes need a restart; `.lua`-only changes need only the song
+reloaded.
 
 Automated validation in Recon:
 
@@ -208,14 +220,28 @@ cat validatere-re.log                          # per-RE results; one line only =
 grep -iE "error|fail|exception|not a rack" validatere-test.log | head -30
 ```
 
-> Known blocker on this machine: **headless `--validate_re` is broken**, though Recon itself
-> launches and runs fine interactively (`open -a "Reason Recon 14 RESDK4 Logging"` — use it
-> normally, Create menu, same as Reason). In validate mode it aborts with
-> `Dir is not a rack-extension` at `JukeboxDeviceFileSystem.cpp:3674`, then
-> `Stopping the NSApplication due to error returned from IGUILibRunBehavior_OnInitialize`.
-> Unrelated to the device under test: reproduces with `--re_dir` pointing at an empty directory
-> and with both `RackExtensions` and `RackExtensions_Dev` emptied. Test interactively in Recon
-> or Reason and work the manual checklist.
+> **Do not run the RESDK4 Recon against this SDK. It deletes installed Rack Extensions.**
+> The only Recon on this machine is `Reason Recon 14 RESDK4 Logging` (14.0.2d7 build 20275),
+> an RE **SDK 4** host; this SDK is 5.0 and devices declare `format_version = "2.0"`. It cannot
+> parse an SDK 5 device: it throws `Dir is not a rack-extension`
+> (`JukeboxDeviceFileSystem.cpp:3674`) within a millisecond of "Start scanning rack extension
+> folders", before reaching the device under test, then stops the NSApplication. It fails the
+> same way against a directory containing only the device, so the message says nothing about
+> your build.
+>
+> On 2026-09-08 a run of it **hard-deleted** `RackExtensions/cz.protocodus.YouKnow.1.0.0f9`
+> (authorizer counted 158 REs at 14:20; the folder was down to 157 dirs by 14:25). The trigger
+> was moving `RackExtensions/<hash>.cache` — the installed-RE index — aside: absent that index,
+> the SDK4 host rebuilt it and pruned the entry it could not parse. Never move or delete that
+> file, and never point a mismatched host at the real folder; copy it first.
+>
+> Two separate startup blockers were also found and fixed, worth checking if Recon dies before
+> device registration: `~/Library/Caches/Reason Recon/GraphicsCache` had been replaced with a
+> symlink to an unmounted volume, so `mkdir` returned `error 17 (File exists)` and startup
+> aborted. Clearing `~/Library/Caches/Reason Recon/` resolves that class of failure.
+>
+> Automated validation therefore needs a Recon build matching **RE SDK 5**, from the developer
+> site. Until then, work the manual checklist against a cloud-built upload.
 
 Manual acceptance: **[`Documentation/acceptance_testing_checklist.txt`](../../../Documentation/acceptance_testing_checklist.txt)**.
 Read it and walk the boxes — don't paraphrase it from memory. Two checklists in that file:
