@@ -280,6 +280,43 @@ When a Lua parse-error popup offers **Retry**, don't — it's unstable. Fix the 
 In a `Debugging` build, Reason surfaces device problems in a **"Debug Info"** dialog — that dialog
 text is the actual diagnosis, so read it before guessing. Build `Deployment` to silence it.
 
+## The distribution agreement governs release
+
+**<https://developer.reasonstudios.com/agreements/distribution-agreement>**
+
+Reason Studios' Rack Extension distribution agreement is the authority over what may
+ship. **Read it before any release, and steer development toward it by default.** A human
+may override a call it implies; you may not override it on your own, and you may not
+decide a question by guessing at what it says.
+
+It sits behind a developer login, so its text is not quotable from here. That is the point
+of this section: **do not paraphrase or infer its terms.** When a decision turns on what
+the agreement permits -- shipped samples, artwork, fonts, third-party code, naming, or how
+the instrument is described -- stop and put the question to the owner with the specific
+clause to check, rather than proceeding on an assumption.
+
+Before any upload, confirm these, which the agreement is why we care about:
+
+- **Nothing ships that the project does not own or have permission for.** Audio, artwork,
+  fonts, and code alike. `Docs/ASSET_PROVENANCE.md` is the traceability record; it states
+  outright that it is *not* a legal conclusion or grant of rights, and that commercial
+  permission stays an open owner gate in `Docs/RELEASE_CHECKLIST.md`. A green provenance
+  table is not permission.
+- **The SDK is not redistributed.** Not in the repo, not in a release asset, not in a CI
+  cache, not in a cloud bucket. It stays a local download per its own licence.
+- **No factory patch payload from the modelled instrument.** `Design/generate_presets.py`
+  enforces this in code -- `main()` refuses to ship an `A/`, `B/` or `Factory Bank/`
+  directory, and the metadata step strips those URLs. Sounds occupying the same musical
+  territory are authored here; someone else's stored parameter data is not copied.
+- **Identity is our own.** No other manufacturer's marque, model number, or trademark in
+  the product id, names, panel art, patch names, or copy. Numbered patch names in this
+  project are deliberately period-flavoured and carry no model reference.
+- **One upload per product id and version.** Bump `version_number` for every upload; a
+  failed cloud build still consumes the version it was uploaded as.
+
+If you are asked to ship something and cannot establish permission for it from the
+repository's own records, that is a blocker to raise, not a risk to absorb.
+
 ## Build and Release
 
 On the website, you upload a Rack Extension .u45 for testing and deployment. If the uploaded Rack Extension passes basic validation tests, it will be scheduled for building. As soon as it is built, it will be available for testing.

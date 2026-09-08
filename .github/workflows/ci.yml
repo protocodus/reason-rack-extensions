@@ -1,0 +1,98 @@
+name: CI
+
+# The Jukebox SDK is not in this repository and cannot be: Tools/ alone is 1.3 GB
+# and five of its LLVM binaries each exceed GitHub's 100 MB per-file limit, and it
+# is licensed material. So CI never builds the .u45 -- that stays a local step
+# against an unpacked SDK. What CI does run is everything that needs nothing but
+# the files committed here, which turns out to be most of the safety net.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+# Superseded PR checks can stop; every main push finishes.
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  sanity:
+    name: Panels, patches and metadata (SDK-free, Linux)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Pillow
+        run: python3 -m pip install --disable-pip-version-check "pillow==11.*"
+
+      - name: Panel geometry, node sets and version consistency
+        working-directory: Examples/YouKnow
+        # Catches the class of fault that fails the developer-site build at
+        # render_gui with only "an internal error occurred" -- a widget sitting
+        # outside the panel that declares it. 1.0.0f10 shipped exactly that.
+        run: python3 Tests/validate_panel_geometry.py
+
+      - name: Patch bank, metadata and level trims
+        working-directory: Examples/YouKnow
+        run: python3 Tests/validate_patches.py
+
+      - name: Patch bank regenerates to what is committed
+        working-directory: Examples/YouKnow
+        # generate_presets.py re-emits the bank from its own stored values, so a
+        # clean tree afterwards proves the committed patches match their source.
+        run: |
+          python3 Design/generate_presets.py
+          git --no-pager diff --stat -- Resources/Public YouKnow.rsmeta
+          git diff --quiet -- Resources/Public YouKnow.rsmeta
+
+  dsp:
+    name: DSP contracts (macOS)
+    # macOS, not Linux, on purpose: Tests/FrozenTableContract.cpp compares the
+    # frozen chip tables bit-for-bit against a recomputation that runs through
+    # tanh/sin/cos/exp/log/pow. Those are not correctly rounded, so Apple's libm
+    # and glibc disagree in the last place and the contract would fail on Linux
+    # for reasons that say nothing about this code. The tables were frozen on
+    # macOS; this is the host that can verify them.
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Frozen chip tables
+        working-directory: Examples/YouKnow
+        run: |
+          clang++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Werror \
+            Tests/FrozenTableContract.cpp -o /tmp/frozen-tables
+          /tmp/frozen-tables
+
+      - name: Behavioural render
+        working-directory: Examples/YouKnow
+        run: |
+          clang++ -std=c++17 -O2 -I. Tests/rendercheck.cpp \
+            DSP/YouKnowEngine.cpp DSP/YouKnowChorus.cpp -o /tmp/rendercheck
+          /tmp/rendercheck
+
+      - name: Every public patch renders
+        working-directory: Examples/YouKnow
+        run: python3 Tests/run_all_patch_render.py
+
+      - name: Six-note stress stays below full scale
+        working-directory: Examples/YouKnow
+        run: python3 Tests/run_all_patch_render.py --stress-levels

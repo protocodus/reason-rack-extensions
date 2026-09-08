@@ -1,6 +1,6 @@
 # YouKnow asset and SDK provenance inventory
 
-Updated 2026-09-05 CEST for the YouKnow `1.0.0f9` production candidate. This
+Updated 2026-09-05 CEST for the YouKnow `1.0.0f11` production candidate. This
 is an engineering traceability record, not a legal conclusion, ownership
 opinion, or grant of rights. Commercial permission and distribution scope stay
 subject to the open owner/legal and Reason Studios release gates.
@@ -89,7 +89,7 @@ trade-dress and shipped-content review; this history is not treated as approval.
 
 ## Patch bank provenance
 
-The production bank contains 77 Protocodus patches, including Init:
+The production bank contains 93 Protocodus patches, including Init:
 
 - Init and 18 featured sounds entered the Rack source in commit `5782a5a`,
   before the historical factory-bank importer was introduced. Their established
@@ -109,7 +109,7 @@ The production bank contains 77 Protocodus patches, including Init:
   in commit `662809a`. That commit also removed all 128 historical A/B factory
   patches, their source tone corpus, and the importer.
 
-The 2026-09-05 audit compared all 77 current patch states with the 128 deleted
+The 2026-09-05 audit compared all 93 current patch states with the 128 deleted
 factory states from commit `3d9b284`. None matched across the 16 continuous
 tone parameters and eight waveform, range, filter, envelope, VCA, and chorus
 switches. The deleted tone corpus has SHA-256
@@ -163,7 +163,7 @@ recorded licensing and deployment evidence belongs to the support-site history.
   into `GUI2D/device_2D.lua` and `GUI/Output/gui.lua`.
 - The single `Fader` strip that preceded the four stage-coloured strips is no
   longer generated or shipped.
-- The `1.0.0f9` rear CV grid and automation indications are implemented in the
+- The `1.0.0f11` rear CV grid and automation indications are implemented in the
   project renderer and GUI Lua sources. All eight CV sockets reuse the listed
   SDK CV jack input; this change introduces no new external artwork or fonts.
   CV behavior and control metadata are defined in the Rack adapter and

@@ -1,0 +1,53 @@
+name: Nightly
+
+# The slow contracts. These are worth running, but not on every push: the
+# automation artifact contract alone renders roughly 2,000 short takes and takes
+# about six minutes on an M1, longer on a hosted runner.
+
+on:
+  schedule:
+    - cron: "0 3 * * *" # 03:00 UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+jobs:
+  slow-contracts:
+    name: Automation artifacts and CPU probe (macOS)
+    # Same reason as the CI DSP job: these compare float behaviour against
+    # values taken on macOS.
+    runs-on: macos-14
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Automation introduces no artifacts
+        working-directory: Examples/YouKnow
+        # All 40 host-automatable parameters, each as a full-travel jump and as a
+        # fast sweep, dry and through the chorus, plus held-note survival across
+        # every switch. Compares a moving control against the same patch held
+        # still at values across its own travel.
+        run: |
+          clang++ -std=c++17 -O3 -DNDEBUG -Wall -Wextra -Wpedantic -Werror -I. \
+            Tests/AutomationArtifactContract.cpp \
+            DSP/YouKnowEngine.cpp DSP/YouKnowChorus.cpp \
+            -o /tmp/automation-artifacts
+          /tmp/automation-artifacts
+
+      - name: CPU probe
+        working-directory: Examples/YouKnow
+        run: |
+          clang++ -std=c++17 -O3 -DNDEBUG -I. Tests/PerformanceProbe.cpp \
+            DSP/YouKnowEngine.cpp DSP/YouKnowChorus.cpp -o /tmp/performance-probe
+          /tmp/performance-probe

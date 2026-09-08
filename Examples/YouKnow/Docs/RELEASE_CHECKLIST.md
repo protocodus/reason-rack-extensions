@@ -1,4 +1,4 @@
-# YouKnow 1.0.0f9 release checklist
+# YouKnow 1.0.0f11 release checklist
 
 Current results and retained failures are recorded in
 [RELEASE_EVIDENCE.md](RELEASE_EVIDENCE.md).
@@ -9,11 +9,11 @@ Product support: https://protocodus.cz/product/youknow/
 - [x] Verify SDK 5 and latest nominated upstream DSP, preserving Rack adaptations.
 - [x] Preserve product identity, saved properties, socket order, and automation IDs.
 - [x] Add six modulation CV sockets and seven previously missing automation mappings.
-- [x] Keep Aging 50%, all 77 patch states, and calibrated patch gains.
+- [x] Keep Aging 50%, all 93 patch states, and calibrated patch gains.
 - [x] Remove unused design inputs and document current behavior and test commands.
 - [x] Pass final localization/patch metadata and both GUI layout/asset checks.
 - [x] Pass timed automation/CV, reset, disconnection, sample-rate, and sanitizer contracts.
-- [x] Render all 77 patches at the shipped Aging 50% default.
+- [x] Render all 93 patches at the shipped Aging 50% default.
 - [x] Record the current native default timing pass (0/1875 misses), retaining earlier failures.
 - [x] Build local45 Deployment and inspect installed source-backed payload bytes.
 - [x] Build universal45 and verify ZIP, four chips, source bytes, and SHA-256.

@@ -7,12 +7,12 @@
 - Device name: YouKnow
 - Manufacturer: Protocodus
 - Product ID: `cz.protocodus.YouKnow`
-- Candidate: `1.0.0f9`
+- Candidate: `1.0.0f11`
 - Requirement: Reason 14 or later
 - Category: Instrument / Synth
 - Support URL: <https://protocodus.cz/product/youknow/>
 - Support email: [protocodus+support@proton.me](mailto:protocodus+support@proton.me)
-- Article: `PENDING` - select `1.0.0f9` after Reason Studios acceptance
+- Article: `PENDING` - select `1.0.0f11` after Reason Studios acceptance
 - Price category: `PENDING`
 - Upgrade price category: `0` - free updates, no special upgrade price
 - Tags: `PENDING` exact portal choices; target Synthesizer, Analog, Polyphonic,
@@ -27,7 +27,7 @@ Portal. Its permanent identity must remain unchanged.
 Each line is within the 50-character Shop limit.
 
 - Circuit-modelled analogue character (35 characters)
-- 77 original level-calibrated patches (36 characters)
+- 93 original level-calibrated patches (36 characters)
 - Eight CV inputs and 41 automated controls (41 characters)
 
 ## Short description
@@ -44,7 +44,7 @@ pulse, sub, and noise, shape them with a resonant filter and shared envelope,
 and add Chorus I, II, or the dedicated narrow I+II combination. Velocity,
 glide, key modes, and up to 16 voices support expressive playing.
 
-Explore 77 original Protocodus patches with balanced browsing levels, then
+Explore 93 original Protocodus patches with balanced browsing levels, then
 make them your own on a readable 8RU panel. The rear Unit Character control
 varies circuit tolerances and saves with your patch. Aging models service
 drift and noise changes, starts at 50%, and saves with the song. Set Aging to
@@ -66,7 +66,7 @@ Highlights:
 
 - Circuit-modelled oscillator, resonant filter, VCA, envelope, and stereo BBD
   chorus behavior
-- 77 original patches with Reason browser categories and tags
+- 93 original patches with Reason browser categories and tags
 - Up to 16-voice MIDI, eight rear CV inputs, and stereo auto-routing
 - 41 automatable custom controls plus standard performance controllers
 - Fixed 41-sample latency across every Quality setting
