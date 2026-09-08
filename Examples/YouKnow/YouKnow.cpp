@@ -52,6 +52,8 @@ CYouKnow::CYouKnow(double sampleRate)
       fPatchGainSmoothed(1.0f),
       fPatchGainSmoothing(static_cast<float>(
           1.0 - std::exp(-1.0 / (0.005 * fSampleRate)))),
+      fCalibrationTarget(1.0f),
+      fCalibrationCurrent(1.0f),
       fLastResetCounter(0.0),
       fTailSamplesRemaining(0),
       fLastCVNote(60),
@@ -275,7 +277,12 @@ void CYouKnow::LoadEngineParameters(double reasonMasterTune)
     parameters.masterTuneCents = static_cast<float>(
         reasonMasterTune + (Number(kMasterTune) * 100.0 - 50.0));
     parameters.velocityDepth = static_cast<float>(Number(kVelocity));
-    parameters.calibration = static_cast<float>(Number(kCalibration) * 2.0);
+    fCalibrationTarget = static_cast<float>(Number(kCalibration) * 2.0);
+    // A patch load or a reset adopts the new unit outright; only a move made
+    // while the instrument is already running is glided.
+    if (!fParametersLoaded)
+        fCalibrationCurrent = fCalibrationTarget;
+    parameters.calibration = fCalibrationCurrent;
     parameters.aging = static_cast<float>(Number(kAging));
     parameters.chorusNoise = static_cast<float>(Number(kChorusNoise));
     parameters.polyphony = std::clamp(static_cast<int>(Number(kPolyphony)) + 1,
@@ -288,6 +295,7 @@ void CYouKnow::LoadEngineParameters(double reasonMasterTune)
         Number(kVcfSolverMode), 2);
     fRequestedOversamplingFactor = OversamplingFactor(Number(kQuality));
 
+    fEngineParameters = parameters;
     fEngine.setParameters(parameters);
     fEngine.setPitchBend(static_cast<float>(Number(kPitchBend) * 2.0 - 1.0));
     fEngine.setModWheel(static_cast<float>(Number(kModWheel)));
@@ -354,12 +362,35 @@ bool CYouKnow::ResetIfRequested()
     return false;
 }
 
+// Move the engine's Unit Character toward the automated target over about
+// 30 ms. The engine rebuilds its per-card trims on each step, which measures at
+// roughly 27 us per batch on top of a 450 us render -- affordable, and it only
+// runs while the control is actually moving.
+void CYouKnow::AdvanceCalibrationGlide(int count)
+{
+    if (count <= 0 || fCalibrationCurrent == fCalibrationTarget)
+        return;
+    constexpr double kGlideSeconds = 0.030;
+    const double step = std::min(
+        1.0, static_cast<double>(count) / (kGlideSeconds * fSampleRate));
+    const float remaining = fCalibrationTarget - fCalibrationCurrent;
+    // Settle exactly rather than approaching forever, so the engine stops
+    // being handed a new parameter set once the move is done.
+    fCalibrationCurrent = std::abs(remaining) < 1.0e-4f
+        ? fCalibrationTarget
+        : fCalibrationCurrent + remaining * static_cast<float>(step);
+    fEngineParameters.calibration = fCalibrationCurrent;
+    fEngine.setParameters(fEngineParameters);
+}
+
 void CYouKnow::RenderRange(TJBox_AudioSample left[], TJBox_AudioSample right[],
                               int first, int last, bool qualityReady)
 {
     const int count = last - first;
     if (count <= 0)
         return;
+
+    AdvanceCalibrationGlide(count);
 
     const bool voicesActive = fEngine.getActiveVoiceCount() > 0;
     if (voicesActive || fTailSamplesRemaining > 0)

@@ -87,6 +87,7 @@ private:
     bool Boolean(EParameter parameter) const;
     float Modulated(EParameter parameter, ECVInput input, bool multiply) const;
     void LoadEngineParameters(double reasonMasterTune);
+    void AdvanceCalibrationGlide(int count);
     void HandleKeyModeReassert();
     void HandleCV();
     bool ResetIfRequested();
@@ -111,6 +112,14 @@ private:
     float fPatchGainTarget;
     float fPatchGainSmoothed;
     float fPatchGainSmoothing;
+    // Unit Character is automatable, and it is the one parameter whose change
+    // rebuilds every voice card's analogue trims at once. Jumped across its
+    // whole travel under a sounding note that rebuild is audible as a burst,
+    // so the wrapper hands the engine a gliding value instead of the raw one.
+    // Patch loads and resets still snap, so no stored sound is altered.
+    youknow::EngineParameters fEngineParameters {};
+    float fCalibrationTarget;
+    float fCalibrationCurrent;
     double fLastResetCounter;
     int fTailSamplesRemaining;
     int fLastCVNote;

@@ -15,7 +15,46 @@ Notable customer-facing changes to YouKnow are recorded here.
 - Simplified the build documentation and updated the user guide and Shop copy
   for the current controls. Removed unused historical artwork inputs.
 - Verified that the nominated upstream checkout and current remote contain no
-  newer shared DSP changes; the existing engine and original patch bank remain.
+  newer shared DSP changes; the existing engine remains unchanged. The upstream
+  checkout is now its own repository rather than a directory in the monorepo.
+- Rebuilt the front and rear panels as a brushed-metal chassis with shallow
+  machined section recesses, replacing the flat card groups. Every legend is
+  now set in DIN, the lettering standard used on instrument panels, and is
+  letterspaced; control captions grew from 10.5 to 12.5 pixels and scale
+  legends from 9 to 10.5.
+- Colour-coded the panel by signal stage. Fader caps and section rules share
+  four accents -- tone sources, shaping, effects, and performance -- so a cap
+  colour says which stage a control belongs to. The single grey cap strip is
+  replaced by four.
+- Derived control positions from each control's own caption, tick ladder and
+  scale legend instead of hand-set coordinates, then shared each row's spare
+  width between its sections. The filter row was over-subscribed by 93 pixels
+  and is now positive throughout, with a guaranteed 17-pixel clearance between
+  neighbouring controls.
+- Renamed sections to the terms a hardware panel is silkscreened with -- DCO,
+  VCF, VCA, ENV, HPF -- and moved Chorus to the end of the shaping row where it
+  sits in the signal. Master Volume moved out of the bender group into
+  Performance. The Key Mode caption is now MODE, and the two adjacent PWM
+  captions read PWM and SOURCE.
+- Aligned the Note lamp caption to the engine readout baseline it had been
+  sitting four pixels above, and enlarged the readout captions to 10 pixels.
+- Glided Unit Character over 30 ms when a host automates it. It is the one
+  parameter whose change rebuilds every voice card's analogue trims at once,
+  and jumped across its full travel under a sounding note that rebuild was
+  audible as a ~15 dB burst through the chorus. Patch loads and resets still
+  adopt the new unit outright, so no stored sound is altered, and the glide
+  costs about 27 us per batch only while the control is moving.
+- Added an automation artifact contract covering all 40 host-automatable
+  parameters as single jumps and as fast sweeps, dry and chorused, plus a
+  held-note survival check across every switch. Nothing else in the panel
+  injects a discontinuity beyond what the voice already produces standing
+  still; the worst continuous control measures 1.01x.
+- Added six more numbered string patches -- the brass-and-strings layer, a
+  16'-plus-sub octave section, delayed vibrato, a marcato bowed attack, a full
+  I+II chorus wash and filter tremolo -- taking the public bank to 93.
+- Added ten patches in the numbered-bank idiom (8411 Brass through 8474 Sweep),
+  filed across the existing categories and level-calibrated with the rest of
+  the bank; the public bank is now 87 patches.
 
 ## 1.0.0f8 - Superseded before publication
 

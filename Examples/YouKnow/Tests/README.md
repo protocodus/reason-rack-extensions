@@ -57,6 +57,33 @@ clang++ -std=c++17 -O2 -I. Tests/rendercheck.cpp \
 These contracts cover frozen-table identity, deterministic quality/kernel
 paths, voice retirement and wake-up, chorus state, notes/sustain/release,
 parameter comparison, the 64 KiB memory ceiling, and fixed 41-sample latency.
+
+## Automation artifacts
+
+```sh
+clang++ -std=c++17 -O3 -DNDEBUG -Wall -Wextra -Wpedantic -Werror -I. \
+  Tests/AutomationArtifactContract.cpp \
+  DSP/YouKnowEngine.cpp DSP/YouKnowChorus.cpp \
+  -o /tmp/youknow-automation-artifacts
+/tmp/youknow-automation-artifacts          # add --verbose for every measurement
+```
+
+Automates all 40 host-automatable parameters under a sounding note, each as a
+single full-travel jump and as a fast sweep, dry and through the chorus, and
+measures whether the change injects a discontinuity the signal was not already
+producing. The reference is causal: a moving control is compared against the
+same patch HELD STILL at values across its own travel. That matters, because a
+self-referential threshold cannot tell a zipper step from a sawtooth edge -- as
+the filter opens the waveform becomes a saw, whose derivative is one large step
+per cycle. It also checks that notes held through a switch change survive it.
+
+The run takes about six minutes: most of it is the held-still reference renders,
+twelve per parameter, each long enough to span several LFO cycles.
+
+Unit Character is the one parameter whose change rebuilds every voice card's
+analogue trims at once, so the wrapper glides it over 30 ms
+(`AdvanceCalibrationGlide` in YouKnow.cpp); the test reproduces that glide so it
+measures the path the instrument ships rather than the bare engine.
 [DSP/SYNC.md](../DSP/SYNC.md) identifies the exact upstream revision, source
 hashes, Rack adaptations, and retained fourteen-program scalar parity evidence.
 Recheck parity when shared DSP changes; retain labelled results when its bytes
