@@ -30,6 +30,16 @@
       "raw_peak": 0.288928,
       "raw_rms": 0.033435
     },
+    "Bass/8421 Bass.repatch": {
+      "gain_db": -2.5559,
+      "raw_peak": 0.241584,
+      "raw_rms": 0.049352
+    },
+    "Bass/8424 Bass Pluck.repatch": {
+      "gain_db": 10.0272,
+      "raw_peak": 0.056743,
+      "raw_rms": 0.003067
+    },
     "Bass/Acid Lantern.repatch": {
       "gain_db": 1.1354,
       "raw_peak": 0.157943,
@@ -100,6 +110,16 @@
       "raw_peak": 0.269344,
       "raw_rms": 0.069251
     },
+    "Brass/8411 Brass.repatch": {
+      "gain_db": 3.8778,
+      "raw_peak": 0.101131,
+      "raw_rms": 0.025596
+    },
+    "Brass/8413 Brass Ens.repatch": {
+      "gain_db": -3.696,
+      "raw_peak": 0.219744,
+      "raw_rms": 0.061215
+    },
     "Brass/Classic Poly Brass.repatch": {
       "gain_db": 1.653,
       "raw_peak": 0.148806,
@@ -165,6 +185,11 @@
       "raw_peak": 0.006933,
       "raw_rms": 0.000394
     },
+    "Effects/8474 Sweep.repatch": {
+      "gain_db": 2.6959,
+      "raw_peak": 0.13197,
+      "raw_rms": 0.027348
+    },
     "Effects/Broken Telemetry.repatch": {
       "gain_db": 14.9954,
       "raw_peak": 0.032026,
@@ -210,6 +235,16 @@
       "raw_peak": 0.165225,
       "raw_rms": 0.024366
     },
+    "Keys/8452 Organ.repatch": {
+      "gain_db": -3.9232,
+      "raw_peak": 0.245969,
+      "raw_rms": 0.062838
+    },
+    "Keys/8467 Bell.repatch": {
+      "gain_db": 5.9106,
+      "raw_peak": 0.091147,
+      "raw_rms": 0.005394
+    },
     "Keys/Bell Current.repatch": {
       "gain_db": 11.8862,
       "raw_peak": 0.04581,
@@ -229,6 +264,11 @@
       "gain_db": -3.0626,
       "raw_peak": 0.236199,
       "raw_rms": 0.05691
+    },
+    "Leads/8432 Lead.repatch": {
+      "gain_db": -8.366,
+      "raw_peak": 0.422051,
+      "raw_rms": 0.1048
     },
     "Leads/Copper Reed.repatch": {
       "gain_db": -3.9266,
@@ -259,6 +299,11 @@
       "gain_db": 10.0967,
       "raw_peak": 0.056291,
       "raw_rms": 0.011717
+    },
+    "Pads/8441 Pad.repatch": {
+      "gain_db": 0.8971,
+      "raw_peak": 0.140516,
+      "raw_rms": 0.036075
     },
     "Pads/Aurora Veil.repatch": {
       "gain_db": 4.7324,
@@ -340,6 +385,41 @@
       "raw_peak": 0.139086,
       "raw_rms": 0.031794
     },
+    "Strings/8414 Str Brass.repatch": {
+      "gain_db": -4.0451,
+      "raw_peak": 0.246345,
+      "raw_rms": 0.063726
+    },
+    "Strings/8415 Str Octave.repatch": {
+      "gain_db": -2.3348,
+      "raw_peak": 0.21599,
+      "raw_rms": 0.052336
+    },
+    "Strings/8416 Strings.repatch": {
+      "gain_db": -0.6829,
+      "raw_peak": 0.194722,
+      "raw_rms": 0.042355
+    },
+    "Strings/8417 Str Vibrato.repatch": {
+      "gain_db": -2.4376,
+      "raw_peak": 0.210254,
+      "raw_rms": 0.052959
+    },
+    "Strings/8418 Str Marcato.repatch": {
+      "gain_db": 0.093,
+      "raw_peak": 0.152192,
+      "raw_rms": 0.039574
+    },
+    "Strings/8425 Str Wash.repatch": {
+      "gain_db": 8.9753,
+      "raw_peak": 0.064048,
+      "raw_rms": 0.01347
+    },
+    "Strings/8426 Str Tremolo.repatch": {
+      "gain_db": -1.856,
+      "raw_peak": 0.202835,
+      "raw_rms": 0.049529
+    },
     "Strings/Bright String Ensemble.repatch": {
       "gain_db": -1.0153,
       "raw_peak": 0.195365,
@@ -410,6 +490,8 @@
   "preset_gain": {
     "Bass - Rubber Pulse.repatch": 0.264506813,
     "Bass Short and Hard.repatch": 0.386214481,
+    "Bass/8421 Bass.repatch": 0.429245333,
+    "Bass/8424 Bass Pluck.repatch": 0.777580429,
     "Bass/Acid Lantern.repatch": 0.531432151,
     "Bass/Clean Pulse Bass.repatch": 0.562796371,
     "Bass/Octave Floor Bass.repatch": 0.491627555,
@@ -424,6 +506,8 @@
     "Bass/Wire Pluck.repatch": 0.685658084,
     "Brass - Bright Stab.repatch": 0.492114421,
     "Brass - Soft Ensemble.repatch": 0.368027516,
+    "Brass/8411 Brass.repatch": 0.607346938,
+    "Brass/8413 Brass Ens.repatch": 0.397685798,
     "Brass/Classic Poly Brass.repatch": 0.545760701,
     "Brass/Mono Brass.repatch": 0.367562699,
     "Brass/Muted Circuit.repatch": 0.685530903,
@@ -437,6 +521,7 @@
     "Brass/Wide Brass Ensemble.repatch": 0.42829471,
     "Effects - Rising Voltage.repatch": 0.364542559,
     "Effects - Storm Signal.repatch": 1.0,
+    "Effects/8474 Sweep.repatch": 0.57463115,
     "Effects/Broken Telemetry.repatch": 0.915113564,
     "Effects/Circuit Rain.repatch": 0.95672323,
     "Effects/Falling Star.repatch": 0.660086404,
@@ -446,16 +531,20 @@
     "Init.repatch": 0.577042776,
     "Keys - Plucked Keys.repatch": 0.611507747,
     "Keys - Velvet Electric.repatch": 0.520594152,
+    "Keys/8452 Organ.repatch": 0.391393789,
+    "Keys/8467 Bell.repatch": 0.663621638,
     "Keys/Bell Current.repatch": 0.82904374,
     "Keys/Midnight Tines.repatch": 0.639693745,
     "Keys/Percussive Mallet.repatch": 0.670246488,
     "Keys/Warm Poly.repatch": 0.415219637,
+    "Leads/8432 Lead.repatch": 0.268405531,
     "Leads/Copper Reed.repatch": 0.391301971,
     "Leads/Laser Thread.repatch": 0.631622639,
     "Leads/Neon Glide.repatch": 0.245947588,
     "Leads/Pulse Whistle.repatch": 0.837676361,
     "Organ.repatch": 0.289481743,
     "Pads - Lunar Drift.repatch": 0.779503454,
+    "Pads/8441 Pad.repatch": 0.524833434,
     "Pads/Aurora Veil.repatch": 0.631006839,
     "Pads/Bright Air Pad.repatch": 0.654874053,
     "Pads/Dark Motion Pad.repatch": 0.519964113,
@@ -472,6 +561,13 @@
     "Slow Sweep.repatch": 1.0,
     "Strings - Dark Bowed.repatch": 0.455076906,
     "Strings - PWM Ensemble.repatch": 0.555207578,
+    "Strings/8414 Str Brass.repatch": 0.388019649,
+    "Strings/8415 Str Octave.repatch": 0.435366056,
+    "Strings/8416 Strings.repatch": 0.481096836,
+    "Strings/8417 Str Vibrato.repatch": 0.432520687,
+    "Strings/8418 Str Marcato.repatch": 0.502574517,
+    "Strings/8425 Str Wash.repatch": 0.748461913,
+    "Strings/8426 Str Tremolo.repatch": 0.448621085,
     "Strings/Bright String Ensemble.repatch": 0.471892994,
     "Strings/Cello Current.repatch": 0.439563935,
     "Strings/Dark String Ensemble.repatch": 0.469403035,

@@ -350,7 +350,7 @@ def main():
         count = len(list((PUBLIC / category).glob("*.repatch")))
         assert count >= 4, f"{category}: expected at least four categorized patches"
     patches = sorted(PUBLIC.rglob("*.repatch"))
-    assert len(patches) == 77, f"expected 77 public patches, found {len(patches)}"
+    assert len(patches) == 93, f"expected 93 public patches, found {len(patches)}"
     original_paths = runpy.run_path(
         str(PROJECT / "Design" / "generate_presets.py")
     )["ORIGINAL_PATCH_PATHS"]

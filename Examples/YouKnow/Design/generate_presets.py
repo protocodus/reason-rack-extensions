@@ -604,8 +604,205 @@ UNIVERSAL_PRESETS = (
 )
 
 
+
+# --- The numbered bank ------------------------------------------------------
+# Sounds in the idiom of the program slots this class of instrument is
+# remembered for: the brass, the string ensemble, the sub bass, the unison
+# lead, the organ, the chorused pad. The names carry the year as a prefix and
+# a two-digit program number (8411 = programme 11), which reads as a patch
+# number to anyone who knows the format and as nothing in particular to anyone
+# who does not. No original name, marque or model number appears.
+#
+# The parameter values are authored here against this engine, by ear and from
+# the architecture. Nothing is copied from any factory bank -- `main()` still
+# refuses to ship one -- so these are original sounds that occupy the same
+# musical territory, not a reissue of somebody's patch data.
+CLASSIC_PRESETS = (
+    (
+        "Brass/8411 Brass.repatch", ("Wind", "Brass"),
+        ("Analog", "Punchy", "Warm"),
+        dict(volume=.64, benderDco=.30, benderVcf=.16, benderLfo=.20,
+             lfoRate=.32, lfoDelay=.40, pwm=.40, pwmMode=0, range=1,
+             saw=True, pulse=False, sub=.10, cutoff=.34, resonance=.16,
+             vcfEnv=.56, keyFollow=.52, vcaLevel=.74, attack=.10, decay=.48,
+             sustain=.72, release=.26, chorus=1, velocity=.30,
+             calibration=.55, chorusNoise=.76),
+    ),
+    (
+        "Brass/8413 Brass Ens.repatch", ("Wind", "Brass"),
+        ("Fat", "Lush", "Wide"),
+        dict(volume=.62, benderDco=.28, benderVcf=.18, benderLfo=.22,
+             lfoRate=.28, lfoDelay=.46, pwm=.52, pwmMode=0, range=1,
+             saw=True, pulse=True, sub=.14, highPass=1, cutoff=.38,
+             resonance=.14, vcfEnv=.48, keyFollow=.56, vcaLevel=.72,
+             attack=.18, decay=.55, sustain=.78, release=.34, chorus=2,
+             velocity=.26, calibration=.55, chorusNoise=.78),
+    ),
+    (
+        "Strings/8416 Strings.repatch", ("Strings", "Ensemble"),
+        ("Lush", "Soft", "Wide"),
+        dict(volume=.62, benderDco=.20, benderVcf=.10, benderLfo=.18,
+             lfoRate=.16, lfoDelay=.30, dcoLfo=.02, pwm=.64, pwmMode=0,
+             range=1, saw=True, pulse=True, sub=.04, noise=.01, highPass=2,
+             cutoff=.52, resonance=.06, vcfEnv=.16, vcfLfo=.03,
+             keyFollow=.50, vcaLevel=.70, attack=.30, decay=.60,
+             sustain=.88, release=.56, chorus=3, velocity=.22,
+             chorusNoise=.78),
+    ),
+    (
+        "Bass/8421 Bass.repatch", ("Bass", "Synth"),
+        ("Analog", "Deep", "Punchy"),
+        dict(volume=.66, benderDco=.26, benderVcf=.12, keyMode=1, pwm=.44,
+             pwmMode=1, range=0, saw=False, pulse=True, sub=.66, highPass=0,
+             cutoff=.24, resonance=.20, vcfEnv=.52, keyFollow=.20,
+             vcaLevel=.76, attack=.00, decay=.36, sustain=.30, release=.14,
+             velocity=.30, calibration=.50),
+    ),
+    (
+        "Bass/8424 Bass Pluck.repatch", ("Bass", "Synth"),
+        ("Percussive", "Short", "Tight"),
+        dict(volume=.64, benderDco=.24, benderVcf=.22, keyMode=1, pwm=.36,
+             range=0, saw=True, pulse=False, sub=.30, highPass=1,
+             cutoff=.30, resonance=.44, vcfEnv=.70, keyFollow=.34,
+             vcaLevel=.74, attack=.00, decay=.22, sustain=.02, release=.10,
+             velocity=.48, calibration=.45),
+    ),
+    (
+        "Leads/8432 Lead.repatch", ("Synth", "Leads"),
+        ("Analog", "Bright", "Monophonic"),
+        dict(volume=.62, benderDco=.44, benderVcf=.24, benderLfo=.34,
+             portamento=.18, keyMode=2, lfoRate=.40, lfoDelay=.34, pwm=.50,
+             pwmMode=0, range=1, saw=True, pulse=True, sub=.08, cutoff=.44,
+             resonance=.38, vcfEnv=.46, vcfLfo=.05, keyFollow=.70,
+             vcaLevel=.76, attack=.02, decay=.40, sustain=.66, release=.24,
+             chorus=1, velocity=.24, calibration=.55, chorusNoise=.78),
+    ),
+    (
+        "Pads/8441 Pad.repatch", ("Synth", "Pads"),
+        ("Lush", "Spacious", "Warm"),
+        dict(volume=.58, benderDco=.20, benderVcf=.18, benderLfo=.20,
+             lfoRate=.14, lfoDelay=.48, dcoLfo=.03, pwm=.70, pwmMode=0,
+             range=1, saw=True, pulse=True, sub=.06, noise=.02, highPass=1,
+             cutoff=.42, resonance=.22, vcfEnv=.26, vcfLfo=.10,
+             keyFollow=.44, vcaLevel=.68, attack=.56, decay=.70,
+             sustain=.88, release=.74, chorus=3, velocity=.20,
+             calibration=.55, chorusNoise=.80),
+    ),
+    (
+        "Keys/8452 Organ.repatch", ("Keys", "Organ"),
+        ("Clean", "Bright", "Vintage"),
+        dict(volume=.64, benderDco=.16, benderVcf=.08, pwm=.30, pwmMode=1,
+             range=0, saw=False, pulse=True, sub=.52, highPass=1,
+             cutoff=.72, resonance=.10, vcaMode=1, vcfEnv=.00,
+             keyFollow=.30, vcaLevel=.74, attack=.00, decay=.30,
+             sustain=1.00, release=.06, chorus=2, velocity=.00,
+             chorusNoise=.74),
+    ),
+    (
+        "Keys/8467 Bell.repatch", ("Mallets", "Bells & Vibes"),
+        ("Bright", "Glassy", "Percussive"),
+        dict(volume=.62, benderDco=.18, benderVcf=.14, lfoRate=.24, pwm=.62,
+             pwmMode=1, range=2, saw=False, pulse=True, sub=.04, highPass=2,
+             cutoff=.60, resonance=.52, vcfEnv=.62, keyFollow=.80,
+             vcaLevel=.70, attack=.00, decay=.30, sustain=.06, release=.34,
+             chorus=2, velocity=.66, calibration=.45, chorusNoise=.72),
+    ),
+    (
+        "Effects/8474 Sweep.repatch", ("FX", "Textures"),
+        ("Atmospheric", "Evolving", "Slow"),
+        dict(volume=.58, benderDco=.22, benderVcf=.40, benderLfo=.26,
+             lfoRate=.08, lfoDelay=.20, dcoLfo=.04, pwm=.66, pwmMode=0,
+             range=1, saw=True, pulse=True, noise=.06, highPass=1,
+             cutoff=.30, resonance=.62, vcfEnv=.40, vcfLfo=.42,
+             keyFollow=.28, vcaLevel=.66, attack=.44, decay=.80,
+             sustain=.80, release=.70, chorus=3, velocity=.18,
+             calibration=.55, chorusNoise=.80),
+    ),
+)
+
+
+# --- Numbered strings -------------------------------------------------------
+# The string ensemble is what this class of instrument is actually remembered
+# for, so the numbered bank carries more of them than of anything else. Each
+# one occupies territory the thirteen existing string patches do not: the
+# brass-and-strings layer, a true 16'-plus-sub octave section, delayed vibrato,
+# a marcato bowed attack, a full I+II chorus wash, and filter tremolo.
+#
+# Two values here were changed after measurement rather than taste. 8415 uses
+# the straight high-pass leg, not Boost: Boost sits on the summed voice bus
+# after the VCFs, so at 16' it lifts the fundamentals and costs ~5.8 dB of
+# calibration trim, leaving the section body shy. 8418 uses dcoLfo=.05 because
+# anything at or below .03 is identically zero on this engine --
+# dcoLfoDepthScale returns 0 below depth 3, and the panel term (scale * 255)>>8
+# still floors to zero at scale 1 -- so the bank's customary .01/.02 vibrato
+# settings modulate nothing at all. The mod-wheel leg is unaffected.
+STRING_PRESETS = (
+    (
+        "Strings/8414 Str Brass.repatch", ("Strings", "Ensemble"),
+        ("Fat", "Layered", "Warm"),
+        dict(volume=.59, benderDco=.26, benderVcf=.22, benderLfo=.20,
+             lfoRate=.20, lfoDelay=.36, dcoLfo=.01, pwm=.46, pwmMode=0,
+             range=1, saw=True, pulse=True, sub=.16, noise=.02, highPass=0,
+             cutoff=.28, resonance=.20, vcfEnv=.50, vcfLfo=.02, keyFollow=.56,
+             vcaLevel=.70, attack=.12, decay=.42, sustain=.68, release=.44,
+             chorus=1, velocity=.40, calibration=.55, chorusNoise=.74),
+    ),
+    (
+        "Strings/8415 Str Octave.repatch", ("Strings", "Ensemble"),
+        ("Deep", "Slow", "Wide"),
+        dict(volume=.58, benderDco=.22, benderVcf=.12, benderLfo=.20,
+             lfoRate=.11, lfoDelay=.42, dcoLfo=.02, pwm=.62, pwmMode=0,
+             range=0, saw=True, pulse=True, sub=.34, noise=.02, highPass=1,
+             cutoff=.37, resonance=.10, vcfEnv=.26, vcfLfo=.04, keyFollow=.68,
+             vcaLevel=.66, attack=.46, decay=.72, sustain=.92, release=.84,
+             chorus=2, velocity=.20, calibration=.55, chorusNoise=.80),
+    ),
+    (
+        "Strings/8417 Str Vibrato.repatch", ("Strings", "Ensemble"),
+        ("Evolving", "Organic", "Warm"),
+        dict(volume=.60, benderDco=.24, benderVcf=.12, benderLfo=.30,
+             lfoRate=.56, lfoDelay=.52, dcoLfo=.14, pwm=.44, pwmMode=1,
+             saw=True, pulse=True, sub=.06, noise=.02, cutoff=.47,
+             resonance=.22, vcfEnv=.26, vcfLfo=.06, keyFollow=.60,
+             vcaLevel=.70, attack=.22, decay=.58, sustain=.92, release=.54,
+             chorus=1, velocity=.34, calibration=.58, chorusNoise=.74),
+    ),
+    (
+        "Strings/8418 Str Marcato.repatch", ("Strings", "Ensemble"),
+        ("Analog", "Snappy", "Wide"),
+        dict(volume=.61, benderDco=.22, benderVcf=.18, benderLfo=.18,
+             lfoRate=.19, lfoDelay=.30, dcoLfo=.05, pwm=.50, pwmMode=0,
+             saw=True, pulse=True, sub=.08, noise=.04, cutoff=.32,
+             resonance=.26, vcfEnv=.62, vcfLfo=.02, keyFollow=.60,
+             vcaLevel=.72, attack=.06, decay=.22, sustain=.66, release=.52,
+             chorus=1, velocity=.62, calibration=.45, chorusNoise=.74),
+    ),
+    (
+        "Strings/8425 Str Wash.repatch", ("Strings", "Ensemble"),
+        ("Atmospheric", "Lush", "Slow"),
+        dict(volume=.56, benderDco=.20, benderVcf=.12, benderLfo=.22,
+             lfoRate=.08, lfoDelay=.55, dcoLfo=.02, pwm=.84, pwmMode=0,
+             range=1, saw=False, pulse=True, noise=.04, highPass=2,
+             cutoff=.47, resonance=.16, vcfEnv=.20, vcfLfo=.09, keyFollow=.42,
+             vcaLevel=.64, attack=.82, decay=.84, sustain=.94, release=.90,
+             chorus=3, velocity=.10, calibration=.60, chorusNoise=.82),
+    ),
+    (
+        "Strings/8426 Str Tremolo.repatch", ("Strings", "Ensemble"),
+        ("Evolving", "Rhythmic", "Wide"),
+        dict(volume=.60, benderDco=.20, benderVcf=.14, benderLfo=.24,
+             lfoRate=.44, lfoDelay=.14, pwm=.48, pwmMode=1, range=1, saw=True,
+             pulse=True, sub=.06, noise=.01, highPass=1, cutoff=.46,
+             resonance=.20, vcfEnv=.16, vcfLfo=.18, keyFollow=.52,
+             vcaLevel=.70, attack=.22, decay=.58, sustain=.86, release=.52,
+             chorus=1, velocity=.20, calibration=.55, chorusNoise=.76),
+    ),
+)
+
+ALL_PRESETS = PRESETS + UNIVERSAL_PRESETS + CLASSIC_PRESETS + STRING_PRESETS
+
 ORIGINAL_PATCH_PATHS = FEATURED_PATCHES | {
-    relative for relative, _, _, _ in PRESETS + UNIVERSAL_PRESETS
+    relative for relative, _, _, _ in ALL_PRESETS
 }
 
 
@@ -668,7 +865,7 @@ def main():
         path.relative_to(PUBLIC).as_posix() for path in PUBLIC.rglob("*.repatch")
     } - ORIGINAL_PATCH_PATHS
     assert not unexpected, f"unreviewed public patches: {sorted(unexpected)}"
-    for relative, _, _, overrides in PRESETS + UNIVERSAL_PRESETS:
+    for relative, _, _, overrides in ALL_PRESETS:
         assert relative.isascii() and set(overrides) <= set(init_values)
         values = init_values | overrides
         write_patch(PUBLIC / relative, values, init_types, version)
@@ -712,7 +909,7 @@ def main():
         url: entry for url, entry in by_url.items()
         if not any(url.startswith(prefix + root) for root in ("A/", "B/", "Factory Bank/"))
     }
-    for relative, (primary, sub), tags, _ in PRESETS + UNIVERSAL_PRESETS:
+    for relative, (primary, sub), tags, _ in ALL_PRESETS:
         by_url[prefix + relative] = {
             "URL": prefix + relative,
             "Tags": list(tags),
@@ -735,7 +932,7 @@ def main():
         encoding="utf-8",
     )
     print(
-        f"Generated {len(PRESETS) + len(UNIVERSAL_PRESETS)} categorized "
+        f"Generated {len(ALL_PRESETS)} categorized "
         f"originals; {len(expected)} total"
     )
 

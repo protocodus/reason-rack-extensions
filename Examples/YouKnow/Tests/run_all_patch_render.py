@@ -65,6 +65,26 @@ def write_level_table(output: str, patches: list[Path], aging: float) -> None:
         }
         gain_db.append(audit[name]["gain_db"])
 
+    # Some patches need a hand attenuation on top of the Aging 0% measurement:
+    # a trim that sits on the +18 dB clamp can still exceed the peak ceiling
+    # once Aging is at its shipping 50%. Those decisions live in "adjustments"
+    # and are *not* re-derivable from this render, so carry them across a
+    # recalibration instead of silently discarding them.
+    adjustments = {}
+    if LEVELS_PATH.exists():
+        previous = json.loads(LEVELS_PATH.read_text(encoding="utf-8"))
+        adjustments = {
+            name: entry for name, entry in previous.get("adjustments", {}).items()
+            if name in trims
+        }
+    for name, entry in adjustments.items():
+        before = entry.get("preset_gain_before")
+        if before is not None and abs(trims[name] - float(before)) > 1e-9:
+            raise SystemExit(
+                f"{name}: measured trim moved to {trims[name]} but its recorded "
+                f"adjustment was taken from {before}; re-take the adjustment")
+        trims[name] = float(entry["preset_gain_after"])
+
     data = {
         "format": 1,
         "method": "fixed C3/G3/C4 chord, 3 s, 48 kHz; cap peak and RMS",
@@ -75,6 +95,8 @@ def write_level_table(output: str, patches: list[Path], aging: float) -> None:
         "preset_gain": trims,
         "measurements": audit,
     }
+    if adjustments:
+        data["adjustments"] = adjustments
     LEVELS_PATH.write_text(
         json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
