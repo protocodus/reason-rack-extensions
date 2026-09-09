@@ -73,6 +73,8 @@ parameter comparison, the 64 KiB memory ceiling, and fixed 41-sample latency.
 Envelope preservation checks cover independent voice states in POLY1/POLY2
 and ENV/GATE, shared attack coefficients, and the recovered B-2 firmware's
 exact residual-level retrigger vector.
+The upstream `isNoteHeld()` query is checked against overlapping presses,
+dropped assignments, sustain tails, invalid pitches, and reset/release paths.
 
 ## Automation artifacts
 

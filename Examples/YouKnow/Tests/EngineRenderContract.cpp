@@ -680,6 +680,113 @@ bool testAgingPath()
     return differsFromFresh;
 }
 
+bool testPhysicalHeldNoteState()
+{
+    using Access = youknow::YouKnowTestAccess;
+    using Engine = youknow::YouKnowEngine;
+
+    auto parameters = fullPathPatch();
+    parameters.chorus = youknow::ChorusMode::Off;
+    parameters.chorusNoise = 0.0f;
+    parameters.polyphony = 6;
+
+    Engine bounds;
+    bounds.setParameters(parameters);
+    bounds.prepare(48000.0, blockSize, 1);
+    const Engine& queried = bounds;
+    for (int note = 0; note < 128; ++note)
+        if (queried.isNoteHeld(note))
+            return false;
+    bounds.noteOn(0, 0.8f);
+    bounds.noteOn(127, 0.8f);
+    if (!queried.isNoteHeld(0) || !queried.isNoteHeld(127))
+        return false;
+    for (const int note : { std::numeric_limits<int>::min(), -1, 128,
+                            std::numeric_limits<int>::max() })
+        if (queried.isNoteHeld(note))
+            return false;
+    bounds.noteOff(0);
+    bounds.noteOff(127);
+    if (queried.isNoteHeld(0) || queried.isNoteHeld(127))
+        return false;
+
+    // Equal-pitch overlaps remain physically held until the final matching
+    // off. A sustained or releasing voice alone must never count as held.
+    for (const auto mode : { youknow::KeyMode::Poly1, youknow::KeyMode::Poly2,
+                             youknow::KeyMode::Unison })
+    for (const bool pedal : { false, true })
+    {
+        Engine engine;
+        parameters.keyMode = mode;
+        engine.setParameters(parameters);
+        engine.prepare(48000.0, blockSize, 1);
+        engine.setSustainPedal(pedal);
+        engine.noteOn(60, 0.8f);
+        renderBlocks(engine, 16);
+        engine.noteOn(60, 0.3f);
+        if (!engine.isNoteHeld(60) || Access::heldCount(engine, 60) != 2)
+            return false;
+        engine.noteOff(60);
+        const int expectedVoices = mode == youknow::KeyMode::Unison ? 6 : 1;
+        if (!engine.isNoteHeld(60) || Access::heldCount(engine, 60) != 1
+            || Access::keyedVoiceCount(engine, 60) != expectedVoices
+            || Access::assignmentRescanPending(engine))
+            return false;
+        engine.noteOff(61); // An unmatched off cannot consume another key.
+        if (engine.isNoteHeld(61) || !engine.isNoteHeld(60))
+            return false;
+        engine.noteOff(60);
+        if (engine.isNoteHeld(60) || Access::heldCount(engine, 60) != 0
+            || Access::keyedVoiceCount(engine, 60) != 0
+            || engine.getActiveVoiceCount() != expectedVoices)
+            return false;
+        engine.noteOff(60); // A stale off cannot underflow the press count.
+        renderBlocks(engine, 128);
+        if (engine.isNoteHeld(60)
+            || engine.getActiveVoiceCount() != (pedal ? expectedVoices : 0))
+            return false;
+        engine.setSustainPedal(false);
+        renderBlocks(engine, 128);
+        if (engine.isNoteHeld(60) || engine.getActiveVoiceCount() != 0)
+            return false;
+    }
+
+    // The seventh key is still down even when all six cards reject its
+    // assignment. Clear operations must also erase unvoiced and repeated keys.
+    for (const auto mode : { youknow::KeyMode::Poly1, youknow::KeyMode::Poly2 })
+    for (const auto clear : { &Engine::releaseAllNotes, &Engine::allNotesOff,
+                              &Engine::reset, &Engine::resetForHostStop })
+    {
+        Engine engine;
+        parameters.keyMode = mode;
+        engine.setParameters(parameters);
+        engine.prepare(48000.0, blockSize, 1);
+        for (const int note : notes)
+            engine.noteOn(note, 0.8f);
+        engine.noteOn(84, 0.3f);
+        engine.noteOn(84, 0.5f);
+        if (engine.getActiveVoiceCount() != 6
+            || Access::keyedVoiceCount(engine, 84) != 0
+            || !engine.isNoteHeld(84) || Access::heldCount(engine, 84) != 2)
+            return false;
+        engine.noteOff(84);
+        if (!engine.isNoteHeld(84) || Access::heldCount(engine, 84) != 1)
+            return false;
+        engine.noteOff(84);
+        if (engine.isNoteHeld(84))
+            return false;
+        engine.noteOn(84, 0.3f);
+        engine.noteOn(notes.front(), 0.5f);
+        engine.setSustainPedal(true);
+        (engine.*clear)();
+        for (int note = 0; note < 128; ++note)
+            if (engine.isNoteHeld(note))
+                return false;
+    }
+
+    return true;
+}
+
 bool testLegatoRetarget()
 {
     using Access = youknow::YouKnowTestAccess;
@@ -1097,6 +1204,7 @@ int main()
         && testAgingPath()
         && testInitialQualitySelection()
         && testPerVoiceEnvelopeAndResidualRetrigger()
+        && testPhysicalHeldNoteState()
         && testLegatoRetarget()
         && testFastIdlePolicies()
         && testLoadedBbdOutputTopology()

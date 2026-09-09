@@ -521,6 +521,13 @@ public:
         const CoupledSubMixer::Calibration& calibration) noexcept;
     void noteOn(int midiNote, float velocity);
     void noteOff(int midiNote);
+    // Audio-thread query for host event ordering. Counts include overlapping
+    // presses and keys dropped by the full assigner, independently of voices.
+    [[nodiscard]] bool isNoteHeld(int midiNote) const noexcept
+    {
+        return midiNote >= 0 && midiNote < 128
+            && heldNoteCounts_[static_cast<std::size_t>(midiNote)] != 0;
+    }
     // Reason's monophonic Note/Gate CV changes pitch while Gate remains high.
     // Move one unambiguous held assignment without restarting its envelope.
     bool retargetHeldNoteLegato(int oldMidiNote, int newMidiNote) noexcept;

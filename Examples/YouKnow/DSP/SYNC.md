@@ -9,11 +9,22 @@ vst-instruments monorepo") in
 checkout is `/Users/vojta/Dev/virtual-instrument-youknow/Source/DSP`**; the
 former monorepo path in earlier revisions of this file no longer exists.
 
-Synchronized on 2026-09-08 from the nominated checkout at
+Synchronized on 2026-09-09 from the nominated checkout at
+`013b25702145b72d67965665c701f59e105c52b7` ("fix: order adjacent MIDI note
+boundaries"). At final verification after `git fetch --no-tags origin`, local
+HEAD, fetched `origin/codex/juno106-fidelity-round2` and `origin/main` all
+resolve to that revision; the upstream worktree is clean. No upstream checkout
+or source edits were made.
+
+The only shared-DSP change since the previous sync is the exact upstream
+`isNoteHeld()` query in `YouKnowEngine.h`. Audio algorithms, tables, allocation
+and envelope behavior are unchanged. The accompanying VST MIDI dispatch fix
+addresses the same equal-frame retrigger and full-pool replacement defects
+already corrected by the Rack f18 wrapper; see the comparison below.
+
+The preceding sound-model sync was on 2026-09-08 at
 `72e1d4482324465993c8e62609fa345e848d3b70` ("Document fixed filter
-calibration and reference-card comparisons"). Local `main` and fetched
-`origin/main` both resolve to that revision after `git fetch --no-tags origin`;
-the upstream worktree is clean. No upstream checkout or source edits were made.
+calibration and reference-card comparisons").
 
 The prior port recorded `7ed16c42046ed0c2966096ca4c4b8664cf64dcc2`.
 This update brings across the actual intervening DSP changes: coupled voice-VCA
@@ -27,7 +38,7 @@ comparison paths with upstream defaults; they add no host properties.
 
 | Upstream source | SHA-256 |
 | --- | --- |
-| `YouKnowEngine.h` | `3d1c800866d923cb63bd846797fdb16c96363cb27e24c5a79a27bb51f122c4ca` |
+| `YouKnowEngine.h` | `d8b491f2630d7cb8ede133d158dd04bc1f9915ebd91242a8ff35a246bafa6d94` |
 | `YouKnowEngine.cpp` | `544b0c5e741e424d4f7441fe3abc34b63a487d97b4bb39fe665f265f223acae4` |
 | `YouKnowChorus.h` | `aafd8b3a62c0879a45bcffe5a40e9bf02ec3b6d04b3d80237c2eefcdf07c056b` |
 | `YouKnowChorus.cpp` | `57dbb4fcdad6056c9f1219652bb50e77a2ab572bfe9c7874fe6131c7bdca9c6c` |
@@ -114,7 +125,7 @@ adaptations:
   documentation retains original manufacturer/model names where needed to
   identify the cited physical source.
 
-## Validation
+## 2026-09-08 sound-model validation
 
 The updated C++17 frozen-table and engine-render contracts pass under Apple
 Clang with warnings treated as errors. All earlier frozen data remain unchanged;
@@ -160,7 +171,8 @@ archive checks are recorded separately in `Docs/RELEASE_EVIDENCE.md`.
 
 ## 2026-09-09 Rack note-boundary correction
 
-The shared DSP source bytes remain unchanged from the snapshot above. The
+At the time of the f18 boundary fix, shared DSP source bytes remained unchanged
+from the `72e1d448` snapshot. The
 wrapper now releases pre-existing MIDI holds at an equal-frame boundary before
 starting replacement notes, and completes CV edges before those MIDI attacks.
 Excess offs pair with incoming ons as zero-duration notes; separate MIDI hold
@@ -175,3 +187,56 @@ the [hardware contract](../Docs/NOTE_EVENT_HARDWARE_CONTRACT.md) for primary
 references and measurement limits. The native engine is still 42,264 bytes;
 the wrapper is now 43,624 bytes. Earlier shared-DSP parity evidence remains
 applicable because the engine, chorus and support-source files did not change.
+
+## 2026-09-09 VST MIDI follow-up synchronization
+
+Upstream `013b257` adds a bounds-checked `isNoteHeld(int)` audio-thread query.
+It reports outstanding presses, including overlaps and notes dropped by a full
+assigner; a sustain or release tail alone does not count as a held key. The
+query is copied verbatim. No other shared engine, chorus or support source
+changed upstream since `72e1d448`.
+
+Both VST and Rack corrections release old holds before replacement attacks to
+prevent swallowed retriggers and full-pool dropped notes. Both preserve actual
+overlaps and insert no release interval. Their host contracts differ:
+
+- VST normalizes contiguous note runs at one original timestamp. Controllers,
+  program changes and SysEx end a run. Rack completes the frame's parameter and
+  CV changes before starting its MIDI attacks, as its property-diff contract
+  and pedal-order regressions require.
+- VST preserves the arrival order of releases beyond pre-existing holds. Rack
+  pairs these excess offs with the earliest incoming ons as zero-duration
+  notes. An initially unheld same-frame `OFF, ON` therefore leaves a key held
+  in VST and makes a zero-duration note in Rack.
+- VST queries engine-held keys. Rack keeps separate MIDI hold counts so a MIDI
+  release cannot consume a CV-owned press. The new shared query deliberately
+  does not replace that source-ownership accounting.
+- VST keeps distinct original timestamps apart after defensive clamping. Rack
+  retains the SDK's fixed 64-frame batches and documented frame-63 fallback.
+
+The existing Rack wrapper already implements its correction and remains
+unchanged by this sync. Upstream details are in
+[`Docs/midi-event-ordering.md`](https://github.com/protocodus/virtual-instrument-youknow/blob/013b25702145b72d67965665c701f59e105c52b7/Docs/midi-event-ordering.md);
+Rack behavior and the outstanding actual-host reproduction are recorded in
+[the boundary-fix evidence](../Docs/MIDI_BOUNDARY_FIX.md). The upstream fix
+corroborates the confirmed scheduling defect; it does not establish that the
+complete Reason recording's amplitude pattern has been resolved.
+
+Current verification passes the strict C++17 engine and wrapper contracts,
+the engine contract under AddressSanitizer/UndefinedBehaviorSanitizer, and
+patch/localization validation (100 patches). Added query regressions cover
+invalid bounds, overlaps, full-pool dropped notes, sustain/release tails and
+all reset/release entry points. Engine and wrapper sizes remain 42,264 and
+43,624 bytes. All 26 scalar parity scenarios are bit-identical to upstream
+`013b257` and the preceding sync; both logs retain SHA-256
+`75783a28ee631b6ce3f28f22ce82a005d8609fcb71b75a5ecc6145d4b4b90067`.
+
+The default native performance run failed its wall-clock deadline gate:
+4/1,875 misses, maximum 17.574958 ms against 1.333333 ms. Median thread CPU
+was 0.108670 times realtime with six voices, 1x/Poly/Cubic/RK4-single,
+Aging 50%, 48 kHz and 64-frame blocks. It ran after this task's other
+compilation/rendering jobs finished; the failure is retained without retry.
+These timings exclude the wrapper, Reason scheduling and target translation.
+Source audit, exact commands and logs are retained locally under
+`Output/Diagnostics/DspSync-20260909/`. This source synchronization did not
+build/install a new package or run a Reason host test.

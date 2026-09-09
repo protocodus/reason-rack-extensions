@@ -14,6 +14,12 @@ Docs:
 [Jukebox readme](https://developer.reasonstudios.com/documentation/rack-extension-sdk/5.0.0/jukebox-readme) ·
 [Get started](https://developer.reasonstudios.com/learning-and-support/get-started)
 
+Protocodus instruments keep their upstream VST and DSP code in
+`https://github.com/protocodus/virtual-instrument-<name>`, where `<name>` is the
+instrument name (for example, `youknow` gives `virtual-instrument-youknow`). Find
+the matching repository in the [Protocodus repository list](https://github.com/orgs/protocodus/repositories),
+then inspect its source layout and revision before syncing.
+
 ## Starting a new device
 
 Copy an example, then adjust. `Examples/SimpleInstrument` for instruments,
