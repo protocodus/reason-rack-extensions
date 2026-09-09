@@ -157,3 +157,21 @@ measurements are retained under
 artifacts describe the previous snapshot and remain historical evidence.
 SDK chip translation, compatible host creation/CPU acceptance, and final
 archive checks are recorded separately in `Docs/RELEASE_EVIDENCE.md`.
+
+## 2026-09-09 Rack note-boundary correction
+
+The shared DSP source bytes remain unchanged from the snapshot above. The
+wrapper now releases pre-existing MIDI holds at an equal-frame boundary before
+starting replacement notes, and completes CV edges before those MIDI attacks.
+Excess offs pair with incoming ons as zero-duration notes; separate MIDI hold
+counts keep unmatched MIDI offs from releasing a CV-owned pitch. Genuinely
+separated events retain their supplied frames. No release interval, envelope
+reset or new voice-stealing rule is introduced.
+
+The expanded wrapper contract covers arrival-order equivalence, full pools,
+balanced overlaps, source ownership and exact sample timing. Engine regressions
+protect independent envelopes and the firmware's residual retrigger law; see
+the [hardware contract](../Docs/NOTE_EVENT_HARDWARE_CONTRACT.md) for primary
+references and measurement limits. The native engine is still 42,264 bytes;
+the wrapper is now 43,624 bytes. Earlier shared-DSP parity evidence remains
+applicable because the engine, chorus and support-source files did not change.

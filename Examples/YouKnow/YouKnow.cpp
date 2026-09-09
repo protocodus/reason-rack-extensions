@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace
 {
@@ -39,6 +40,12 @@ int EventFrame(const TJBox_PropertyDiff& diff)
 double FiniteCV(double value)
 {
     return std::isfinite(value) ? value : 0.0;
+}
+
+float NoteVelocity(const TJBox_PropertyDiff& diff)
+{
+    return static_cast<float>(std::clamp(
+        FiniteCV(JBox_GetNumber(diff.fCurrentValue)), 0.0, 127.0));
 }
 }
 
@@ -353,6 +360,7 @@ bool CYouKnow::ResetIfRequested()
     if (counter != 0.0 && counter != fLastResetCounter)
     {
         fEngine.reset();
+        fMidiHeldCounts.fill(0);
         // The reset snapshot is a fresh control image, including a Character
         // value that may have been gliding when the host requested silence.
         fParametersLoaded = false;
@@ -363,6 +371,28 @@ bool CYouKnow::ResetIfRequested()
         return true;
     }
     return false;
+}
+
+void CYouKnow::StartMidiNote(int note, float velocity)
+{
+    auto& held = fMidiHeldCounts[static_cast<std::size_t>(note)];
+    // Reserve one count for the monophonic CV source in the engine's shared
+    // uint16 keyboard counters, including when CV joins an already-held pitch.
+    constexpr auto kMaximumMidiHolds =
+        std::numeric_limits<std::uint16_t>::max() - 1u;
+    if (held >= kMaximumMidiHolds)
+        return;
+    ++held;
+    fEngine.noteOn(note, velocity);
+}
+
+void CYouKnow::StopMidiNote(int note)
+{
+    auto& held = fMidiHeldCounts[static_cast<std::size_t>(note)];
+    if (held == 0)
+        return;
+    --held;
+    fEngine.noteOff(note);
 }
 
 // Move the engine's Unit Character toward the automated target over about
@@ -513,6 +543,26 @@ void CYouKnow::RenderBatch(const TJBox_PropertyDiff propertyDiffs[],
             LoadEngineParameters(reasonMasterTune);
         qualityReady = fEngine.setOversamplingFactor(fRequestedOversamplingFactor);
 
+        // SDK 5 sorts by frame, without specifying a MIDI tie-break. First
+        // release every pre-existing MIDI hold ending here, so an incoming
+        // note cannot lose its attack or be dropped by a still-full pool.
+        // Excess offs pair with the earliest incoming ons below as zero-time
+        // notes. This also balances multiple off/on pairs at one frame; simply
+        // moving all offs ahead of all ons would strand extra held counts.
+        std::array<TJBox_UInt32, 128> remainingMidiOffs {};
+        for (TJBox_UInt32 item = index; item < end; ++item)
+        {
+            const auto& diff = propertyDiffs[item];
+            if (diff.fObjectRef != fNoteStates || diff.fPropertyTag > 127
+                || NoteVelocity(diff) > 0.0f)
+                continue;
+            const auto note = static_cast<std::size_t>(diff.fPropertyTag);
+            if (fMidiHeldCounts[note] != 0)
+                StopMidiNote(static_cast<int>(note));
+            else
+                ++remainingMidiOffs[note];
+        }
+
         // SDK 5 orders events by frame, not by socket within a frame. Capture
         // that frame's pitch before replaying gates, so Gate -> Note and
         // Note -> Gate start the same pitch. Defer HandleCV until the gates:
@@ -551,16 +601,26 @@ void CYouKnow::RenderBatch(const TJBox_PropertyDiff propertyDiffs[],
                 fKeyModeReassertPressed = JBox_GetBoolean(diff.fCurrentValue) != 0;
                 HandleKeyModeReassert();
             }
-            else if (diff.fObjectRef == fNoteStates)
+        }
+
+        // CV edges retain their order and complete before new MIDI attacks.
+        // In particular a falling CV gate must free its slot before a MIDI
+        // note at this frame tries to allocate it. No audio time or synthetic
+        // release interval is inserted between any of these events.
+        for (TJBox_UInt32 item = index; item < end; ++item)
+        {
+            const auto& diff = propertyDiffs[item];
+            if (diff.fObjectRef != fNoteStates || diff.fPropertyTag > 127)
+                continue;
+            const float velocity = NoteVelocity(diff);
+            if (velocity <= 0.0f)
+                continue;
+            const auto note = static_cast<std::size_t>(diff.fPropertyTag);
+            StartMidiNote(static_cast<int>(note), velocity / 127.0f);
+            if (remainingMidiOffs[note] != 0)
             {
-                const int note = static_cast<int>(
-                    std::min<TJBox_Tag>(diff.fPropertyTag, 127));
-                const float velocity = static_cast<float>(std::clamp(
-                    FiniteCV(JBox_GetNumber(diff.fCurrentValue)), 0.0, 127.0));
-                if (velocity > 0.0f)
-                    fEngine.noteOn(note, velocity / 127.0f);
-                else
-                    fEngine.noteOff(note);
+                --remainingMidiOffs[note];
+                StopMidiNote(static_cast<int>(note));
             }
         }
         index = end;

@@ -61,6 +61,33 @@ struct YouKnowTestAccess
         return engine.voices_[static_cast<std::size_t>(slot)].envelope.level;
     }
 
+    static std::uint16_t attackIncrement(const YouKnowEngine& engine,
+                                         int slot) noexcept
+    {
+        return engine.voices_[static_cast<std::size_t>(slot)].attackIncrement;
+    }
+
+    static bool residualEnvelopeRetriggerMatchesVector() noexcept
+    {
+        YouKnowEngine::Envelope envelope;
+        envelope.stage = YouKnowEngine::EnvelopeStage::Release;
+        envelope.level = 0x1800u;
+        envelope.value = YouKnowEngine::envelopeDacFraction(envelope.level);
+        const float previousValue = envelope.value;
+        envelope.noteOn();
+        if (envelope.stage != YouKnowEngine::EnvelopeStage::Attack
+            || envelope.level != 0x1800u || envelope.value != previousValue)
+            return false;
+
+        // Independent B-2 vector, also pinned by the upstream circuit suite:
+        // a retrigger adds the ordinary attack step to the remaining charge.
+        envelope.tick(0x007fu, 0xfff4u, 0x1000u, 0xfff4u);
+        return envelope.stage == YouKnowEngine::EnvelopeStage::Attack
+            && envelope.level == 0x187fu
+            && std::abs(envelope.value
+                        - static_cast<float>(0x187fu >> 2u) / 4095.0f) < 1.0e-7f;
+    }
+
     static float currentMidi(const YouKnowEngine& engine, int slot) noexcept
     {
         return engine.voices_[static_cast<std::size_t>(slot)].currentMidi;
@@ -276,6 +303,79 @@ bool rendersFiniteAudio(youknow::YouKnowEngine& engine, int count)
         }
     }
     return peak > 0.0f;
+}
+
+bool testPerVoiceEnvelopeAndResidualRetrigger()
+{
+    using Access = youknow::YouKnowTestAccess;
+    using Engine = youknow::YouKnowEngine;
+    if (!Access::residualEnvelopeRetriggerMatchesVector())
+    {
+        std::fprintf(stderr, "envelope retrigger lost its residual-level law\n");
+        return false;
+    }
+
+    for (const auto keyMode : { youknow::KeyMode::Poly1, youknow::KeyMode::Poly2 })
+    for (const auto vcaMode : { youknow::VcaMode::Envelope, youknow::VcaMode::Gate })
+    {
+        Engine engine;
+        engine.prepare(48000.0, blockSize, 1);
+        auto parameters = fullPathPatch();
+        parameters.chorus = youknow::ChorusMode::Off;
+        parameters.chorusNoise = 0.0f;
+        parameters.keyMode = keyMode;
+        parameters.vcaMode = vcaMode;
+        parameters.attack = 64.0f / 127.0f;
+        parameters.decay = 0.0f;
+        parameters.sustain = 32.0f / 127.0f;
+        parameters.release = 1.0f;
+        engine.setParameters(parameters);
+        renderBlocks(engine, 16); // Complete a possible POLY-button rescan.
+
+        engine.noteOn(60, 1.0f);
+        renderBlocks(engine, 600);
+        const int heldSlot = Access::keyedSlotFor(engine, 60);
+        if (heldSlot < 0 || Access::envelopeLevel(engine, heldSlot) != 0x1000u)
+            return false;
+        const int heldStage = Access::envelopeStage(engine, heldSlot);
+        const auto heldVoiceUnchanged = [&]() {
+            return Access::keyedSlotFor(engine, 60) == heldSlot
+                && Access::envelopeLevel(engine, heldSlot) == 0x1000u
+                && Access::envelopeStage(engine, heldSlot) == heldStage;
+        };
+
+        // New, released and reattacked notes must affect their own ENV state.
+        // GATE changes the VCA source, while the per-voice ENV keeps running.
+        engine.noteOn(67, 1.0f);
+        const int otherSlot = Access::keyedSlotFor(engine, 67);
+        if (otherSlot < 0 || otherSlot == heldSlot || !heldVoiceUnchanged())
+            return false;
+        renderBlocks(engine, 32);
+        const auto attackingLevel = Access::envelopeLevel(engine, otherSlot);
+        if (!heldVoiceUnchanged() || attackingLevel == 0u
+            || attackingLevel >= 0x1000u
+            || Access::attackIncrement(engine, heldSlot) != 0x007fu
+            || Access::attackIncrement(engine, otherSlot) != 0x007fu)
+            return false;
+
+        engine.noteOff(67);
+        if (!heldVoiceUnchanged())
+            return false;
+        renderBlocks(engine, 32);
+        const auto residual = Access::envelopeLevel(engine, otherSlot);
+        if (!heldVoiceUnchanged() || residual == 0u || residual >= attackingLevel)
+            return false;
+
+        engine.noteOn(67, 1.0f);
+        if (!heldVoiceUnchanged() || Access::keyedSlotFor(engine, 67) != otherSlot
+            || Access::envelopeLevel(engine, otherSlot) != residual)
+            return false;
+        renderBlocks(engine, 32);
+        if (!heldVoiceUnchanged()
+            || Access::envelopeLevel(engine, otherSlot) <= residual)
+            return false;
+    }
+    return true;
 }
 
 bool testInitialQualitySelection()
@@ -996,6 +1096,7 @@ int main()
         && testReasonMasterTuneRange()
         && testAgingPath()
         && testInitialQualitySelection()
+        && testPerVoiceEnvelopeAndResidualRetrigger()
         && testLegatoRetarget()
         && testFastIdlePolicies()
         && testLoadedBbdOutputTopology()

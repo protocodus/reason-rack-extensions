@@ -7,14 +7,14 @@
 - Device name: YouKnow
 - Manufacturer: Protocodus
 - Product ID: `cz.protocodus.YouKnow`
-- Candidate: `1.0.0f17`
+- Candidate: `1.0.0f18`
   Local audio/package checks for the 100-preset bank pass.
   Host and Reason Studios acceptance remain pending.
 - Requirement: Reason 14 or later
 - Category: Instrument / Synth
 - Support URL: <https://protocodus.cz/product/youknow/>
 - Support email: [protocodus+support@proton.me](mailto:protocodus+support@proton.me)
-- Article: `PENDING` - select `1.0.0f17` after Reason Studios acceptance
+- Article: `PENDING` - select `1.0.0f18` after Reason Studios acceptance
 - Price category: `PENDING`
 - Upgrade price category: `0` - free updates, no special upgrade price
 - Tags: Type `Synth`; Character `Analog / Vintage` and `Hardware emulation`.
@@ -93,7 +93,7 @@ The later f15 upload consumed version `1.0.0f15`; cloud build
 reported “Unknown error” without a diagnostic. The f16 header refinement is a
 new candidate, with no demonstrated fix for that cloud failure. Retain the
 version-neutral draft wording, update its bank count to 100, then attach the
-matching f17 images/PDF and accepted Article when ready. The local copy is
+matching f18 images/PDF and accepted Article when ready. The local copy is
 updated; the saved portal draft still reflects the earlier bank.
 
 ## Portal assets and submission

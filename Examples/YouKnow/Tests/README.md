@@ -36,6 +36,16 @@ and CV together without writing modulation back into stored panel values.
 Regressions compare same-frame pitch/gate notification orders, preserve gate
 retriggers, recover dropped CV notes, retain assignment-scan onsets, and restore
 Character correctly after audio reset.
+MIDI boundary regressions compare both equal-frame off/on orders, including a
+silent held A2, full six-voice replacements, repeated-pitch overlaps,
+zero-duration pairs, stale releases, and MIDI/CV ownership and handoffs.
+At 44.1/48 kHz, a 240 ms attack grid with touching notes and real 1/32-sample
+gaps is compared with an independent single-sample engine render. The boundary
+policy and original-instrument evidence are recorded in the
+[note-event hardware contract](../Docs/NOTE_EVENT_HARDWARE_CONTRACT.md).
+Pedal changes at a retrigger are covered across POLY1/POLY2/Unison and
+ENV/GATE. Current fix results and the outstanding Reason reproduction are in
+the [boundary-fix evidence](../Docs/MIDI_BOUNDARY_FIX.md).
 For memory/undefined-behavior checks, build this same contract with
 `-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer` in place of `-O3`.
 
@@ -60,6 +70,9 @@ clang++ -std=c++17 -O2 -I. Tests/rendercheck.cpp \
 These contracts cover frozen-table identity, deterministic quality/kernel
 paths, voice retirement and wake-up, chorus state, notes/sustain/release,
 parameter comparison, the 64 KiB memory ceiling, and fixed 41-sample latency.
+Envelope preservation checks cover independent voice states in POLY1/POLY2
+and ENV/GATE, shared attack coefficients, and the recovered B-2 firmware's
+exact residual-level retrigger vector.
 
 ## Automation artifacts
 

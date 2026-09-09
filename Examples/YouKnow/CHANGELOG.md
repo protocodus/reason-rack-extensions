@@ -2,7 +2,16 @@
 
 Notable customer-facing changes to YouKnow are recorded here.
 
-## 1.0.0f17 - Unreleased
+## 1.0.0f18 - Unreleased
+
+- Resolve simultaneous note endings before replacement attacks, preventing
+  skipped retriggers and dropped notes when all voices are held.
+- Balance repeated-pitch and zero-duration note events, and keep MIDI releases
+  from releasing a pitch held only by Note/Gate CV.
+- Preserve the original per-voice envelope, residual-level retrigger and voice
+  allocation behavior; add regressions for event timing and hardware semantics.
+
+## 1.0.0f17 - Earlier candidate
 
 - Expand the bank to 100 original presets with seven new PWM, inverted-filter,
   percussion, glide and sub-bass sounds.

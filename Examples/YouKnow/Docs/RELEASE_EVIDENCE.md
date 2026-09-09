@@ -1,4 +1,40 @@
-# YouKnow 1.0.0f17 candidate
+# YouKnow 1.0.0f18 candidate
+
+This candidate fixes simultaneous note boundaries and MIDI/CV ownership in the
+Reason wrapper. It retains the per-voice envelope and voice-allocation model;
+no shared DSP or VST code changed. All 100 patches differ from f17 only in
+their version attribute, and the generated rear artwork changes only around
+the version digit. The full front, folded panels and metadata retain their bytes.
+
+The [boundary-fix report](MIDI_BOUNDARY_FIX.md) records passing functional,
+sanitizer and hardware-preservation regressions. It also retains the native
+performance failure: 3 of 1,875 wall-clock blocks exceeded 1.333333 ms, with a
+4.031084 ms maximum. That probe uses the unchanged engine and excludes the
+wrapper. No clean native timing or host acceptance is claimed.
+
+| Check | Result |
+| --- | --- |
+| Scope and sound preservation | PASS: only `YouKnow.cpp`/`.h` runtime changes; shared DSP, musical patch values, trims, metadata and permanent properties unchanged |
+| Metadata and panels | PASS: 100 unique patches, 184 text keys, 74 widgets, 78 nodes, both GUI asset trees and f18 version consistency |
+| Local45 Deployment | PASS: 125 source-backed byte matches, 100 patches and both completed native libraries |
+| Universal45 | PASS: ZIP integrity, 150 members, 145 source-backed byte matches, 100 patches and four LLVM chips |
+| Materials | PASS: all six manual pages rendered and visually reviewed; front/thumbnail byte-identical to f17, rear changes confined to the version glyph |
+
+The handoff is `Release/1.0.0f18/YouKnow-1.0.0f18.u45`, 19,854,855 bytes,
+SHA-256 `65b9e896206e9139e1c702bea65a68a71afb044220d60a8caeba69d972fbc4f9`.
+The folder also contains the matching manual, three Shop images, a build
+manifest and verified `SHA256SUMS`. Manual SHA-256:
+`db948343d755bfeef28acd453f0c05a6883403318b69f8e1c0e4fa2b492ec0b3`.
+Local45 installed the development payload under `RackExtensions_Dev/YouKnow`;
+the production f17 library remains byte-identical to the initial investigation.
+
+Fresh Reason reproduction of the user's touching-note recording remains open.
+The available SDK 5-capable Recon shares a user profile involved in an earlier
+extension-pruning incident. No verified complete isolation route is available;
+the user's running production Reason session is left intact. Current build and
+material records are under `Release/validation/1.0.0f18`.
+
+# Retained YouKnow 1.0.0f17 candidate
 
 The bank expands from 93 to exactly 100 original presets. Seven new recipes
 explore pulse-width modulation, inverted filter envelopes, noise percussion,

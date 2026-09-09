@@ -65,6 +65,17 @@ struct YouKnowTestAccess
         return engine.voices_[static_cast<std::size_t>(slot)].currentMidi;
     }
 
+    static float velocity(const YouKnowEngine& engine, int slot) noexcept
+    {
+        return engine.voices_[static_cast<std::size_t>(slot)].velocity;
+    }
+
+    static bool anyLatchedVoice(const YouKnowEngine& engine) noexcept
+    {
+        return std::any_of(engine.voices_.begin(), engine.voices_.end(),
+                           [](const auto& voice) { return voice.keyDown || voice.sustained; });
+    }
+
     static bool dcoResetPending(const YouKnowEngine& engine, int slot) noexcept
     {
         return engine.voices_[static_cast<std::size_t>(slot)].dcoResetPending;
@@ -500,6 +511,464 @@ void configureCVHost()
     }
     set("/cv_inputs/note_cv", "value", Kind::Number, 60.0 / 127.0);
     masterTune = resetCounter = 0.0;
+}
+
+void configureAttackHost(double sustain = 0.72, int voices = 6)
+{
+    configureCVHost();
+    set("/custom_properties", "attack", Kind::Number,
+        youknow::YouKnowEngine::panelPositionForAttack(0.240f));
+    set("/custom_properties", "decay", Kind::Number, 0.0);
+    set("/custom_properties", "sustain", Kind::Number, sustain);
+    set("/custom_properties", "release", Kind::Number, 0.0);
+    set("/custom_properties", "keyMode", Kind::Number, 0.0);
+    set("/custom_properties", "polyphony", Kind::Number, voices - 1);
+    set("/custom_properties", "vcaMode", Kind::Number, 0.0);
+    set("/custom_properties", "cutoff", Kind::Number, 1.0);
+    for (const char* name : { "vcfEnv", "vcfLfo", "dcoLfo", "portamento",
+                               "calibration", "aging", "chorus", "noise",
+                               "sub", "transpose" })
+        set("/custom_properties", name, Kind::Number, 0.0);
+    set("/custom_properties", "pulse", Kind::Boolean, 0.0);
+}
+
+void assertSameAudio(const Batch& first, const Batch& second)
+{
+    assert(first.left == second.left && first.right == second.right);
+}
+
+void checkSimultaneousMidiRetrigger()
+{
+    using Access = youknow::YouKnowTestAccess;
+    const double savedRate = sampleRate;
+    for (double rate : { 44100.0, 48000.0 })
+        for (int frame : { 0, 17, 63 })
+            for (double sustain : { 0.0, 0.72 })
+            {
+                sampleRate = rate;
+                configureAttackHost(sustain);
+                CYouKnow offFirst(rate), onFirst(rate), untouched(rate);
+                const auto initial = noteDiff(57, 127, 0); // Reason A2 report
+                renderBatch(offFirst, &initial, 1);
+                renderBatch(onFirst, &initial, 1);
+                renderBatch(untouched, &initial, 1);
+                // Reach Sustain, including the zero-level, still-held case.
+                for (int batch = 0; batch < static_cast<int>(rate / 64); ++batch)
+                {
+                    renderBatch(offFirst);
+                    renderBatch(onFirst);
+                    renderBatch(untouched);
+                }
+                auto& firstEngine = CYouKnowTestAccess::engine(offFirst);
+                auto& secondEngine = CYouKnowTestAccess::engine(onFirst);
+                const int previousSlot = Access::keyedSlotFor(firstEngine, 57);
+                assert(previousSlot >= 0);
+                assert(Access::envelopeStage(firstEngine, previousSlot) == 3);
+                const auto previousLevel = Access::envelopeLevel(firstEngine, previousSlot);
+                std::array boundary { noteDiff(57, 0, frame), noteDiff(57, 37, frame) };
+                const auto expected = renderBatch(offFirst, boundary.data(), boundary.size());
+                std::reverse(boundary.begin(), boundary.end());
+                const auto actual = renderBatch(onFirst, boundary.data(), boundary.size());
+                const auto unchanged = renderBatch(untouched);
+                assertSameAudio(expected, actual);
+                for (int sample = 0; sample < frame; ++sample)
+                {
+                    assert(actual.left[sample] == unchanged.left[sample]);
+                    assert(actual.right[sample] == unchanged.right[sample]);
+                }
+                const int firstSlot = Access::keyedSlotFor(firstEngine, 57);
+                const int secondSlot = Access::keyedSlotFor(secondEngine, 57);
+                assert(firstSlot == previousSlot && secondSlot == firstSlot);
+                assert(Access::heldCount(firstEngine, 57) == 1);
+                assert(Access::heldCount(secondEngine, 57) == 1);
+                assert(Access::envelopeStage(firstEngine, firstSlot) == 1);
+                assert(Access::envelopeStage(secondEngine, secondSlot) == 1);
+                assert(Access::velocity(firstEngine, firstSlot) == 37.0f / 127.0f);
+                assert(Access::velocity(secondEngine, secondSlot) == 37.0f / 127.0f);
+                // Hardware resumes the same voice's accumulator: the Rack
+                // boundary must retrigger without imposing a hard-zero reset.
+                assert(Access::envelopeLevel(firstEngine, firstSlot) >= previousLevel);
+                assert(Access::envelopeLevel(firstEngine, firstSlot)
+                       == Access::envelopeLevel(secondEngine, secondSlot));
+                float peak = 0.0f;
+                for (int batch = 0; batch < static_cast<int>(rate * 0.05 / 64); ++batch)
+                {
+                    const auto a = renderBatch(offFirst);
+                    const auto b = renderBatch(onFirst);
+                    assertSameAudio(a, b);
+                    for (float sample : b.left)
+                        peak = std::max(peak, std::abs(sample));
+                }
+                assert(peak > 1e-5f);
+                const auto release = noteDiff(57, 0, frame);
+                assertSameAudio(renderBatch(offFirst, &release, 1),
+                                renderBatch(onFirst, &release, 1));
+                assert(Access::heldCount(firstEngine, 57) == 0);
+                assert(Access::heldCount(secondEngine, 57) == 0);
+            }
+    sampleRate = savedRate;
+}
+
+void checkSimultaneousFullPoolReplacement()
+{
+    using Access = youknow::YouKnowTestAccess;
+    const double savedRate = sampleRate;
+    for (double rate : { 44100.0, 48000.0 })
+        for (int frame : { 0, 17, 63 })
+            for (double mode : { 0.0, 1.0 })
+            {
+                sampleRate = rate;
+                configureAttackHost();
+                set("/custom_properties", "keyMode", Kind::Number, mode);
+                CYouKnow offFirst(rate), onFirst(rate);
+                for (int batch = 0; batch < 8; ++batch)
+                {
+                    renderBatch(offFirst);
+                    renderBatch(onFirst);
+                }
+                std::array<TJBox_PropertyDiff, 6> initial {};
+                std::array<TJBox_PropertyDiff, 12> boundary {};
+                for (int index = 0; index < 6; ++index)
+                {
+                    initial[index] = noteDiff(60 + index, 127, 0);
+                    boundary[index] = noteDiff(60 + index, 0, frame);
+                    boundary[index + 6] = noteDiff(45 + index, 83, frame);
+                }
+                renderBatch(offFirst, initial.data(), initial.size());
+                renderBatch(onFirst, initial.data(), initial.size());
+                const auto expected = renderBatch(offFirst, boundary.data(), boundary.size());
+                // Preserve each chord's pitch order; move all replacement ons
+                // ahead of the old offs, as an unspecified host tie-break may.
+                std::rotate(boundary.begin(), boundary.begin() + 6, boundary.end());
+                const auto actual = renderBatch(onFirst, boundary.data(), boundary.size());
+                assertSameAudio(expected, actual);
+                auto& firstEngine = CYouKnowTestAccess::engine(offFirst);
+                auto& secondEngine = CYouKnowTestAccess::engine(onFirst);
+                for (int index = 0; index < 6; ++index)
+                {
+                    assert(Access::heldCount(secondEngine, 60 + index) == 0);
+                    assert(Access::keyedSlotFor(secondEngine, 60 + index) < 0);
+                    assert(Access::heldCount(secondEngine, 45 + index) == 1);
+                    const int slot = Access::keyedSlotFor(secondEngine, 45 + index);
+                    assert(slot >= 0 && slot == Access::keyedSlotFor(firstEngine, 45 + index));
+                    assert(Access::envelopeStage(secondEngine, slot) == 1);
+                }
+                // Holding the replacement must keep every assigned voice,
+                // including after the user's one-second silent-note interval.
+                for (int batch = 0; batch < static_cast<int>(rate / 64); ++batch)
+                    assertSameAudio(renderBatch(offFirst), renderBatch(onFirst));
+                for (int index = 0; index < 6; ++index)
+                    assert(Access::keyedSlotFor(secondEngine, 45 + index) >= 0);
+            }
+    sampleRate = savedRate;
+}
+
+void checkSameFrameMidiEdgeCounts()
+{
+    using Access = youknow::YouKnowTestAccess;
+    // More than one same-pitch pair at a frame must not strand a hold. A
+    // simple sort of every off before every on incorrectly loses excess offs.
+    for (int initialHolds : { 0, 1, 2 })
+        for (int offCount : { 1, 2, 3 })
+        {
+            std::vector<int> edges(static_cast<std::size_t>(offCount), 0);
+            edges.insert(edges.end(), 2, 1);
+            do
+            {
+                configureAttackHost();
+                CYouKnow device(sampleRate);
+                const auto on = noteDiff(57, 97, 0);
+                renderBatch(device);
+                for (int hold = 0; hold < initialHolds; ++hold)
+                    renderBatch(device, &on, 1);
+                std::vector<TJBox_PropertyDiff> boundary;
+                for (int edge : edges)
+                    boundary.push_back(noteDiff(57, edge ? 97 : 0, 17));
+                renderBatch(device, boundary.data(), boundary.size());
+                auto& engine = CYouKnowTestAccess::engine(device);
+                const int remaining = std::max(0, initialHolds + 2 - offCount);
+                assert(Access::heldCount(engine, 57) == remaining);
+                assert((Access::keyedSlotFor(engine, 57) >= 0) == (remaining > 0));
+                const auto off = noteDiff(57, 0, 31);
+                for (int held = remaining; held > 0; --held)
+                {
+                    renderBatch(device, &off, 1);
+                    assert(Access::heldCount(engine, 57) == held - 1);
+                }
+                assert(Access::keyedSlotFor(engine, 57) < 0);
+            } while (std::next_permutation(edges.begin(), edges.end()));
+        }
+}
+
+void checkMidiOwnershipAndOverlap()
+{
+    using Access = youknow::YouKnowTestAccess;
+    configureAttackHost();
+    set("/cv_inputs/gate_cv", "connected", Kind::Boolean, 1.0);
+    set("/cv_inputs/gate_cv", "value", Kind::Number, 1.0);
+    set("/cv_inputs/note_cv", "value", Kind::Number, 57.0 / 127.0);
+    CYouKnow shared(sampleRate);
+    renderBatch(shared);
+    auto& sharedEngine = CYouKnowTestAccess::engine(shared);
+    const auto unmatched = noteDiff(57, 0, 17);
+    renderBatch(shared, &unmatched, 1);
+    assert(Access::heldCount(sharedEngine, 57) == 1);
+    assert(Access::keyedSlotFor(sharedEngine, 57) >= 0);
+    const auto on = noteDiff(57, 97, 0);
+    renderBatch(shared, &on, 1);
+    assert(Access::heldCount(sharedEngine, 57) == 2);
+    const std::array replacement { noteDiff(57, 83, 17), noteDiff(57, 0, 17) };
+    renderBatch(shared, replacement.data(), replacement.size());
+    assert(Access::heldCount(sharedEngine, 57) == 2);
+    renderBatch(shared, &unmatched, 1);
+    renderBatch(shared, &unmatched, 1);
+    assert(Access::heldCount(sharedEngine, 57) == 1);
+    assert(Access::keyedSlotFor(sharedEngine, 57) >= 0);
+    // Audio reset clears MIDI ownership, then restores the high CV gate once.
+    renderBatch(shared, &on, 1);
+    resetCounter = 1.0;
+    renderBatch(shared);
+    renderBatch(shared, &unmatched, 1);
+    assert(Access::heldCount(sharedEngine, 57) == 1);
+    assert(Access::keyedSlotFor(sharedEngine, 57) >= 0);
+    const auto cvOff = change("/cv_inputs/gate_cv", "value", Kind::Number, 0.0, 23);
+    renderBatch(shared, &cvOff, 1);
+    assert(Access::heldCount(sharedEngine, 57) == 0);
+
+    configureAttackHost();
+    CYouKnow overlap(sampleRate);
+    renderBatch(overlap, &on, 1);
+    auto& overlapEngine = CYouKnowTestAccess::engine(overlap);
+    const int originalSlot = Access::keyedSlotFor(overlapEngine, 57);
+    const std::array overlapping { noteDiff(57, 37, 17), noteDiff(57, 0, 18) };
+    renderBatch(overlap, overlapping.data(), overlapping.size());
+    assert(Access::heldCount(overlapEngine, 57) == 1);
+    assert(Access::keyedSlotFor(overlapEngine, 57) == originalSlot);
+    assert(Access::velocity(overlapEngine, originalSlot) == 97.0f / 127.0f);
+    renderBatch(overlap, &unmatched, 1);
+    assert(Access::heldCount(overlapEngine, 57) == 0);
+    assert(Access::keyedSlotFor(overlapEngine, 57) < 0);
+
+    // An old pitch's delayed off cannot release the new owner of its slot.
+    configureAttackHost(0.72, 1);
+    CYouKnow reused(sampleRate);
+    const auto oldOn = noteDiff(45, 127, 0);
+    renderBatch(reused, &oldOn, 1);
+    const std::array reuse { noteDiff(45, 0, 0), noteDiff(57, 97, 17) };
+    renderBatch(reused, reuse.data(), reuse.size());
+    const auto lateOff = noteDiff(45, 0, 31);
+    renderBatch(reused, &lateOff, 1);
+    auto& reusedEngine = CYouKnowTestAccess::engine(reused);
+    assert(Access::keyedSlotFor(reusedEngine, 57) == 0);
+    assert(Access::heldCount(reusedEngine, 57) == 1);
+    assert(Access::envelopeStage(reusedEngine, 0) == 1);
+}
+
+void checkSimultaneousMidiCVHandoff()
+{
+    using Access = youknow::YouKnowTestAccess;
+    for (bool samePitch : { false, true })
+        for (int frame : { 0, 17, 63 })
+        {
+            configureAttackHost();
+            set("/cv_inputs/gate_cv", "connected", Kind::Boolean, 1.0);
+            set("/cv_inputs/gate_cv", "value", Kind::Number, 1.0);
+            set("/cv_inputs/note_cv", "value", Kind::Number, 57.0 / 127.0);
+            CYouKnow gateFirst(sampleRate), midiFirst(sampleRate);
+            std::array<TJBox_PropertyDiff, 5> chord {};
+            for (int index = 0; index < 5; ++index)
+                chord[index] = noteDiff(60 + index, 127, 0);
+            renderBatch(gateFirst, chord.data(), chord.size());
+            renderBatch(midiFirst, chord.data(), chord.size());
+            const int nextPitch = samePitch ? 57 : 72;
+            std::array boundary {
+                change("/cv_inputs/gate_cv", "value", Kind::Number, 0.0, frame),
+                noteDiff(nextPitch, 83, frame),
+            };
+            const auto expected = renderBatch(gateFirst, boundary.data(), boundary.size());
+            std::reverse(boundary.begin(), boundary.end());
+            const auto actual = renderBatch(midiFirst, boundary.data(), boundary.size());
+            assertSameAudio(expected, actual);
+            auto& engine = CYouKnowTestAccess::engine(midiFirst);
+            assert(Access::heldCount(engine, nextPitch) == 1);
+            const int slot = Access::keyedSlotFor(engine, nextPitch);
+            assert(slot >= 0 && Access::envelopeStage(engine, slot) == 1);
+            assert(Access::velocity(engine, slot) == 83.0f / 127.0f);
+            assert(!CYouKnowTestAccess::cvActive(midiFirst));
+            if (!samePitch)
+                assert(Access::heldCount(engine, 57) == 0);
+            for (int batch = 0; batch < 32; ++batch)
+                assertSameAudio(renderBatch(gateFirst), renderBatch(midiFirst));
+        }
+
+    // The opposite handoff must release the outgoing MIDI owner before the
+    // simultaneous high CV gate acquires that same pitch, regardless of order.
+    configureAttackHost();
+    set("/cv_inputs/gate_cv", "connected", Kind::Boolean, 1.0);
+    set("/cv_inputs/note_cv", "value", Kind::Number, 57.0 / 127.0);
+    CYouKnow offFirst(sampleRate), gateFirst(sampleRate);
+    const auto initial = noteDiff(57, 37, 0);
+    renderBatch(offFirst, &initial, 1);
+    renderBatch(gateFirst, &initial, 1);
+    std::array boundary {
+        noteDiff(57, 0, 17),
+        change("/cv_inputs/gate_cv", "value", Kind::Number, 1.0, 17),
+    };
+    const auto expected = renderBatch(offFirst, boundary.data(), boundary.size());
+    std::reverse(boundary.begin(), boundary.end());
+    const auto actual = renderBatch(gateFirst, boundary.data(), boundary.size());
+    assertSameAudio(expected, actual);
+    auto& engine = CYouKnowTestAccess::engine(gateFirst);
+    assert(Access::heldCount(engine, 57) == 1);
+    const int slot = Access::keyedSlotFor(engine, 57);
+    assert(slot >= 0 && Access::velocity(engine, slot) == 1.0f);
+    assert(CYouKnowTestAccess::cvActive(gateFirst));
+}
+
+void checkAttackGridSampleTiming()
+{
+    // An independent one-sample engine render is the timing oracle. Test
+    // touching notes with reversed ties and real 1/32-sample gaps; the latter
+    // must retain their hardware release ticks, never be snapped to a tie.
+    struct Event { int sample; int velocity; };
+    const double savedRate = sampleRate;
+    for (double rate : { 44100.0, 48000.0 })
+        for (int gap : { 0, 1, 32 })
+        {
+            sampleRate = rate;
+            configureAttackHost(1.0);
+            CYouKnow wrapper(rate), reference(rate);
+            renderBatch(wrapper);
+            renderBatch(reference);
+            auto& engine = CYouKnowTestAccess::engine(reference);
+            const int period = static_cast<int>(rate * 0.125) + 7;
+            constexpr int notes = 4;
+            const int total = ((period * notes + 63) / 64 + 2) * 64;
+            std::vector<Event> events;
+            for (int note = 0; note < notes; ++note)
+            {
+                events.push_back({ note * period, 127 });
+                events.push_back({ (note + 1) * period - gap, 0 });
+            }
+            std::stable_sort(events.begin(), events.end(), [](const Event& a, const Event& b) {
+                return a.sample != b.sample ? a.sample < b.sample : a.velocity < b.velocity;
+            });
+            auto input = events;
+            std::stable_sort(input.begin(), input.end(), [](const Event& a, const Event& b) {
+                return a.sample != b.sample ? a.sample < b.sample : a.velocity > b.velocity;
+            });
+            std::size_t nextInput = 0, nextReference = 0;
+            float peak = 0.0f;
+            for (int first = 0; first < total; first += 64)
+            {
+                std::vector<TJBox_PropertyDiff> diffs;
+                while (nextInput < input.size() && input[nextInput].sample < first + 64)
+                {
+                    const auto& event = input[nextInput++];
+                    diffs.push_back(noteDiff(57, event.velocity, event.sample - first));
+                }
+                const auto actual = renderBatch(wrapper, diffs.empty() ? nullptr : diffs.data(),
+                                                static_cast<TJBox_UInt32>(diffs.size()));
+                for (int frame = 0; frame < 64; ++frame)
+                {
+                    const int sample = first + frame;
+                    while (nextReference < events.size() && events[nextReference].sample == sample)
+                    {
+                        const auto& event = events[nextReference++];
+                        if (event.velocity > 0)
+                            engine.noteOn(57, event.velocity / 127.0f);
+                        else
+                            engine.noteOff(57);
+                    }
+                    float left = 0.0f, right = 0.0f;
+                    engine.process(&left, &right, 1);
+                    assert(std::isfinite(actual.left[frame]) && std::isfinite(actual.right[frame]));
+                    // The wrapper may elide an entire sub-threshold block;
+                    // differences must stay below that audible-output floor.
+                    assert(std::abs(actual.left[frame] - left) < 1e-6f);
+                    assert(std::abs(actual.right[frame] - right) < 1e-6f);
+                    peak = std::max(peak, std::abs(actual.left[frame]));
+                }
+            }
+            assert(peak > 1e-4f);
+            assert(youknow::YouKnowTestAccess::heldCount(CYouKnowTestAccess::engine(wrapper), 57) == 0);
+        }
+    sampleRate = savedRate;
+}
+
+void checkRetriggerPedalAndGateModes()
+{
+    using Access = youknow::YouKnowTestAccess;
+    for (double mode : { 0.0, 1.0, 2.0 })
+        for (double vcaMode : { 0.0, 1.0 })
+            for (bool pedalDown : { false, true })
+            {
+                configureAttackHost();
+                set("/custom_properties", "keyMode", Kind::Number, mode);
+                set("/custom_properties", "vcaMode", Kind::Number, vcaMode);
+                set("/custom_properties", "sustainPedal", Kind::Number, pedalDown ? 0.0 : 1.0);
+                CYouKnow offFirst(sampleRate), onFirst(sampleRate);
+                // Allow a restored Unison/Poly2 assignment scan to finish.
+                for (int batch = 0; batch < 8; ++batch)
+                    assertSameAudio(renderBatch(offFirst), renderBatch(onFirst));
+                const auto initial = noteDiff(57, 127, 0);
+                assertSameAudio(renderBatch(offFirst, &initial, 1),
+                                renderBatch(onFirst, &initial, 1));
+                for (int batch = 0; batch < 32; ++batch)
+                    assertSameAudio(renderBatch(offFirst), renderBatch(onFirst));
+                // The pedal itself changes at the touching-note boundary.
+                // Its final control image applies before either event order.
+                std::array boundary {
+                    noteDiff(57, 0, 17), noteDiff(57, 83, 17),
+                    change("/custom_properties", "sustainPedal", Kind::Number,
+                           pedalDown ? 1.0 : 0.0, 17),
+                };
+                const auto expected = renderBatch(offFirst, boundary.data(), boundary.size());
+                std::reverse(boundary.begin(), boundary.end());
+                const auto actual = renderBatch(onFirst, boundary.data(), boundary.size());
+                assertSameAudio(expected, actual);
+                auto& engine = CYouKnowTestAccess::engine(onFirst);
+                const int slot = Access::keyedSlotFor(engine, 57);
+                assert(Access::heldCount(engine, 57) == 1 && slot >= 0);
+                assert(Access::envelopeStage(engine, slot) == 1);
+                assert(Access::velocity(engine, slot) == 83.0f / 127.0f);
+                const auto off = noteDiff(57, 0, 31);
+                assertSameAudio(renderBatch(offFirst, &off, 1), renderBatch(onFirst, &off, 1));
+                assert(Access::heldCount(engine, 57) == 0);
+                assert(Access::keyedSlotFor(engine, 57) < 0);
+                assert(Access::anyLatchedVoice(engine) == pedalDown);
+                const auto pedalUp = change("/custom_properties", "sustainPedal", Kind::Number, 0.0, 23);
+                assertSameAudio(renderBatch(offFirst, &pedalUp, 1), renderBatch(onFirst, &pedalUp, 1));
+                assert(!Access::anyLatchedVoice(engine));
+                assert(!Access::anyLatchedVoice(CYouKnowTestAccess::engine(offFirst)));
+                for (int batch = 0; batch < 32; ++batch)
+                    assertSameAudio(renderBatch(offFirst), renderBatch(onFirst));
+            }
+}
+
+void checkInvalidMidiNoteTags()
+{
+    using Access = youknow::YouKnowTestAccess;
+    for (int invalidNote : { 128, 255 })
+    {
+        configureAttackHost();
+        CYouKnow tested(sampleRate), untouched(sampleRate);
+        const auto invalidOn = noteDiff(invalidNote, 127, 17);
+        assertSameAudio(renderBatch(tested, &invalidOn, 1), renderBatch(untouched));
+        auto& engine = CYouKnowTestAccess::engine(tested);
+        assert(Access::heldCount(engine, 127) == 0);
+        assert(!Access::anyLatchedVoice(engine));
+        const auto validOn = noteDiff(127, 37, 0);
+        assertSameAudio(renderBatch(tested, &validOn, 1), renderBatch(untouched, &validOn, 1));
+        const auto invalidOff = noteDiff(invalidNote, 0, 17);
+        assertSameAudio(renderBatch(tested, &invalidOff, 1), renderBatch(untouched));
+        assert(Access::heldCount(engine, 127) == 1);
+        assert(Access::keyedSlotFor(engine, 127) >= 0);
+        const auto validOff = noteDiff(127, 0, 31);
+        assertSameAudio(renderBatch(tested, &validOff, 1), renderBatch(untouched, &validOff, 1));
+        assert(Access::heldCount(engine, 127) == 0);
+        assert(!Access::anyLatchedVoice(engine));
+    }
 }
 
 void checkTimedAutomationAndCV()
@@ -1494,6 +1963,14 @@ int main()
     checkSameFrameCVPitchAndGate();
     checkRescanPreservesRenderedAudio();
     checkResetSnapsCalibration();
-    std::puts("Wrapper: frame-accurate automation, six modulation CVs, gates/reset/restore, and five host rates PASS");
+    checkSimultaneousMidiRetrigger();
+    checkSimultaneousFullPoolReplacement();
+    checkSameFrameMidiEdgeCounts();
+    checkMidiOwnershipAndOverlap();
+    checkSimultaneousMidiCVHandoff();
+    checkAttackGridSampleTiming();
+    checkRetriggerPedalAndGateModes();
+    checkInvalidMidiNoteTags();
+    std::puts("Wrapper: frame-accurate automation, MIDI/CV ownership and retriggers, attack timing, gates/reset/restore, and five host rates PASS");
     return 0;
 }

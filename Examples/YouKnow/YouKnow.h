@@ -90,6 +90,8 @@ private:
     void AdvanceCalibrationGlide(int count);
     void HandleKeyModeReassert();
     void HandleCV();
+    void StartMidiNote(int note, float velocity);
+    void StopMidiNote(int note);
     bool ResetIfRequested();
     void RenderRange(TJBox_AudioSample left[], TJBox_AudioSample right[],
                      int first, int last, bool qualityReady);
@@ -106,6 +108,9 @@ private:
     std::array<TJBox_PropertyRef, kParameterCount> fProperties;
     std::array<double, kParameterCount> fValues {};
     std::array<CVInput, kCVInputCount> fCVInputs {};
+    // The engine combines MIDI and Gate CV into one keyboard. Keep MIDI's
+    // ownership here so a stray MIDI off cannot release a CV-held key.
+    std::array<std::uint16_t, 128> fMidiHeldCounts {};
 
     youknow::YouKnowEngine fEngine;
     double fSampleRate;
