@@ -1,4 +1,46 @@
-# YouKnow 1.0.0f18 candidate
+# YouKnow 1.0.0f19 candidate
+
+This U45 packages the DSP synchronization from source base `3876a959` and
+upstream `013b257`. The only shared-code addition since f18 is the
+`isNoteHeld()` query. The existing MIDI/CV boundary correction, audio
+algorithms, all 100 musical patch states and their level trims are preserved.
+Version metadata, patch version attributes and generated rear version artwork
+now identify `1.0.0f19`.
+
+| Check | Result |
+| --- | --- |
+| SDK authority | `JukeboxSDK_500_028`, `TargetVersion=5.0` |
+| Metadata and panels | PASS: 100 patches, 184 text keys, 74 widgets, 78 nodes, 18 asset paths and 14 GUI twins; current documents agree with f19 |
+| Source and patch preservation | PASS: 33 runtime/build inputs match `3876a959`; all 100 patches differ from f18 only in their version attribute |
+| Local45 Deployment | PASS: 125 source-backed byte matches and both x86_64/arm64 libraries match completed compiler outputs |
+| Universal45 | PASS: ZIP integrity, 150 members, 145 source-backed byte matches, 100 patches and four Testing/Deployment 32/64-bit chips matching compiler outputs and staging |
+| Binary compatibility | PASS: both native libraries and all four universal chips are byte-identical to the verified f18 release artifacts |
+| Panel review | PASS: canonical rear panels differ only in the version digit; f19 header and logical-size rear plate visually checked; front/folded panels unchanged |
+| Functional evidence | Retained same-source strict engine/wrapper and engine ASan/UBSan passes; all 26 scalar parity scenarios bit-identical to upstream and preceding sync |
+| Source-base CI | PASS: all three jobs on `3876a959`; run `34375269201` |
+
+The handoff is `Release/1.0.0f19/YouKnow-1.0.0f19.u45`, 19,854,958 bytes,
+SHA-256 `608159d4e19e88d53f56a72bb40f4d0d3bd054f9efd02d6025c2cd3d018ac369`.
+It includes a build manifest and verified `SHA256SUMS`. This is a U45 build
+handoff; f19 PDF and Shop-material generation remains pending. The build used
+the f19 version changes over the recorded source base; the manifest records
+exact consumed-source hashes for verification against the final source commit.
+
+The local45 development payload is installed under `RackExtensions_Dev/YouKnow`.
+The running production Reason session was not controlled or restarted, and its
+f17 product library remains byte-identical. Fresh candidate host creation was
+not performed: the previously recorded Recon shared-profile pruning incident
+still has no verified complete isolation route. Reason reproduction and cloud
+acceptance remain pending.
+
+The same-source native timing failure remains open: 4/1,875 wall-clock misses,
+17.574958 ms maximum against a 1.333333 ms deadline, median thread CPU
+0.108670 times realtime. It is retained without a passing retry and excludes
+the wrapper, Reason scheduling and target translation. Detailed build, source,
+payload, compatibility and retained test records are under
+`Release/validation/1.0.0f19/`; see [DSP synchronization](../DSP/SYNC.md).
+
+# Retained YouKnow 1.0.0f18 candidate
 
 This candidate fixes simultaneous note boundaries and MIDI/CV ownership in the
 Reason wrapper. It retains the per-voice envelope and voice-allocation model;

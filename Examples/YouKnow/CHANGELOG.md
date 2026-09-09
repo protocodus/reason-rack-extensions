@@ -2,7 +2,13 @@
 
 Notable customer-facing changes to YouKnow are recorded here.
 
-## 1.0.0f18 - Unreleased
+## 1.0.0f19 - Unreleased
+
+- Package the shared-DSP sync from upstream `013b257`, adding the `isNoteHeld()`
+  query while preserving audio algorithms and all 100 patch sounds and trims.
+- Retain the f18 note-boundary and MIDI/CV ownership corrections.
+
+## 1.0.0f18 - Earlier candidate
 
 - Resolve simultaneous note endings before replacement attacks, preventing
   skipped retriggers and dropped notes when all voices are held.

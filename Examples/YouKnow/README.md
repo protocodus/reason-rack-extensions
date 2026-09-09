@@ -1,17 +1,22 @@
 # YouKnow Rack Extension
 
 YouKnow is a native circuit-modelled polysynth for Reason 14 and later.
-Production candidate `1.0.0f18` includes 100 original Protocodus patches, up to
+Production candidate `1.0.0f19` includes 100 original Protocodus patches, up to
 16 voices, stereo chorus, eight CV inputs, and 41 automatable custom controls
 alongside Reason's pitch wheel, modulation wheel, and sustain support.
 
-The f18 wrapper resolves simultaneous note endings before replacement attacks,
-preventing skipped retriggers and dropped notes at full polyphony. Separate
-MIDI/CV ownership protects held notes from unmatched releases. The original
-per-voice envelopes, residual-level retrigger, shared DSP, all 100 patch sounds
+The f19 candidate packages the shared-DSP sync from upstream `013b257`, adding
+the `isNoteHeld()` query without changing audio algorithms or patch sounds.
+It retains the f18 wrapper, which resolves simultaneous note endings before
+replacement attacks, preventing skipped retriggers and dropped notes at full
+polyphony. Separate MIDI/CV ownership protects held notes from unmatched releases.
+The original per-voice envelopes, residual-level retrigger, all 100 patch sounds
 and their level trims are preserved. [Boundary-fix evidence](Docs/MIDI_BOUNDARY_FIX.md)
-records the regressions and hardware audit. Host and Reason Studios acceptance
-remain pending; the earlier f15 cloud failure has no established remedy.
+records the regressions and hardware audit. The f19 local45 and universal45
+builds pass metadata, panel and payload checks; all 100 patches differ from f18
+only in version. Host and Reason Studios acceptance remain pending, along with
+native wall-clock qualification; the earlier f15 cloud failure has no established
+remedy. Matching f19 PDF and Shop materials still need regeneration.
 
 Start with the [user guide](Docs/USER_GUIDE.md) and
 [patch catalog](PRESETS.md). Support:
