@@ -1,29 +1,92 @@
 # YouKnow 1.0.0f20 candidate
 
 Synchronized on 2026-09-10 to production upstream
-`c9d3c571c6d8586fbb19c8e821e66f68607dfdff`. This intentionally updates the
-sound model: Gaussian noise, firmware modulation/bend fixes, output-jack
-filtering, temperature tracking and chorus corrections. Rack-specific C++17,
-frozen tables, fixed latency, control identity and MIDI/CV behavior are retained.
+`c9d3c571c6d8586fbb19c8e821e66f68607dfdff`; a final remote-main check confirms
+the same revision. Gaussian noise, firmware modulation/bend corrections,
+output-jack filtering, temperature tracking and chorus fixes intentionally
+update audio. Rack-specific C++17, frozen tables, fixed 41-sample latency,
+saved control identities and MIDI/CV ownership are preserved.
 
-Strict engine and frozen-table contracts pass. The 16-group DSP regression
-contract covers changed firmware/circuit laws, quality-transition latency,
-callback partition independence and chorus settling. All 26 scalar upstream/Rack
-comparisons are bit-identical. Engine size is 42,296 bytes and wrapper size
-43,656 bytes, below the 64 KiB ceiling. Wrapper ASan/UBSan and an independent
-randomized 4,096-batch MIDI/CV lifecycle audit pass at four sample rates.
+## Final local results
 
-The initial bank render failed Circuit Rain's level ceiling. Complete Aging
-0%/50% measurements found only that one failing preset. Its trim changes from
-0.956723230 to 0.917910628 (-1.402051 dB). Every other musical value and trim
-is preserved; historical measurements and adjustment history are retained.
-Final 100/100 bank renders pass at both Aging values. SDK build, automation,
-stress and host results are being collected in `Release/validation/1.0.0f20`.
-All six matching manual pages and three Shop images pass visual QA.
+| Check | Result |
+| --- | --- |
+| SDK authority | `JukeboxSDK_500_028`, `TargetVersion=5.0` |
+| Engine and tables | PASS: strict C++17 engine/frozen-table contracts; 42,296-byte engine and 43,656-byte wrapper, below 64 KiB |
+| Upstream parity | PASS: all 26 scalar scenarios bit-identical to upstream |
+| New DSP regressions | PASS: 16 groups cover firmware/circuit laws, fixed latency, callback partition independence and chorus settling |
+| Wrapper | PASS: optimized and ASan/UBSan contracts; independent randomized MIDI/CV ownership audit across 4,096 batches and four sample rates |
+| Factory bank | PASS: 100/100 at Aging 0% and 50%; maximum peak 0.183689 and maximum RMS 0.040940 |
+| Six-note stress | PASS: all 100 low/high-register renders; maximum peaks 0.410524 / 0.435903 |
+| Automation | PASS: 40 parameters as steps/ramps, dry/chorused; held notes survive all switches; worst continuous slew 1.02x reference |
+| Metadata and panels | PASS: 100 patches, 184 text keys, 74 widgets, 78 nodes, 18 asset paths and 14 GUI twins |
+| Local45 Deployment | PASS: x86_64/arm64 libraries match compiler output; 125 installed source-backed files match source |
+| Universal45 | PASS: ZIP integrity, 150 members, 145 source-backed byte matches, 100 patches and four Testing/Deployment 32/64-bit chips |
+| Fresh Recon creation | PASS with scope below: exact f20 ARM module creation and nonlinear data conversions, exit 0 |
+| Production preservation | PASS: all 1,623 pre-existing production/profile/cache files (16,059,623,434 bytes) unchanged; no additions/removals or pruning |
+| Materials | PASS: all six manual pages and three matching Shop images visually reviewed |
+| Source CI | PASS: all three jobs on `08484e3`, run `34524538985`; includes new DSP regression contract |
+| Native timing | NOT QUALIFIED: 7/1,875 wall-clock misses; maximum 3.048666 ms against 1.333333 ms; median thread CPU 0.114147x realtime |
+| Cloud upload | BLOCKED before submission: Chrome file chooser returns `Not allowed` |
 
-The fresh developer portal shows f17 Deployment **success**, superseding older
-notes below that left its result pending. The f15 failure remains unexplained.
-This candidate has not yet been uploaded or published.
+The initial bank render correctly failed Circuit Rain's level ceiling. Complete
+Aging 0%/50% measurements found only that one failing preset. Its trim changes
+from 0.956723230 to 0.917910628 (-1.402051 dB); its final Aging 50% peak is
+0.179999. All other musical values and trims are preserved. Original
+measurements and the previous adjustment remain in the calibration history.
+
+An additional exhaustive audit visits all 4,294,967,295 nonzero Gaussian
+pair-start states: at most 14 candidates are rejected before acceptance. A
+conservative rounding-margin check gives the same bound. Nonzero initialization,
+invertible xorshift updates and the render's zero-state reseed preserve that
+invariant. This audit is separate from SDK analyzer and timing results.
+
+## Host scope and remaining acceptance
+
+The tested Recon is `14.0.2d7 build 20275 TESTING VERSION`; executable SHA-256
+`9c6373121e9ce60fbaf77a8a8723539aed3d66a19b35c11b6a8807892eaa739e` matches the
+previous SDK5 capability audit (SDK5 drawing APIs and explicit target-5.0
+assertion). Its `RESDK4` application filename is a legacy label.
+
+The documented `--validate_re` CLI first registered f20 but aborted before
+creation because scratch storage was read-only. That failure is retained.
+The justified retry allowed only its previously absent default scratch subtree
+in addition to audit output. A 16-check sandbox preflight proved writes to
+production extensions, preferences and existing caches remained denied.
+The second process, 2026-09-10 20:11:55–20:12:46 UTC including hash verification,
+loaded the exact ARM f20 module, created it three times and completed both
+Create RE and TestNonLinearDataConversions. Only optional default log/cache
+writes were denied. All pre-existing production bytes remained unchanged.
+
+The CLI does not explicitly log loading `Init.repatch`; named default-patch
+loading, interactive GUI/playback, song persistence and in-song CPU qualification
+are not claimed. The native timing run was made after task compilation,
+rendering, host and hashing jobs ended. Its failure is retained; engine-only
+CPU averages do not qualify Reason scheduling or delivered target performance.
+
+One separate diagnostic added per-block thread-CPU timing without changing
+priority, scheduling or the original thresholds. It observed five wall-clock
+misses, but no CPU-time misses: maximum CPU duration was 0.499833 ms. The missed
+blocks used 0.160333–0.259250 ms of CPU and spent 1.794750–3.992667 ms outside the
+thread. The diagnostic inherited user-interactive QoS. This supports scheduler
+preemption as the cause of its observed misses; it does not retroactively
+measure the first run or establish a passing audio-host deadline result.
+
+## Artifact and upload
+
+The verified handoff is `Release/1.0.0f20/YouKnow-1.0.0f20.u45`, 19,880,367 bytes.
+SHA-256: `a403b1881711bbaf5ccd602c5033ae4d19d216131847d18f11945978c2d5f26b`.
+The folder includes matching PDF/Shop assets, a source/build manifest and
+`SHA256SUMS`. Detailed logs, preflight profiles, preservation manifests,
+regression sources and payload checks are in `Release/validation/1.0.0f20`.
+
+The authenticated portal now shows f17 Deployment **success**, superseding
+historical notes below that left its result pending. The f15 error remains
+unexplained. The f20 file chooser opened, but `setFiles` returned `Not allowed`
+before submission; no f20 cloud job or publication exists. The documented
+browser remedy is enabling “Allow access to file URLs” for the ChatGPT Chrome
+extension. Public Shop publication also requires product acceptance and an
+accepted Article/price; it has not been performed.
 
 # Retained YouKnow 1.0.0f19 candidate
 

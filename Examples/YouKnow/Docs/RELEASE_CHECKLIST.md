@@ -18,15 +18,16 @@ needs a 1.402051 dB level-trim reduction at Aging 50%.
 - [x] Pass wrapper contracts, ASan/UBSan and randomized MIDI/CV lifecycle audit.
 - [x] Measure the complete bank at Aging 0% and 50%; adjust only Circuit Rain.
 - [x] Pass final calibrated-bank renders at Aging 0% and 50%.
-- [ ] Complete low/high six-note stress renders.
-- [ ] Complete automation artifact contract.
-- [ ] Record native default-quality timing without concurrent task load.
-- [ ] Build local45 Deployment and inspect installed payload.
-- [ ] Build universal45 and verify ZIP, source bytes, four chips and SHA-256.
-- [ ] Run fresh SDK 5 host creation with production writes denied.
+- [x] Complete low/high six-note stress renders.
+- [x] Complete automation artifact contract.
+- [x] Record native default-quality timing without concurrent task load; retain failure.
+- [ ] Qualify wall-clock deadlines and representative Reason playback performance.
+- [x] Build local45 Deployment and inspect installed payload.
+- [x] Build universal45 and verify ZIP, source bytes, four chips and SHA-256.
+- [x] Run fresh SDK 5 host creation with production writes denied.
 - [x] Visually verify all six manual pages and three matching Shop images.
-- [ ] Assemble versioned handoff, build manifest and verified SHA256SUMS.
-- [ ] Pass remote CI and address PR feedback. Merge requires an explicit user request.
+- [x] Assemble versioned handoff, build manifest and verified SHA256SUMS.
+- [x] Pass source CI and inspect PR feedback; none received. Merge requires an explicit user request.
 
 ## Host and distribution
 
@@ -34,7 +35,7 @@ needs a 1.402051 dB level-trim reduction at Aging 50%.
   Remote/Combinator, CV, reset, patches, routing, full/folded UI and multiple instances.
 - [ ] Measure the exact Deployment candidate in representative Reason songs.
 - [x] Inspect current portal: f17 Deployment is successful, f15 remains failed.
-- [ ] Upload f20 and archive its cloud build result.
+- [ ] Enable browser file-upload access, upload f20 and archive its cloud build result.
 - [ ] Complete product acceptance and select an accepted Shop Article and price.
 - [ ] Publish matching Shop/support materials after acceptance and owner decisions.
 

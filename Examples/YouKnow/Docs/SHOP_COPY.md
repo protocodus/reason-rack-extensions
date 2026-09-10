@@ -8,9 +8,9 @@
 - Manufacturer: Protocodus
 - Product ID: `cz.protocodus.YouKnow`
 - Candidate: `1.0.0f20`
-  DSP synchronization and candidate validation are in progress.
-  Matching f20 PDF and Shop images are generated from the current sources.
-  Host and Reason Studios acceptance remain pending.
+  DSP/bank/automation contracts, both SDK builds and constrained Recon creation pass.
+  Matching f20 PDF and Shop images pass visual QA. Native wall-clock timing
+  and interactive acceptance remain unqualified; browser file access blocks upload.
 - Requirement: Reason 14 or later
 - Category: Instrument / Synth
 - Support URL: <https://protocodus.cz/product/youknow/>
