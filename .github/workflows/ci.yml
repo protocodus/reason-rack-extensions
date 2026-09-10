@@ -153,6 +153,14 @@ jobs:
             DSP/YouKnowEngine.cpp DSP/YouKnowChorus.cpp -o /tmp/rendercheck
           /tmp/rendercheck
 
+      - name: Upstream DSP regressions
+        working-directory: Examples/YouKnow
+        run: |
+          clang++ -std=c++17 -O3 -DNDEBUG -Wall -Wextra -Wpedantic -Werror \
+            Tests/UpstreamDspRegressionContract.cpp \
+            DSP/YouKnowEngine.cpp DSP/YouKnowChorus.cpp -o /tmp/upstream-regressions
+          /tmp/upstream-regressions
+
       - name: Every public patch renders
         working-directory: Examples/YouKnow
         run: python3 Tests/run_all_patch_render.py

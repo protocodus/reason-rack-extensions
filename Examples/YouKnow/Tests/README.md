@@ -62,6 +62,12 @@ clang++ -std=c++17 -O3 -DNDEBUG -Wall -Wextra -Wpedantic -Werror \
   -o /tmp/youknow-engine-port-contract
 /tmp/youknow-engine-port-contract
 
+clang++ -std=c++17 -O3 -DNDEBUG -Wall -Wextra -Wpedantic -Werror \
+  Tests/UpstreamDspRegressionContract.cpp \
+  DSP/YouKnowEngine.cpp DSP/YouKnowChorus.cpp \
+  -o /tmp/youknow-upstream-dsp-regressions
+/tmp/youknow-upstream-dsp-regressions
+
 clang++ -std=c++17 -O2 -I. Tests/rendercheck.cpp \
   DSP/YouKnowEngine.cpp DSP/YouKnowChorus.cpp -o /tmp/youknow-rendercheck
 /tmp/youknow-rendercheck
@@ -75,6 +81,12 @@ and ENV/GATE, shared attack coefficients, and the recovered B-2 firmware's
 exact residual-level retrigger vector.
 The upstream `isNoteHeld()` query is checked against overlapping presses,
 dropped assignments, sustain tails, invalid pitches, and reset/release paths.
+The upstream regression contract pins the Sep 10 firmware and circuit changes:
+integer VCF modulation/bend, running-voice LFO delay, attack overshoot, pulse
+duty, correction boundaries, quality-fade timing, measured decimator latency,
+unknown sample rates, Gaussian noise statistics, the output-jack pole and
+temperature-dependent common VCA. It also checks identical audio across
+callback partitions and chorus settling without a host denormal policy.
 
 ## Automation artifacts
 

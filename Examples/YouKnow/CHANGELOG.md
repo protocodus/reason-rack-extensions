@@ -2,7 +2,16 @@
 
 Notable customer-facing changes to YouKnow are recorded here.
 
-## 1.0.0f19 - Unreleased
+## 1.0.0f20 - Unreleased
+
+- Synchronize the shared DSP to upstream `c9d3c57`, including Gaussian noise,
+  firmware modulation and pitch-bend corrections, output-stage filtering and
+  temperature tracking, and chorus safety fixes.
+- Preserve Reason control identities, fixed latency, and MIDI/CV behavior.
+- Recheck all 100 factory patches against the updated sound model and retain
+  their musical settings.
+
+## 1.0.0f19 - Earlier candidate
 
 - Package the shared-DSP sync from upstream `013b257`, adding the `isNoteHeld()`
   query while preserving audio algorithms and all 100 patch sounds and trims.

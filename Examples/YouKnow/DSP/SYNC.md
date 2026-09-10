@@ -9,18 +9,38 @@ vst-instruments monorepo") in
 checkout is `/Users/vojta/Dev/virtual-instrument-youknow/Source/DSP`**; the
 former monorepo path in earlier revisions of this file no longer exists.
 
-Synchronized on 2026-09-09 from the nominated checkout at
-`013b25702145b72d67965665c701f59e105c52b7` ("fix: order adjacent MIDI note
-boundaries"). At final verification after `git fetch --no-tags origin`, local
-HEAD, fetched `origin/codex/juno106-fidelity-round2` and `origin/main` all
-resolve to that revision; the upstream worktree is clean. No upstream checkout
-or source edits were made.
+Synchronized on 2026-09-10 from freshly fetched production `origin/main` at
+`c9d3c571c6d8586fbb19c8e821e66f68607dfdff` ("Merge pull request #4 from
+protocodus/claude/juno-plugin-realism-cxycuk"). The shared DSP's latest change
+is `a163cd8` ("Sample the jack-board temperature on the converter pass, not the
+callback"). Source was read from a `git archive` of that exact revision. The
+nominated checkout remains on its existing `codex/fix-builds-distribution`
+branch; its unrelated untracked `Assets/store` files were left untouched.
 
-The only shared-DSP change since the previous sync is the exact upstream
-`isNoteHeld()` query in `YouKnowEngine.h`. Audio algorithms, tables, allocation
-and envelope behavior are unchanged. The accompanying VST MIDI dispatch fix
-addresses the same equal-frame retrigger and full-pool replacement defects
-already corrected by the Rack f18 wrapper; see the comparison below.
+This is an intentional sound-model and bug-fix update from the previous
+`013b25702145b72d67965665c701f59e105c52b7` synchronization. Only
+`YouKnowEngine.h`, `YouKnowEngine.cpp`, and `YouKnowChorus.cpp` changed upstream:
+
+- The main noise source now draws bounded Gaussian avalanche noise at the
+  previous RMS coordinate, preventing quality-dependent amplitude statistics.
+- VCF LFO and bend follow the recovered integer control words, including their
+  low-depth truncation and bend centre dead zone. LFO delay follows running
+  voices, including sustain, instead of only physical key presses. Envelope
+  attack hands over on the pass that exceeds the peak.
+- The jack output includes its host-rate R64/R65-C22/C21 pole. Common VCA gain
+  follows jack-board temperature, sampled on converter passes so output does
+  not depend on callback partitioning.
+- Correction steps at an interval's left boundary retain the prior sample's
+  side of the event. Reported pulse duty follows each card's actual comparator
+  threshold. Quality fades reach exact zero at their scheduled sample; the
+  latency calculation now matches the measured decimator delay. The declared
+  41-sample latency and existing 1x/2x pads remain unchanged.
+- Unknown/nonpositive sample rates use 48 kHz. Chorus wet mute reaches exact
+  zero without relying on host flush-to-zero behavior; corrected circuit
+  provenance remains in the source comments.
+
+No properties, stored ordinals, parameter fields, tables, or Rack wrapper
+contracts were added or removed. All intentional Rack adaptations below remain.
 
 The preceding sound-model sync was on 2026-09-08 at
 `72e1d4482324465993c8e62609fa345e848d3b70` ("Document fixed filter
@@ -38,10 +58,10 @@ comparison paths with upstream defaults; they add no host properties.
 
 | Upstream source | SHA-256 |
 | --- | --- |
-| `YouKnowEngine.h` | `d8b491f2630d7cb8ede133d158dd04bc1f9915ebd91242a8ff35a246bafa6d94` |
-| `YouKnowEngine.cpp` | `544b0c5e741e424d4f7441fe3abc34b63a487d97b4bb39fe665f265f223acae4` |
+| `YouKnowEngine.h` | `11d18c0543f19649685c75ad9a45cc0eb6c81124008d4340feae26d79d4652da` |
+| `YouKnowEngine.cpp` | `53435a755ed789f4bbe3a6f2aa9f6769508fb80f0ad3e639d5c5e5876f2f1b61` |
 | `YouKnowChorus.h` | `aafd8b3a62c0879a45bcffe5a40e9bf02ec3b6d04b3d80237c2eefcdf07c056b` |
-| `YouKnowChorus.cpp` | `57dbb4fcdad6056c9f1219652bb50e77a2ab572bfe9c7874fe6131c7bdca9c6c` |
+| `YouKnowChorus.cpp` | `df757abc4242e0842d976b76effcb90e05e34c71ed862a7278745b7d0bdcb600` |
 | `YouKnowCoupledMixer.h` | `66e4bb603fb926c071e9654d03461052c636f758a35fcc30daf87e70a90a9d06` |
 | `YouKnowHighPassSwitch.h` | `4ae45325506bd0590ca05b5ead51bc69a30e16bc4dcc9ea78540910548a96d84` |
 | `YouKnowNoiseCalibration.h` | `a6fe97a772df0c633a0c90a0fba06ce9466a8e5ca4f6a75f8e966353a9b5654a` |
@@ -240,3 +260,38 @@ These timings exclude the wrapper, Reason scheduling and target translation.
 Source audit, exact commands and logs are retained locally under
 `Output/Diagnostics/DspSync-20260909/`. This source synchronization did not
 build/install a new package or run a Reason host test.
+
+## 2026-09-10 firmware and output-stage synchronization
+
+The strict C++17 engine and frozen-table contracts pass. Frozen `.inc` data
+are unchanged and all upstream builder identity checks still pass. The engine
+occupies 42,296 bytes and the Rack native object 43,656 bytes, both below their
+64 KiB limits. Parameter equality still covers the same 70 fields.
+
+`Tests/UpstreamDspRegressionContract.cpp` passes 16 focused groups, adapted
+from the new upstream engine/circuit regressions. These measure rendered pulse
+duty against each card's comparator state; correction continuity at the exact
+interval boundary; integer VCF LFO/bend behavior; LFO delay across sustain,
+unison and dropped-key cases; attack peak handover; unknown sample rates;
+quality-fade sample timing; decimator impulse centroid and the unchanged
+41-sample report; Gaussian noise statistics across quality rates; the output
+jack pole and its rendered high-frequency response; and temperature-dependent
+VCA gain. Additional regressions require bit-identical output across irregular
+callback partitions at 1x/2x/4x and three warm-up positions, and exact chorus
+wet-mute settling without a host flush-to-zero policy.
+
+All 26 deterministic scalar parity scenarios are bit-identical between the
+exact `c9d3c57` archive built as C++20 with SIMD disabled and the Rack port built
+as C++17, both at `-O3 -DNDEBUG`. These are 480-block, 64-frame, 48 kHz stereo
+renders covering all quality and solver paths, reference/comparison profiles,
+physical circuit switches, notes, controllers, transitions, and reset. Both
+hash logs have SHA-256
+`1f38d34c90eb65dc1e22ddac7ed34d8cd04bb97f9b4ddcd204d8454461ad3e0d`.
+The changed hashes relative to f19 are expected for this upstream sound update;
+they are not a claim that the prior audio is unchanged.
+
+Exact source hashes, the parity driver and logs, engine/frozen/regression logs,
+and commands are retained under `Output/Diagnostics/DspSync-20260910/`.
+Wrapper, automation, public-bank levels, native timing, SDK builds and actual
+host/release acceptance are recorded separately in
+[release evidence](../Docs/RELEASE_EVIDENCE.md).

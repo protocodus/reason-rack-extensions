@@ -1,16 +1,35 @@
 {
   "adjustments": {
     "Effects/Circuit Rain.repatch": {
-      "aging": 0.5,
-      "gain_change_db": -1.563312706254132,
-      "method": "Retain baseline Aging 0% measurements; attenuate only stored presetGain to the largest nine-decimal value whose float32 calibration-chord peak is at most 0.18 at Aging 50%.",
-      "next_stored_step_peak": 0.18000000715255737,
-      "observed_peak_before": 0.21549546718597412,
-      "observed_rms_before": 0.027587216,
-      "predicted_peak_after": 0.17999999225139618,
-      "preset_gain_after": 0.95672323,
-      "preset_gain_before": 1.0,
-      "target_peak": 0.18
+      "gain_change_db": -1.4020508894121404,
+      "method": "Retain baseline Aging 0% measurements and all musical parameters; attenuate only a confirmed over-limit stored presetGain after the upstream DSP update. Measure existing trims at Aging 0% and 50%, use their maximum calibration-chord peak/RMS with a 0.0000005 measurement-rounding allowance, and floor the corrected trim to nine decimals.",
+      "observed_before": {
+        "0": {
+          "peak": 0.173027,
+          "rms": 0.019054
+        },
+        "50": {
+          "peak": 0.211531,
+          "rms": 0.023323
+        }
+      },
+      "preset_gain_after": 0.917910628,
+      "preset_gain_before": 0.95672323,
+      "prior_adjustment": {
+        "aging": 0.5,
+        "gain_change_db": -1.563312706254132,
+        "method": "Retain baseline Aging 0% measurements; attenuate only stored presetGain to the largest nine-decimal value whose float32 calibration-chord peak is at most 0.18 at Aging 50%.",
+        "next_stored_step_peak": 0.18000000715255737,
+        "observed_peak_before": 0.21549546718597412,
+        "observed_rms_before": 0.027587216,
+        "predicted_peak_after": 0.17999999225139618,
+        "preset_gain_after": 0.95672323,
+        "preset_gain_before": 1.0,
+        "target_peak": 0.18
+      },
+      "target_peak": 0.18,
+      "target_rms": 0.04,
+      "upstream_revision": "aef58ffafbcf8c91b822b87fe69a11af654dc8c1"
     },
     "Pads - Lunar Drift.repatch": {
       "gain_change_db": -1.138763709492114,
@@ -673,7 +692,7 @@
     "Effects - Storm Signal.repatch": 1.0,
     "Effects/8474 Sweep.repatch": 0.57463115,
     "Effects/Broken Telemetry.repatch": 0.915113564,
-    "Effects/Circuit Rain.repatch": 0.95672323,
+    "Effects/Circuit Rain.repatch": 0.917910628,
     "Effects/Falling Star.repatch": 0.660086404,
     "Effects/Gravity Well.repatch": 0.753565089,
     "Effects/Resonant Woodblock.repatch": 1.0,
