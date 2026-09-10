@@ -7,15 +7,15 @@
 - Device name: YouKnow
 - Manufacturer: Protocodus
 - Product ID: `cz.protocodus.YouKnow`
-- Candidate: `1.0.0f19`
-  Source-sync audio contracts and f19 local45/universal45 package checks pass.
-  Matching f19 PDF and Shop images still need regeneration.
+- Candidate: `1.0.0f20`
+  DSP synchronization and candidate validation are in progress.
+  Matching f20 PDF and Shop images are generated from the current sources.
   Host and Reason Studios acceptance remain pending.
 - Requirement: Reason 14 or later
 - Category: Instrument / Synth
 - Support URL: <https://protocodus.cz/product/youknow/>
 - Support email: [protocodus+support@proton.me](mailto:protocodus+support@proton.me)
-- Article: `PENDING` - select `1.0.0f19` after Reason Studios acceptance
+- Article: `PENDING` - select `1.0.0f20` after Reason Studios acceptance
 - Price category: `PENDING`
 - Upgrade price category: `0` - free updates, no special upgrade price
 - Tags: Type `Synth`; Character `Analog / Vintage` and `Hardware emulation`.
@@ -94,7 +94,7 @@ The later f15 upload consumed version `1.0.0f15`; cloud build
 reported “Unknown error” without a diagnostic. The later f16 header refinement
 did not demonstrate a fix for that cloud failure. Retain the
 version-neutral draft wording, update its bank count to 100, then attach the
-matching f19 images/PDF and accepted Article when ready. The local copy is
+matching f20 images/PDF and accepted Article when ready. The local copy is
 updated; the saved portal draft still reflects the earlier bank.
 
 ## Portal assets and submission

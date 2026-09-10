@@ -1,11 +1,10 @@
 # YouKnow asset and SDK provenance inventory
 
-Current candidate: YouKnow `1.0.0f19`; it packages the shared-DSP `isNoteHeld()`
-query from upstream `013b257` and retains the f18 Reason note-boundary correction.
-Audio algorithms and all 100 musical patch states and trims are unchanged.
-Artifact results are in
-[release evidence](RELEASE_EVIDENCE.md); host and Reason Studios acceptance
-remain pending.
+Current candidate: YouKnow `1.0.0f20`; it synchronizes upstream `c9d3c57`,
+including the noise, modulation, output-stage and chorus corrections. These
+are intentional sound-model changes. The permanent product identity and
+musical patch settings are retained. Candidate validation and any level-trim
+changes are recorded in [release evidence](RELEASE_EVIDENCE.md).
 The dated `1.0.0f14` audits and hashes below retain their historical scope.
 This is an engineering traceability record, not a legal conclusion, ownership
 opinion, or grant of rights. Commercial permission and distribution scope stay

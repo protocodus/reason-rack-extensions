@@ -1,22 +1,18 @@
 # YouKnow Rack Extension
 
 YouKnow is a native circuit-modelled polysynth for Reason 14 and later.
-Production candidate `1.0.0f19` includes 100 original Protocodus patches, up to
+Production candidate `1.0.0f20` includes 100 original Protocodus patches, up to
 16 voices, stereo chorus, eight CV inputs, and 41 automatable custom controls
 alongside Reason's pitch wheel, modulation wheel, and sustain support.
 
-The f19 candidate packages the shared-DSP sync from upstream `013b257`, adding
-the `isNoteHeld()` query without changing audio algorithms or patch sounds.
-It retains the f18 wrapper, which resolves simultaneous note endings before
-replacement attacks, preventing skipped retriggers and dropped notes at full
-polyphony. Separate MIDI/CV ownership protects held notes from unmatched releases.
-The original per-voice envelopes, residual-level retrigger, all 100 patch sounds
-and their level trims are preserved. [Boundary-fix evidence](Docs/MIDI_BOUNDARY_FIX.md)
-records the regressions and hardware audit. The f19 local45 and universal45
-builds pass metadata, panel and payload checks; all 100 patches differ from f18
-only in version. Host and Reason Studios acceptance remain pending, along with
-native wall-clock qualification; the earlier f15 cloud failure has no established
-remedy. Matching f19 PDF and Shop materials still need regeneration.
+This candidate synchronizes DSP from Protocodus YouKnow upstream `c9d3c57`.
+It includes revised noise generation, firmware modulation and pitch-bend
+behavior, output filtering, temperature tracking, and chorus fixes. These
+intentionally update the sound model. Reason-specific real-time safeguards,
+fixed 41-sample latency, saved control identities, and MIDI/CV ownership remain
+intact. [DSP synchronization](DSP/SYNC.md) records the exact source and
+adaptations; [release evidence](Docs/RELEASE_EVIDENCE.md) records validation
+and the remaining release gates.
 
 Start with the [user guide](Docs/USER_GUIDE.md) and
 [patch catalog](PRESETS.md). Support:

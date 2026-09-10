@@ -1,4 +1,31 @@
-# YouKnow 1.0.0f19 candidate
+# YouKnow 1.0.0f20 candidate
+
+Synchronized on 2026-09-10 to production upstream
+`c9d3c571c6d8586fbb19c8e821e66f68607dfdff`. This intentionally updates the
+sound model: Gaussian noise, firmware modulation/bend fixes, output-jack
+filtering, temperature tracking and chorus corrections. Rack-specific C++17,
+frozen tables, fixed latency, control identity and MIDI/CV behavior are retained.
+
+Strict engine and frozen-table contracts pass. The 16-group DSP regression
+contract covers changed firmware/circuit laws, quality-transition latency,
+callback partition independence and chorus settling. All 26 scalar upstream/Rack
+comparisons are bit-identical. Engine size is 42,296 bytes and wrapper size
+43,656 bytes, below the 64 KiB ceiling. Wrapper ASan/UBSan and an independent
+randomized 4,096-batch MIDI/CV lifecycle audit pass at four sample rates.
+
+The initial bank render failed Circuit Rain's level ceiling. Complete Aging
+0%/50% measurements found only that one failing preset. Its trim changes from
+0.956723230 to 0.917910628 (-1.402051 dB). Every other musical value and trim
+is preserved; historical measurements and adjustment history are retained.
+Final 100/100 bank renders pass at both Aging values. SDK build, automation,
+stress and host results are being collected in `Release/validation/1.0.0f20`.
+All six matching manual pages and three Shop images pass visual QA.
+
+The fresh developer portal shows f17 Deployment **success**, superseding older
+notes below that left its result pending. The f15 failure remains unexplained.
+This candidate has not yet been uploaded or published.
+
+# Retained YouKnow 1.0.0f19 candidate
 
 This U45 packages the DSP synchronization from source base `3876a959` and
 upstream `013b257`. The only shared-code addition since f18 is the
