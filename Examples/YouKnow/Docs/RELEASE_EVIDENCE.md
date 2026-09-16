@@ -29,6 +29,7 @@ adaptations and the open reset-warm-up parity note.
 | Metadata and panels | PASS: 100 patches, 184 text keys, 45 wrapper defaults equal to `motherboard_def.lua`, 74 widgets, 78 nodes, 18 asset paths, 14 GUI twins; front and folded panels unchanged, rear changes confined to the version label |
 | Universal45 | PASS: static analysis with no warnings; ZIP integrity, 150 members, 145 source-backed byte matches, 100 patches and four Testing/Deployment 32/64-bit chips |
 | Materials | PASS: six manual pages and the front, back and new 1:1 thumbnail Shop images visually reviewed; front image byte-identical to f20 |
+| Source CI | PASS: run `35133083217` on `f834459`; metadata, Linux ASan/UBSan (including the engine fuzz) and macOS DSP contracts (including the envelope oracle, engine fuzz, bank and stress) |
 | Native timing | NOT QUALIFIED: 2/1,875 wall-clock misses; maximum 1.924833 ms against 1.333333 ms; median thread CPU 0.114720x realtime (f20: 0.114147x) |
 | Local45 Deployment | NOT RUN for this candidate: the development install was left unchanged |
 | Cloud upload | NOT ATTEMPTED: the portal reported another version already submitted for acceptance (`Release/1.0.0f20/SUPPORT_REQUEST.txt`) |
@@ -53,8 +54,9 @@ back and 800x800 thumbnail Shop images; the manual; this evidence; the
 changelog; a build manifest recording the source commit, tree state, chip and
 compiled-source hashes; and verified `SHA256SUMS`. Its `validation/`
 subdirectory retains the contract, parity, fuzz-campaign, bank, build, metadata
-and timing logs. The candidate is not committed; the manifest therefore records
-`source_tree_clean: false` together with every compiled source hash.
+and timing logs. The candidate source is commit `f834459` on `main`; the handoff
+manifest records the commit it was assembled from, the tree state and every
+compiled source hash, so the U45 can be traced to identical sources.
 
 No f21 cloud build, host creation test, Shop publication or acceptance is
 claimed. Uploading waits on the pending submission the portal reported for f20

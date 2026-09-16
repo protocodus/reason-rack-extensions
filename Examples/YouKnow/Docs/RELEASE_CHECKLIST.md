@@ -29,7 +29,7 @@ Rain are attenuated at Aging 50%. All other musical settings are preserved.
 - [x] Generate and visually verify the manual and the front, back and 1:1 thumbnail Shop images.
 - [x] Assemble every artifact in `Release/1.0.0f21/` with a build manifest and verified SHA256SUMS.
 - [ ] Build local45 Deployment and inspect the installed payload (not run for f21).
-- [ ] Pass source CI on the committed candidate. Merge requires an explicit user request.
+- [x] Pass source CI on the committed candidate: run `35133083217` on `f834459` in `main`.
 
 ## Host and distribution
 
