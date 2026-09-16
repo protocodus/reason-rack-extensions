@@ -1,4 +1,67 @@
-# YouKnow 1.0.0f20 candidate
+# YouKnow 1.0.0f21 candidate
+
+Synchronized on 2026-09-16 to production upstream
+`5d9390daaa518e91e64ad454736b011dfd05168c` (remote `main`, checked the same day)
+plus the nominated checkout's uncommitted enum-sanitising hunk. The DCO clock,
+temperature and reset circuit, firmware control and envelope fixes, envelope-hold
+acquisition, DAC and VCA calibration, temperature-scaled noise, chorus loading,
+output jack and input coupling intentionally update audio. The Rack product now
+also renders with the source plug-in's complete product configuration, including
+the chart-geometry converter timing earlier candidates never selected. Every
+control resolves malformed values to declared defaults. C++17 port adaptations,
+fixed 41-sample latency, saved control identities and MIDI/CV ownership are
+preserved; [DSP synchronization](../DSP/SYNC.md) records the sources, hashes,
+adaptations and the open reset-warm-up parity note.
+
+## Final local results
+
+| Check | Result |
+| --- | --- |
+| SDK authority | `JukeboxSDK_500_028`, `TargetVersion=5.0` |
+| Upstream parity | PASS: all 42 scalar scenarios bit-identical to the nominated sources, including the Rack product configuration and out-of-range enumerations |
+| Engine and tables | PASS: strict C++17 engine/frozen-table contracts, nonfinite velocities; 70,168-byte engine and 71,528-byte native object under a 96 KiB growth guard |
+| DSP regressions | PASS: 19 upstream-adapted groups and the verbatim envelope-firmware oracle |
+| Wrapper | PASS: optimized and ASan/UBSan; product configuration bit-exact against an independently configured engine; musical note phrases (equal-pitch overlaps, touching/overlapping/gapped semitone runs, repeated notes, clusters) in every key mode with and without pedal; malformed values for all 45 properties |
+| Fuzzing | PASS: engine 200 seeds x 1,000 blocks plus 36 sanitized seeds; wrapper 120 seeds x 1,000 batches plus 16 sanitized seeds; exact press-count models, stuck-voice, determinism and recovery invariants; five injected defects detected |
+| Factory bank | PASS: recalibrated on the product configuration; 100/100 at Aging 50% (maximum peak 0.180120, RMS 0.040013) and 0% (0.180001, 0.040002); whole bank also under ASan/UBSan |
+| Six-note stress | PASS: all 100 low/high-register renders; maximum peaks 0.388021 / 0.416929 |
+| Automation | PASS: 40 parameters as steps/ramps, dry/chorused, on the product configuration; worst continuous slew 1.02x reference |
+| Metadata and panels | PASS: 100 patches, 184 text keys, 45 wrapper defaults equal to `motherboard_def.lua`, 74 widgets, 78 nodes, 18 asset paths, 14 GUI twins; front and folded panels unchanged, rear changes confined to the version label |
+| Universal45 | PASS: static analysis with no warnings; ZIP integrity, 150 members, 145 source-backed byte matches, 100 patches and four Testing/Deployment 32/64-bit chips |
+| Materials | PASS: six manual pages and the front, back and new 1:1 thumbnail Shop images visually reviewed; front image byte-identical to f20 |
+| Native timing | NOT QUALIFIED: 2/1,875 wall-clock misses; maximum 1.924833 ms against 1.333333 ms; median thread CPU 0.114720x realtime (f20: 0.114147x) |
+| Local45 Deployment | NOT RUN for this candidate: the development install was left unchanged |
+| Cloud upload | NOT ATTEMPTED: the portal reported another version already submitted for acceptance (`Release/1.0.0f20/SUPPORT_REQUEST.txt`) |
+
+Level trims: retaining the f20 trims would fail 64 patches against the updated
+sound, so the whole bank was recalibrated at Aging 0%; the median trim moves
+-0.559 dB. Storm Signal's volume rises from 0.62 to 0.72 so it stays above the
+audibility floor at the +18 dB trim ceiling, and Broken Telemetry (-0.2397 dB)
+and Circuit Rain (-1.7672 dB) are attenuated at Aging 50%. All other musical
+values are unchanged.
+
+The native timing run was made with no other build, render or fuzz job running.
+Its failure is retained without retry, as for earlier candidates; engine-only
+CPU averages do not qualify Reason scheduling or delivered target performance.
+
+## Artifact and upload
+
+Every artifact of this candidate is in one directory, `Release/1.0.0f21/`: the
+handoff `YouKnow-1.0.0f21.u45`, 20,827,309 bytes, SHA-256
+`73fd337829136104a21ca9f7a460f38a1f7e3b3e46a6c22b836b5cf5e33101b6`; the front,
+back and 800x800 thumbnail Shop images; the manual; this evidence; the
+changelog; a build manifest recording the source commit, tree state, chip and
+compiled-source hashes; and verified `SHA256SUMS`. Its `validation/`
+subdirectory retains the contract, parity, fuzz-campaign, bank, build, metadata
+and timing logs. The candidate is not committed; the manifest therefore records
+`source_tree_clean: false` together with every compiled source hash.
+
+No f21 cloud build, host creation test, Shop publication or acceptance is
+claimed. Uploading waits on the pending submission the portal reported for f20
+(its support request is retained with that candidate), and interactive SDK
+acceptance and representative Reason-song timing remain open.
+
+# Retained YouKnow 1.0.0f20 candidate
 
 Synchronized on 2026-09-10 to production upstream
 `c9d3c571c6d8586fbb19c8e821e66f68607dfdff`; a final remote-main check confirms

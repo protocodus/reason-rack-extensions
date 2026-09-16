@@ -9,66 +9,96 @@ vst-instruments monorepo") in
 checkout is `/Users/vojta/Dev/virtual-instrument-youknow/Source/DSP`**; the
 former monorepo path in earlier revisions of this file no longer exists.
 
-Synchronized on 2026-09-10 from freshly fetched production `origin/main` at
-`c9d3c571c6d8586fbb19c8e821e66f68607dfdff` ("Merge pull request #4 from
-protocodus/claude/juno-plugin-realism-cxycuk"). The shared DSP's latest change
-is `a163cd8` ("Sample the jack-board temperature on the converter pass, not the
-callback"). Source was read from a `git archive` of that exact revision. The
-nominated checkout remains on its existing `codex/fix-builds-distribution`
-branch; its unrelated untracked `Assets/store` files were left untouched.
+Synchronized on 2026-09-16 from the nominated checkout, whose `main` equals
+freshly fetched production `origin/main` at
+`5d9390daaa518e91e64ad454736b011dfd05168c` ("CI: refresh screenshot and audio
+demos"). Its shared DSP is identical to `1e9522a` ("fix(dsp): adopt
+circuit-derived input coupling"), the latest DSP commit. The checkout also holds
+one uncommitted DSP change, taken deliberately: `YouKnowEngine::sanitise()` maps
+out-of-range enumerations (key mode, PWM source, range, HPF, envelope polarity,
+VCA mode, chorus, noise-calibration and chorus-timing profiles) to their
+defaults. The working-tree diff of `Source/DSP` against `5d9390d` is that single
+35-line hunk (diff SHA-256
+`80ae130d24ca6f153cf62489cd97f3e23bce1ae64dc24574bf264c8c04846792`). The
+checkout's other uncommitted changes are plug-in, CMake and demo tooling, not
+DSP dependencies, and were left untouched.
 
 This is an intentional sound-model and bug-fix update from the previous
-`013b25702145b72d67965665c701f59e105c52b7` synchronization. Only
-`YouKnowEngine.h`, `YouKnowEngine.cpp`, and `YouKnowChorus.cpp` changed upstream:
+`c9d3c571c6d8586fbb19c8e821e66f68607dfdff` synchronization; 31 upstream commits
+touched `Source/DSP`:
 
-- The main noise source now draws bounded Gaussian avalanche noise at the
-  previous RMS coordinate, preventing quality-dependent amplitude statistics.
-- VCF LFO and bend follow the recovered integer control words, including their
-  low-depth truncation and bend centre dead zone. LFO delay follows running
-  voices, including sustain, instead of only physical key presses. Envelope
-  attack hands over on the pass that exceeds the peak.
-- The jack output includes its host-rate R64/R65-C22/C21 pole. Common VCA gain
-  follows jack-board temperature, sampled on converter passes so output does
-  not depend on callback partitioning.
-- Correction steps at an interval's left boundary retain the prior sample's
-  side of the event. Reported pulse duty follows each card's actual comparator
-  threshold. Quality fades reach exact zero at their scheduled sample; the
-  latency calculation now matches the measured decimator delay. The declared
-  41-sample latency and existing 1x/2x pads remain unchanged.
-- Unknown/nonpositive sample rates use 48 kHz. Chorus wet mute reaches exact
-  zero without relying on host flush-to-zero behavior; corrected circuit
-  provenance remains in the source comments.
+- DCO: the configurable clock is coupled to audio and to the accelerated
+  thermal model; held control current integrates causally; joint capacitor and
+  range-resistor variation is preserved; RANGE switches C54's charging resistor
+  at its PF write; a configurable retained-charge reset is integrated; and
+  portamento advances before DCO writes. New helpers `YouKnowDcoComponents.h`,
+  `YouKnowDcoReset.h` and `YouKnowDcoTemperature.h` carry that circuit.
+- Firmware: filter control precision, envelope update ordering and phase
+  latches follow B-2; a nominal control-pass trace (`YouKnowFirmwareProgram.h`,
+  `YouKnowFirmwareTrace.*`) and voice-board command replay exist as comparison
+  paths.
+- Converters and VCAs: the envelope DAC span, common VCA buffer gain and loaded
+  DAC bias network are derived (`YouKnowControlDac.h`); the voice VCA response
+  follows temperature, its service calibration and HOLD state match hardware,
+  and finite envelope-hold acquisition is modelled (`YouKnowEnvelopeHold.h`).
+- Noise: VCF resistor noise is distributed across the four stages and card
+  resistor noise scales with temperature.
+- Chorus: coupled input loading, finite mute discharge resistance, an optional
+  clock-mute circuit and four renderable timing candidates (the shipping profile
+  stays the default).
+- Output and input: the analog output-jack rolloff is a magnitude-matched pole
+  (`YouKnowOutputJack.h`), and the product adopts circuit-derived C56 input
+  coupling.
+- `YouKnowProductFidelity.h` centralizes the product's circuit selections: the
+  110-ohm HPF switch, the thermal DCO clock proxy, C56 input coupling and the
+  serviced VCF calibration.
 
-No properties, stored ordinals, parameter fields, tables, or Rack wrapper
-contracts were added or removed. All intentional Rack adaptations below remain.
+No Reason properties, stored ordinals or automation identities were added or
+removed. `EngineParameters` gains `enableVoiceVcaServiceGain`,
+`enableVoiceVcaTemperature`, `enableChorusClockMuteCircuit` and
+`chorusTimingProfile` (replacing `useA11EffectiveChorusTimingProfile`); they
+keep source defaults and add no host controls.
 
-The preceding sound-model sync was on 2026-09-08 at
-`72e1d4482324465993c8e62609fa345e848d3b70` ("Document fixed filter
-calibration and reference-card comparisons").
+The Rack product now renders with the source plug-in's complete product
+configuration, shared by the wrapper and every product-measuring harness in
+`ProductConfiguration.h`: `ProductFidelityProfile` before the first `prepare()`
+and on every parameter snapshot, plus the `MeasuredChartGeometry` converter
+timing that the plug-in's `prepareToPlay()` and its product renderers select
+(an upstream listening decision of 2026-09-04). Earlier Rack candidates never
+selected that timing, so this closes a product-parity gap as well as adopting
+the new selections.
 
-The prior port recorded `7ed16c42046ed0c2966096ca4c4b8664cf64dcc2`.
-This update brings across the actual intervening DSP changes: coupled voice-VCA
-control, the measured SUB diode law, fixed full-resonance VCF service trim,
-corrected PWM feedback/output smoothing, coupled chorus mute capacitors, and
-reconstruction of the chorus's held noise before numerical sampling. These
-upstream model changes intentionally change audio relative to the previous
-Rack port. Measured reference-card/noise/chorus profiles, firmware DCO timing,
-the coupled mixer, and the finite-resistance HPF circuit remain opt-in native
-comparison paths with upstream defaults; they add no host properties.
-
-| Upstream source | SHA-256 |
+| Upstream source (nominated checkout) | SHA-256 |
 | --- | --- |
-| `YouKnowEngine.h` | `11d18c0543f19649685c75ad9a45cc0eb6c81124008d4340feae26d79d4652da` |
-| `YouKnowEngine.cpp` | `53435a755ed789f4bbe3a6f2aa9f6769508fb80f0ad3e639d5c5e5876f2f1b61` |
-| `YouKnowChorus.h` | `aafd8b3a62c0879a45bcffe5a40e9bf02ec3b6d04b3d80237c2eefcdf07c056b` |
-| `YouKnowChorus.cpp` | `df757abc4242e0842d976b76effcb90e05e34c71ed862a7278745b7d0bdcb600` |
-| `YouKnowCoupledMixer.h` | `66e4bb603fb926c071e9654d03461052c636f758a35fcc30daf87e70a90a9d06` |
-| `YouKnowHighPassSwitch.h` | `4ae45325506bd0590ca05b5ead51bc69a30e16bc4dcc9ea78540910548a96d84` |
+| `YouKnowEngine.h` | `8c3d099d28593bb5ca1b466548c41681ee33e517f07f718d53db39da63853d84` |
+| `YouKnowEngine.cpp` | `1d7d9278ffedd1d300c310ebcf2fffdd9f44e72d3d30403bdb031ebda1a587e2` |
+| `YouKnowChorus.h` | `5f86b79a6cf74f22f74309a928fd51023249e342182bf0f630894073dcaaa01a` |
+| `YouKnowChorus.cpp` | `1317903cd62c9ccd713c5969a83438b4dc8d0cf2e2c54788e7c6495ff994350d` |
+| `YouKnowControlDac.h` | `5dc6f68e2b93c50975feb1e94b90c3f198239451071cd0ac080833b8638aa60e` |
+| `YouKnowCoupledMixer.h` | `b66c33b2731e340393e9e58910e310ce0e603ad0ed94fa1ee1ffbc34b65ed2c4` |
+| `YouKnowDcoComponents.h` | `aad6cb567e93f76c5ffc84b115df65004b5276343b542f071890d2b31748b788` |
+| `YouKnowDcoReset.h` | `f9eea3cf4f196f485272cf0be04bb6f21c9e1a7e53a2f08289a9faf73032094a` |
+| `YouKnowDcoTemperature.h` | `0e52db39e51810be461c36558276fc7c450a6d02d4d4d80c7a449e7f18301c70` |
+| `YouKnowEnvelopeHold.h` | `799b7abe4123b497a3de2d0be022e0d57406adeb3169f5ed8e823f70f9fb0c33` |
+| `YouKnowFirmwareProgram.h` | `2109da6a369998f8c6327eb6124b773ba5309d9251ae6e0218c6d4875b5d1007` |
+| `YouKnowFirmwareTrace.h` | `ddd690de8ca696af170e186d1fd7ce2403c5af433f0c28e28b8be0b94af5253d` |
+| `YouKnowFirmwareTrace.cpp` | `106cdde9d32d3a88f32db9161e6888309fd271be5f9837de663e0b5598deda27` |
+| `YouKnowHighPassSwitch.h` | `33cc1311635ca3c6b850e952b5f0592db86c47b0bd93adfd07d960f7f1dd2eb8` |
 | `YouKnowNoiseCalibration.h` | `a6fe97a772df0c633a0c90a0fba06ce9466a8e5ca4f6a75f8e966353a9b5654a` |
+| `YouKnowOutputJack.h` | `b2eb43e45a0dfec0442679b144b5b11ffcef2f6153a9372ac7fe7747b37eb0e5` |
+| `YouKnowProductFidelity.h` | `0ff45e77b4ead10bd53567a08e1bbd4d725690382d3b514cfae0fb5d92fdde98` |
 | `YouKnowPwmControl.h` | `3b661483146cd701b33bd349525c3de00720114c128e9b219f85dfbb27705eb2` |
 | `YouKnowReferenceVcf.h` | `3f4c422d72b3dbb695847989be0cfb5c7ab4fb635f9dd94e36c5d623660ba1a9` |
 | `YouKnowSubLevel.h` | `2a2a877619103c6870513df4753147da19d9bb28425437f1e667b880c4479d99` |
-| `YouKnowVcaControl.h` | `15d689be6823ab53ee2d184054ff00629148fd40a1c0b60608f7cb2aede1a385` |
+| `YouKnowVcaControl.h` | `1c59ded44bef6dc19bad3231f567baeb0fc4413ac8062f48be90f618197f71db` |
+
+Only `YouKnowEngine.cpp` differs from the `5d9390d` blob
+(`46328bf1b4810dce5bf0dfd4f46342e1cccb2d1fd0b1b54675a51e0188f0e9a7`), by the
+sanitising hunk above. `YouKnowControlDac.h`, `YouKnowCoupledMixer.h`,
+`YouKnowDco*.h`, `YouKnowEnvelopeHold.h`, `YouKnowFirmwareProgram.h`,
+`YouKnowFirmwareTrace.h`, `YouKnowHighPassSwitch.h`,
+`YouKnowNoiseCalibration.h`, `YouKnowPwmControl.h` and `YouKnowReferenceVcf.h`
+are byte-identical copies.
 
 The port includes the exact voice-VCA junction/control law and signal
 saturation, C59 coupling constrained by its drawn series resistance, input-side
@@ -77,37 +107,54 @@ DCO/noise/resonance holds, circuit-derived noise/resonance onset, differential
 resonance input and its reconstructed compensation bracket, card Johnson noise
 and common-VCA noise, capacitor/service-frequency calibration, departing HPF
 cut/Boost charge states, chorus mute-drive charge and bypass evolution,
-per-line chorus insertion spread, and the upstream +2.5 dB output policy. It
-also carries the newer Merson kernel source changes; Rack uses the scalar
-kernel until SDK target SIMD support has been qualified.
+per-line chorus insertion spread, and the upstream +2.5 dB output policy, now
+with the circuit-level DCO, firmware, converter, envelope-hold, noise, chorus and
+output/input changes above. It also carries the Merson kernel source; Rack uses
+the scalar kernel until SDK target SIMD support has been qualified.
 
 The shared engine sources are merged deliberately with the following Rack
 adaptations:
 
 - C++17 equivalents replace C++20 bit-casts, defaulted parameter equality,
-  templated lambdas, and branch-likelihood attributes. All 70 parameter fields,
-  including comparison-only switches, participate in equality.
+  templated lambdas, `std::numbers::pi`, a constexpr `std::array::fill` and
+  branch-likelihood attributes. All 73 parameter fields, including
+  comparison-only switches, participate in equality.
 - Oscillator correction, BBD/VCF transfer, resonance-frequency trim,
   harmonic describing, voice-VCA gain, SUB diode gain, and coupled VCA
-  charge/differential tables are immutable hexadecimal chip data. The service calibration's nominal droop is the exact hexadecimal
-  result of the upstream solve. The card Johnson-noise amplitude is the exact
-  upstream binary32 value `0x1.a0b024p-13f`, frozen and bit-compared against its
-  source calculation: native constant folding of its square-root initializer
-  was insufficient for the SDK global-constant analyzer. This avoids guarded initialization, table
-  construction during rendering, and writable runtime-initialized globals.
-  Per-card service calibration retains the upstream bounded solve at a
-  Character/model change; it does not run on settled blocks.
-- New table copies were generated from the nominated C++ builders. The
-  standalone table contract rebuilds and bit-compares 513 BBD nodes, 216 VCF
-  intervals, 129 resonance trims, 6,146 oscillator-correction samples,
-  513 describing nodes, 4,097 voice-VCA gain entries, 8,194 coupled VCA
-  charge/differential entries, 4,097 SUB diode gain entries, and the card-noise
-  constant. The new VCA circuit object and SUB table are constant-initialized;
-  no static guard or first-note table construction is introduced.
+  charge/differential tables are immutable hexadecimal chip data. The service
+  calibration's nominal droop and the voice VCA's service gain
+  (`0x1.47715cp+0f`) are the exact hexadecimal results of the upstream solves;
+  the coupled VCA circuit's knee coordinates are constant-folded and
+  `static_assert`ed against the source constructor. The card Johnson-noise
+  amplitude is the exact upstream binary32 value `0x1.a0b024p-13f`, frozen and
+  bit-compared against its source calculation: native constant folding of its
+  square-root initializer was insufficient for the SDK global-constant analyzer.
+  This avoids guarded initialization, table construction during rendering, and
+  writable runtime-initialized globals. Per-card service calibration retains the
+  upstream bounded solve at a Character/model change; it does not run on settled
+  blocks.
+- The firmware control-trace coefficient tables, a function-local static in the
+  source, are an engine member filled by the constructor.
+- The three voice-VCA tables were regenerated from the exact upstream builders
+  on the corrected `ControlDac` full-scale span. The standalone table contract
+  rebuilds and bit-compares 513 BBD nodes, 216 VCF intervals, 129 resonance
+  trims, 6,146 oscillator-correction samples, 513 describing nodes, 4,097
+  voice-VCA gain entries, 8,194 coupled VCA charge/differential entries, 4,097
+  SUB diode gain entries, the nominal service droop and the card-noise constant;
+  the regression contract bit-compares the frozen service gain with the live laws.
+- `ProductFidelityProfile::configureBeforePrepare()` reports a refused circuit
+  configuration instead of throwing: a Rack native object has no exception path,
+  so the wrapper asserts on the result during `JBox_Export_CreateNativeObject`.
+  The selections are identical.
 - Fixed hexadecimal/literal chassis gradients and C++17 dispatch preserve the
   existing SDK adaptations. Paired/quad SIMD is disabled; reference and fast
   scalar kernels retain all upstream physics. Upstream work-audit instrumentation
   is not enabled or shipped as a runtime dependency.
+- `noteOn()` gives a nonfinite velocity the velocity extension's neutral full
+  scale. `std::clamp` passes NaN through, and the source would carry it into the
+  coupled VCA control law, silencing the card and reaching an undefined
+  float-to-integer table index. Finite velocities are unchanged. The Rack wrapper
+  never produces such a velocity; the engine contract and fuzz hold the API to it.
 - `setInitialOversamplingFactor()` restores a song's initial quality before its
   first note without starting a live-change fade. Later quality changes wait
   for silence and complete the safety fade before reporting readiness.
@@ -133,14 +180,17 @@ adaptations:
   Chorus Off/I/II/I+II keeps ordinals 0/1/2/3 and Chorus Noise defaults to
   `0.29858038`. The shared engine's Aging reference default stays zero; fresh
   Rack devices start at 50% through the song-persistent motherboard property,
-  while existing songs restore their stored value. New physical-model comparison switches
-  use source defaults without adding host controls.
+  while existing songs restore their stored value. New physical-model comparison
+  switches use source defaults without adding host controls.
+- The engine object is 70,168 bytes and the Rack native object 71,528 bytes.
+  The former 64 KiB contract predates the firmware trace, per-voice reset
+  correction and per-stage filter noise; the SDK documents no native-object
+  ceiling, so the contracts now hold a 96 KiB growth guard.
 - Source panel, preset and SysEx adapters are not DSP dependencies of the Rack
   engine. Reason owns those host surfaces. No upstream preset payload is copied;
-  the independent public Rack bank retains every musical parameter. Six
-  existing level trims are attenuated by 0.234–1.139 dB to keep the updated
-  DSP within its existing peak/RMS limits at Aging 0% and 50%; the measurement
-  and adjustment evidence lives in `Design/preset_levels.json`.
+  the independent public Rack bank is recalibrated to the updated product sound
+  (see the dated section below); its measurement and adjustment evidence lives
+  in `Design/preset_levels.json`.
 - Files, C++ types, namespaces, and macros retain YouKnow identity. Circuit
   documentation retains original manufacturer/model names where needed to
   identify the cited physical source.
@@ -263,6 +313,39 @@ build/install a new package or run a Reason host test.
 
 ## 2026-09-10 firmware and output-stage synchronization
 
+Synchronized on 2026-09-10 from freshly fetched production `origin/main` at
+`c9d3c571c6d8586fbb19c8e821e66f68607dfdff` ("Merge pull request #4 from
+protocodus/claude/juno-plugin-realism-cxycuk"). The shared DSP's latest change
+is `a163cd8` ("Sample the jack-board temperature on the converter pass, not the
+callback"). Source was read from a `git archive` of that exact revision. The
+nominated checkout remains on its existing `codex/fix-builds-distribution`
+branch; its unrelated untracked `Assets/store` files were left untouched.
+
+This is an intentional sound-model and bug-fix update from the previous
+`013b25702145b72d67965665c701f59e105c52b7` synchronization. Only
+`YouKnowEngine.h`, `YouKnowEngine.cpp`, and `YouKnowChorus.cpp` changed upstream:
+
+- The main noise source now draws bounded Gaussian avalanche noise at the
+  previous RMS coordinate, preventing quality-dependent amplitude statistics.
+- VCF LFO and bend follow the recovered integer control words, including their
+  low-depth truncation and bend centre dead zone. LFO delay follows running
+  voices, including sustain, instead of only physical key presses. Envelope
+  attack hands over on the pass that exceeds the peak.
+- The jack output includes its host-rate R64/R65-C22/C21 pole. Common VCA gain
+  follows jack-board temperature, sampled on converter passes so output does
+  not depend on callback partitioning.
+- Correction steps at an interval's left boundary retain the prior sample's
+  side of the event. Reported pulse duty follows each card's actual comparator
+  threshold. Quality fades reach exact zero at their scheduled sample; the
+  latency calculation now matches the measured decimator delay. The declared
+  41-sample latency and existing 1x/2x pads remain unchanged.
+- Unknown/nonpositive sample rates use 48 kHz. Chorus wet mute reaches exact
+  zero without relying on host flush-to-zero behavior; corrected circuit
+  provenance remains in the source comments.
+
+No properties, stored ordinals, parameter fields, tables, or Rack wrapper
+contracts were added or removed by that synchronization.
+
 The strict C++17 engine and frozen-table contracts pass. Frozen `.inc` data
 are unchanged and all upstream builder identity checks still pass. The engine
 occupies 42,296 bytes and the Rack native object 43,656 bytes, both below their
@@ -294,4 +377,76 @@ Exact source hashes, the parity driver and logs, engine/frozen/regression logs,
 and commands are retained under `Output/Diagnostics/DspSync-20260910/`.
 Wrapper, automation, public-bank levels, native timing, SDK builds and actual
 host/release acceptance are recorded separately in
+[release evidence](../Docs/RELEASE_EVIDENCE.md).
+
+## 2026-09-16 upstream synchronization, product configuration and hardening
+
+This section validates the synchronization described at the top of this file.
+All native results below use Apple Clang with warnings treated as errors.
+
+**Parity.** A deterministic scalar driver renders 42 scenarios of 480 64-frame
+48 kHz stereo blocks through the nominated checkout's sources (C++20, `-O3
+-DNDEBUG -U__ARM_NEON -U__SSE2__`) and through this port (C++17, `-O3 -DNDEBUG`).
+All 42 are bit-identical; both hash logs share SHA-256
+`4074833387e91700c2b8ea2be1b2b0276a2cac23b5ab7ae183645359bb91037d`. Scenarios
+0-38 cover every quality, tanh and solver path, reference and comparison
+profiles, the four chorus timings, firmware DCO and control-trace timing, the
+DCO reset circuit, envelope holds, the coupled mixer, finite HPF resistances and
+the product-fidelity selections; their hashes equal those of the first merge of
+this synchronization, so the sanitising and velocity changes leave valid input
+untouched. Scenarios 39-40 render the complete Rack product configuration at
+1x and 2x, and 41 feeds out-of-range enumerations to both `sanitise()` paths.
+
+**Contracts.** The frozen-table contract, the engine-render contract (engine
+70,168 bytes, native object 71,528 bytes, quality/kernel hashes unchanged by the
+hardening), the upstream regression contract (19 groups; the common-VCA law's
+expected levels follow upstream `583e2f3`), the verbatim envelope-firmware oracle
+and the behavioural render pass. The wrapper contract passes optimized and
+under AddressSanitizer plus UndefinedBehaviorSanitizer, including its new
+product-configuration, musical-phrase (two rates, three key modes, pedal up and
+down, seven phrases) and malformed-control checks. The automation-artifact
+contract passes all 40 parameters on the product configuration; the worst
+continuous slew is 1.02x its held reference.
+
+**Robustness.** Before these fixes the sanitized fuzzers found two undefined
+float-to-integer conversions: a NaN note velocity reaching the coupled VCA
+control table, and hostile stepped property values in the wrapper (for example
+`1e300` for Transpose). Both are fixed at their source and pinned by focused
+regressions. The wrapper now reads every nonfinite property as its declared
+default from one table that `Tests/validate_patches.py` checks against
+`motherboard_def.lua`, and clamps finite values before any conversion or CV
+modulation. With programs drawn portably from raw
+`std::mt19937` words, the engine fuzz then passed 48 seeds x 600 blocks, a
+200-seed x 1,000-block campaign (about 400,000 API events) and 36 sanitized
+seeds; the wrapper fuzz passed 24 seeds x 400 batches, a 120-seed x
+1,000-batch campaign (about 720,000 host events) and 16 sanitized seeds. Each checker was shown to
+catch a deliberately injected defect: a retriggering duplicate press (in every
+key mode), a silently dropped Poly pitch, an overlap press-count error, an
+initial-quality call that always resets, and a wrapper that no longer pairs
+excess same-frame releases.
+
+**Bank.** Retaining the f20 trims would fail 64 patches against the updated
+product sound (median level +0.5 dB, extremes -3.3 to +3.2 dB), so all 100
+trims were recalibrated at Aging 0% on the product configuration. The median
+trim moves -0.559 dB (-2.826 dB for Falling Star to +2.485 dB for Hollow Fifths;
+three trims stay at the +18 dB ceiling). Storm Signal could no longer reach the
+0.04 audibility floor even at that ceiling, so its volume rises from 0.62 to
+0.72 (+1.3 dB); no other musical value changes. At Aging 50%, Broken Telemetry
+(0.185034 peak) and Circuit Rain (0.220611) exceeded the ceiling; their trims
+fall by 0.2397 dB and 1.7672 dB by the established maximum-of-both-agings method,
+recorded in `Design/preset_levels.json`. All 100 patches then pass at Aging 50%
+(maximum peak 0.180120, maximum RMS 0.040013) and 0% (0.180001, 0.040002); the
+low/high six-note stress peaks are 0.388021 and 0.416929.
+
+**Open parity note.** Reason's audio reset remains a cold `reset()`, which
+restarts the modelled chassis warm-up; the source plug-in keeps warm-up across
+host stops (`resetForHostStop()`). With the new clock and VCA temperature
+couplings, a reset therefore replays up to about 1 cent of DCO warm-up drift and
+the temperature-dependent VCA level change while notes play. The cold reset
+keeps Reason's "as if no sound was ever sent" audio-reset contract literal; the
+alternative is a product decision, not taken here.
+
+The parity driver and both hash logs, the contract, sanitizer, fuzz-campaign,
+bank, metadata, build and timing logs are retained with the candidate under
+`Release/1.0.0f21/validation/`; release results are in
 [release evidence](../Docs/RELEASE_EVIDENCE.md).

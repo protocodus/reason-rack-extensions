@@ -1,9 +1,9 @@
 # YouKnow asset and SDK provenance inventory
 
-Current candidate: YouKnow `1.0.0f20`; it synchronizes upstream `c9d3c57`,
-including the noise, modulation, output-stage and chorus corrections. These
-are intentional sound-model changes. The permanent product identity and
-musical patch settings are retained. Candidate validation and any level-trim
+Current candidate: YouKnow `1.0.0f21`; it synchronizes upstream `5d9390d` and
+the source instrument's product circuit selections. These are intentional
+sound-model changes. The permanent product identity is retained; patch level
+trims are recalibrated and one patch volume (Storm Signal) is raised. Candidate validation and any level-trim
 changes are recorded in [release evidence](RELEASE_EVIDENCE.md).
 The dated `1.0.0f14` audits and hashes below retain their historical scope.
 This is an engineering traceability record, not a legal conclusion, ownership
@@ -247,9 +247,14 @@ recorded licensing and deployment evidence belongs to the support-site history.
   SDK CV jack input; this change introduces no new external artwork or fonts.
   CV behavior and control metadata are defined in the Rack adapter and
   `motherboard_def.lua`.
-- `Docs/build_release_materials.py` derives `Release/shop/*.png` and the PDF
-  manual from the assembled panels and maintained Markdown notices. `Release/`
-  is ignored build output; final artifact hashes belong in
+- `Docs/build_release_materials.py` derives the Shop front and back views, the
+  1:1 thumbnail and the PDF manual in `Release/<version>/` from the assembled
+  panels and maintained Markdown notices. The thumbnail composites the front
+  panel on a code-drawn background in the Protocodus support site's own palette
+  (`#0d0e12`, brand `#87D7BE` and `#F6D155`) and sets the product name in the
+  listed DIN Condensed Bold face; it introduces no external artwork or fonts.
+  `Docs/assemble_release.py` completes that directory with the U45, manifest and
+  checksums. `Release/` is ignored build output; final artifact hashes belong in
   `Docs/RELEASE_EVIDENCE.md` and the versioned handoff manifest.
 - Pillow `11.0.0` and ReportLab `5.0.1` are pinned build-only dependencies in
   `Docs/build_release_materials.py`; their code is not embedded in the U45.

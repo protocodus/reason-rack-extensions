@@ -105,7 +105,7 @@ jobs:
           clang++ -std=c++17 -O1 -g -I. \
             -fsanitize=address,undefined -fno-sanitize-recover=all \
             -fno-omit-frame-pointer Tests/rendercheck.cpp \
-            DSP/YouKnowEngine.cpp DSP/YouKnowChorus.cpp -o /tmp/rendercheck-asan
+            DSP/YouKnowEngine.cpp DSP/YouKnowChorus.cpp DSP/YouKnowFirmwareTrace.cpp -o /tmp/rendercheck-asan
           /tmp/rendercheck-asan
 
       - name: Whole patch bank under ASan + UBSan
@@ -114,12 +114,23 @@ jobs:
           clang++ -std=c++17 -O1 -g -I. \
             -fsanitize=address,undefined -fno-sanitize-recover=all \
             -fno-omit-frame-pointer Tests/AllPatchRenderContract.cpp \
-            DSP/YouKnowEngine.cpp DSP/YouKnowChorus.cpp -o /tmp/all-patch-asan
+            DSP/YouKnowEngine.cpp DSP/YouKnowChorus.cpp DSP/YouKnowFirmwareTrace.cpp -o /tmp/all-patch-asan
           python3 -c 'import sys; sys.path.insert(0, "Tests"); \
             from run_all_patch_render import manifest_row, PUBLIC; \
             print("\n".join(manifest_row(p) for p in sorted(PUBLIC.rglob("*.repatch"))))' \
             > /tmp/manifest.tsv
           /tmp/all-patch-asan < /tmp/manifest.tsv
+
+      - name: Engine fuzz under ASan + UBSan
+        working-directory: Examples/YouKnow
+        # Hostile controls, notes and resets on the reference and product
+        # configurations, with exact press-count and stuck-voice invariants.
+        run: |
+          clang++ -std=c++17 -O1 -g \
+            -fsanitize=address,undefined -fno-sanitize-recover=all \
+            -fno-omit-frame-pointer Tests/EngineFuzzContract.cpp \
+            DSP/YouKnowEngine.cpp DSP/YouKnowChorus.cpp DSP/YouKnowFirmwareTrace.cpp -o /tmp/engine-fuzz-asan
+          /tmp/engine-fuzz-asan --seeds 8 --blocks 300
 
   dsp:
     name: DSP contracts (macOS)
@@ -150,7 +161,7 @@ jobs:
         working-directory: Examples/YouKnow
         run: |
           clang++ -std=c++17 -O2 -I. Tests/rendercheck.cpp \
-            DSP/YouKnowEngine.cpp DSP/YouKnowChorus.cpp -o /tmp/rendercheck
+            DSP/YouKnowEngine.cpp DSP/YouKnowChorus.cpp DSP/YouKnowFirmwareTrace.cpp -o /tmp/rendercheck
           /tmp/rendercheck
 
       - name: Upstream DSP regressions
@@ -158,8 +169,24 @@ jobs:
         run: |
           clang++ -std=c++17 -O3 -DNDEBUG -Wall -Wextra -Wpedantic -Werror \
             Tests/UpstreamDspRegressionContract.cpp \
-            DSP/YouKnowEngine.cpp DSP/YouKnowChorus.cpp -o /tmp/upstream-regressions
+            DSP/YouKnowEngine.cpp DSP/YouKnowChorus.cpp DSP/YouKnowFirmwareTrace.cpp -o /tmp/upstream-regressions
           /tmp/upstream-regressions
+
+      - name: Envelope firmware oracle
+        working-directory: Examples/YouKnow
+        run: |
+          clang++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Werror \
+            Tests/EnvelopeFirmwareContract.cpp \
+            DSP/YouKnowEngine.cpp DSP/YouKnowChorus.cpp DSP/YouKnowFirmwareTrace.cpp -o /tmp/envelope-firmware
+          /tmp/envelope-firmware
+
+      - name: Engine fuzz
+        working-directory: Examples/YouKnow
+        run: |
+          clang++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Werror \
+            Tests/EngineFuzzContract.cpp \
+            DSP/YouKnowEngine.cpp DSP/YouKnowChorus.cpp DSP/YouKnowFirmwareTrace.cpp -o /tmp/engine-fuzz
+          /tmp/engine-fuzz
 
       - name: Every public patch renders
         working-directory: Examples/YouKnow

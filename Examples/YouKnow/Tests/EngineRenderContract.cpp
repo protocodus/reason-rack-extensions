@@ -75,6 +75,9 @@ struct YouKnowTestAccess
         envelope.value = YouKnowEngine::envelopeDacFraction(envelope.level);
         const float previousValue = envelope.value;
         envelope.noteOn();
+        // B-2 samples FF11 at the start of the pass (02F2..02FF); the
+        // accumulator itself survives the voice command untouched.
+        envelope.latchGate(false);
         if (envelope.stage != YouKnowEngine::EnvelopeStage::Attack
             || envelope.level != 0x1800u || envelope.value != previousValue)
             return false;
@@ -101,6 +104,25 @@ struct YouKnowTestAccess
     static bool dcoResetPending(const YouKnowEngine& engine, int slot) noexcept
     {
         return engine.voices_[static_cast<std::size_t>(slot)].dcoResetPending;
+    }
+
+    struct VoiceKeyState
+    {
+        int note;
+        bool down;
+        bool sustained;
+        bool attacking;
+        float velocity;
+        std::uint64_t generation;
+    };
+
+    static VoiceKeyState voiceKeyState(const YouKnowEngine& engine,
+                                       int slot) noexcept
+    {
+        const auto& voice = engine.voices_[static_cast<std::size_t>(slot)];
+        return { voice.rootMidi, voice.keyDown, voice.sustained,
+                 voice.envelope.stage == YouKnowEngine::EnvelopeStage::Attack,
+                 voice.velocity, voice.generation };
     }
 
     static bool assignmentRescanPending(const YouKnowEngine& engine) noexcept
@@ -437,7 +459,9 @@ bool testNewParameterEqualityFields()
         &Parameters::enableNarrowOneTwoChorus,
         &Parameters::enableChorusMuteDrive,
         &Parameters::enableChorusLineGainSpread,
-        &Parameters::useA11EffectiveChorusTimingProfile,
+        &Parameters::enableVoiceVcaServiceGain,
+        &Parameters::enableVoiceVcaTemperature,
+        &Parameters::enableChorusClockMuteCircuit,
         &Parameters::useFixedVcfServiceFrequencyTrim,
         &Parameters::useServiced439522VcfCalibration,
         &Parameters::enableHighPassDepartingLegTail,
@@ -463,8 +487,11 @@ bool testNewParameterEqualityFields()
     auto resonance = base;
     resonance.resonanceCompensationShape =
         youknow::ResonanceCompensationShape::Drawn;
+    auto chorusTiming = base;
+    chorusTiming.chorusTimingProfile = youknow::ChorusTimingProfile::A11Spectral;
     return base == base && !(base == aged) && !(base == noise)
-        && !(base == resonance) && !(base == noiseProfile);
+        && !(base == resonance) && !(base == noiseProfile)
+        && !(base == chorusTiming);
 }
 
 bool testCalibrationDefaultsAndNoiseProfile()
@@ -474,7 +501,10 @@ bool testCalibrationDefaultsAndNoiseProfile()
     if (!defaults.enableCoupledVoiceVcaControl
         || !defaults.enableSubDiodeControl
         || !defaults.useFixedVcfServiceFrequencyTrim
-        || defaults.useA11EffectiveChorusTimingProfile
+        || defaults.chorusTimingProfile != ChorusTimingProfile::Shipping
+        || defaults.enableChorusClockMuteCircuit
+        || !defaults.enableVoiceVcaServiceGain
+        || !defaults.enableVoiceVcaTemperature
         || defaults.useServiced439522VcfCalibration
         || defaults.mainNoiseCalibrationProfile != MainNoiseCalibrationProfile::Nominal
         || mainNoiseCalibrationScale(static_cast<MainNoiseCalibrationProfile>(255)) != 1.0f)
@@ -680,6 +710,64 @@ bool testAgingPath()
     return differsFromFresh;
 }
 
+// A malformed note velocity carries no dynamics. It must not reach the voice
+// VCA control law as NaN, where it silences the card and converts to an integer
+// table index. Like the engine's other nonfinite controls, NaN and both
+// infinities take the neutral value: full velocity, which the velocity
+// extension leaves unscaled. A finite zero still plays quieter.
+bool testNonFiniteNoteVelocity()
+{
+    struct Render
+    {
+        std::uint64_t hash { 14695981039346656037ull };
+        float peak {};
+        bool finite { true };
+    };
+    const auto render = [](float velocity) {
+        youknow::YouKnowEngine engine;
+        engine.prepare(48000.0, blockSize, 1);
+        auto parameters = fullPathPatch();
+        parameters.velocityDepth = 0.5f;
+        engine.setParameters(parameters);
+        engine.noteOn(60, velocity);
+        Render result;
+        std::array<float, blockSize> left {};
+        std::array<float, blockSize> right {};
+        for (int block = 0; block < 96; ++block)
+        {
+            engine.process(left.data(), right.data(), blockSize);
+            for (int frame = 0; frame < blockSize; ++frame)
+                for (const float sample : { left[static_cast<std::size_t>(frame)],
+                                            right[static_cast<std::size_t>(frame)] })
+                {
+                    result.finite = result.finite && std::isfinite(sample);
+                    result.peak = std::max(result.peak, std::abs(sample));
+                    hashFloat(result.hash, sample);
+                }
+        }
+        return result;
+    };
+    const Render full = render(1.0f);
+    const Render silent = render(0.0f);
+    const Render nan = render(std::numeric_limits<float>::quiet_NaN());
+    const Render positive = render(std::numeric_limits<float>::infinity());
+    const Render negative = render(-std::numeric_limits<float>::infinity());
+    if (!full.finite || !silent.finite || !nan.finite || !positive.finite
+        || !negative.finite || !(full.peak > silent.peak))
+    {
+        std::fprintf(stderr, "nonfinite note velocity fixture failed\n");
+        return false;
+    }
+    if (nan.hash != full.hash || positive.hash != full.hash
+        || negative.hash != full.hash)
+    {
+        std::fprintf(stderr, "a nonfinite note velocity did not play at the "
+                             "neutral full velocity\n");
+        return false;
+    }
+    return true;
+}
+
 bool testPhysicalHeldNoteState()
 {
     using Access = youknow::YouKnowTestAccess;
@@ -784,6 +872,189 @@ bool testPhysicalHeldNoteState()
                 return false;
     }
 
+    return true;
+}
+
+void renderSamples(youknow::YouKnowEngine& engine, int samples)
+{
+    std::array<float, blockSize> left {};
+    std::array<float, blockSize> right {};
+    for (int offset = 0; offset < samples; offset += blockSize)
+        engine.process(left.data(), right.data(),
+                       std::min(blockSize, samples - offset));
+}
+
+float renderPeak(youknow::YouKnowEngine& engine, int samples, int skip)
+{
+    std::array<float, blockSize> left {};
+    std::array<float, blockSize> right {};
+    float peak = 0.0f;
+    for (int offset = 0; offset < samples; offset += blockSize)
+    {
+        const int count = std::min(blockSize, samples - offset);
+        engine.process(left.data(), right.data(), count);
+        if (offset + count <= skip)
+            continue;
+        for (int frame = std::max(0, skip - offset); frame < count; ++frame)
+            peak = std::max(peak, std::abs(left[static_cast<std::size_t>(frame)]));
+    }
+    return peak;
+}
+
+// Same-pitch overlaps, duplicate/unmatched key edges and zero-gap off/on
+// handoffs, after the upstream engine suite. MIDI can hold one pitch several
+// times over even though the keyboard has one bit per key: each off must
+// consume exactly one press, a duplicate on must not retrigger, an off for a
+// key that was never pressed must do nothing, and a chord replaced at a
+// genuine zero-gap boundary with every card occupied must attack again on
+// every card with the new velocity, at equal or new pitches.
+bool testEqualNoteOverlapsAndGaplessHandoffs()
+{
+    using Access = youknow::YouKnowTestAccess;
+    using youknow::KeyMode;
+    const auto fail = [](const char* message) {
+        std::fprintf(stderr, "%s\n", message);
+        return false;
+    };
+    const auto shortEnvelope = [](KeyMode mode) {
+        auto parameters = fullPathPatch();
+        parameters.chorus = youknow::ChorusMode::Off;
+        parameters.keyMode = mode;
+        parameters.attack = 0.0f;
+        parameters.decay = 0.0f;
+        parameters.sustain = 0.2f;
+        parameters.release = 0.0f;
+        return parameters;
+    };
+
+    // Duplicate and unmatched key edges.
+    {
+        constexpr double sampleRate = 48000.0;
+        constexpr int scanPeriod = static_cast<int>(sampleRate * 0.0042);
+        youknow::YouKnowEngine engine;
+        engine.prepare(sampleRate, blockSize, 1);
+        auto parameters = shortEnvelope(KeyMode::Unison);
+        parameters.polyphony = 1;
+        engine.setParameters(parameters);
+        engine.noteOn(60, 1.0f);
+        renderSamples(engine, scanPeriod * 80 + scanPeriod - 1);
+        const float sustain = engine.getDisplayEnvelope();
+        engine.noteOn(60, 0.3f);
+        renderSamples(engine, 2);
+        if (std::abs(engine.getDisplayEnvelope() - sustain) > 0.01f)
+            return fail("a duplicate Note On retriggered an already-high key bit");
+        renderSamples(engine, scanPeriod - 2);
+        const float beforeUnmatched = engine.getDisplayEnvelope();
+        engine.noteOff(61);
+        renderSamples(engine, 2);
+        if (std::abs(engine.getDisplayEnvelope() - beforeUnmatched) > 0.01f)
+            return fail("an unmatched Note Off changed a sounding assignment");
+    }
+
+    // Overlapping equal notes release only on the final off.
+    for (const auto mode : { KeyMode::Poly1, KeyMode::Poly2, KeyMode::Unison })
+        for (const bool pedal : { false, true })
+        {
+            youknow::YouKnowEngine engine;
+            engine.prepare(48000.0, blockSize, 1);
+            engine.setParameters(shortEnvelope(mode));
+            renderSamples(engine, 1024);
+            engine.setSustainPedal(pedal);
+            engine.noteOn(60, 0.8f);
+            renderSamples(engine, 8192);
+            const auto initial = Access::voiceKeyState(engine, 0);
+            const int expectedVoices = mode == KeyMode::Unison ? 6 : 1;
+
+            engine.noteOn(60, 0.3f);
+            engine.noteOff(60);
+            for (int slot = 0; slot < expectedVoices; ++slot)
+            {
+                const auto key = Access::voiceKeyState(engine, slot);
+                if (!(key.note == 60 && key.down && !key.sustained
+                      && !key.attacking && key.velocity == 0.8f))
+                    return fail("one off changed the still-held equal-note assignment");
+            }
+            if (Access::voiceKeyState(engine, 0).generation != initial.generation)
+                return fail("the duplicate press reassigned its voice");
+            if (Access::assignmentRescanPending(engine))
+                return fail("a partial off entered the Unison rescan");
+            renderSamples(engine, 1024);
+            if (engine.getActiveVoiceCount() != expectedVoices)
+                return fail("one off silenced the remaining equal-note press");
+
+            engine.noteOff(60);
+            for (int slot = 0; slot < expectedVoices; ++slot)
+            {
+                const auto key = Access::voiceKeyState(engine, slot);
+                if (key.down || key.sustained != pedal)
+                    return fail("the final off did not release the key");
+            }
+            renderSamples(engine, 4800);
+            if (engine.getActiveVoiceCount() != (pedal ? expectedVoices : 0))
+                return fail("the final off did not follow the sustain pedal");
+            engine.setSustainPedal(false);
+            renderSamples(engine, 4800);
+            if (engine.getActiveVoiceCount() != 0)
+                return fail("balanced equal-note offs left a stuck voice");
+        }
+
+    // Gapless off/on handoffs keep every new assignment.
+    for (const auto mode : { KeyMode::Poly1, KeyMode::Poly2, KeyMode::Unison })
+        for (const bool pedal : { false, true })
+            for (const bool samePitches : { false, true })
+            {
+                youknow::YouKnowEngine engine;
+                engine.prepare(48000.0, blockSize, 1);
+                engine.setParameters(shortEnvelope(mode));
+                renderSamples(engine, 1024);
+                engine.setSustainPedal(pedal);
+                const int keys = mode == KeyMode::Unison ? 1 : 6;
+                int baseNote = 48;
+                for (int key = 0; key < keys; ++key)
+                    engine.noteOn(baseNote + key, 0.8f);
+                renderSamples(engine, 8192);
+                if (engine.getActiveVoiceCount() != 6)
+                    return fail("the handoff fixture did not fill every card");
+
+                for (int handoff = 0; handoff < 3; ++handoff)
+                {
+                    for (int key = 0; key < keys; ++key)
+                        engine.noteOff(baseNote + key);
+                    if (!samePitches)
+                        baseNote += 7;
+                    const float velocity = 0.3f + 0.1f * static_cast<float>(handoff);
+                    for (int key = 0; key < keys; ++key)
+                        engine.noteOn(baseNote + key, velocity);
+
+                    if (Access::assignmentRescanPending(engine))
+                        return fail("the handoff boundary inserted a Unison rescan gap");
+                    std::array<int, 6> assignments {};
+                    for (int slot = 0; slot < 6; ++slot)
+                    {
+                        const auto key = Access::voiceKeyState(engine, slot);
+                        if (!(key.note >= baseNote && key.note < baseNote + keys
+                              && key.down && !key.sustained && key.attacking
+                              && key.velocity == velocity))
+                            return fail("a gapless replacement note was dropped or not retriggered");
+                        ++assignments[static_cast<std::size_t>(key.note - baseNote)];
+                    }
+                    for (int key = 0; key < keys; ++key)
+                        if (assignments[static_cast<std::size_t>(key)]
+                            != (mode == KeyMode::Unison ? 6 : 1))
+                            return fail("the replacement chord lost or duplicated a pitch");
+
+                    const float peak = renderPeak(engine, 4096, 2048);
+                    if (engine.getActiveVoiceCount() != 6 || peak <= 0.001f)
+                        return fail("the replacement notes failed to sound");
+                }
+
+                for (int key = 0; key < keys; ++key)
+                    engine.noteOff(baseNote + key);
+                engine.setSustainPedal(false);
+                renderSamples(engine, 4800);
+                if (engine.getActiveVoiceCount() != 0)
+                    return fail("the final handoff offs left a stuck voice");
+            }
     return true;
 }
 
@@ -1153,9 +1424,13 @@ bool testLoadedBbdOutputTopology()
 
 int main()
 {
-    static_assert(sizeof(youknow::YouKnowEngine) <= 64 * 1024,
+    // The SDK stores a native object's memory on the heap with no documented
+    // size ceiling; this budget only catches unbounded growth. The Sep 2026
+    // upstream sync added the firmware control trace, per-voice reset
+    // curvature and per-stage VCF noise, taking the engine past 64 KiB.
+    static_assert(sizeof(youknow::YouKnowEngine) <= 96 * 1024,
                   "engine state exceeded its port memory budget");
-    static_assert(sizeof(CYouKnow) <= 64 * 1024,
+    static_assert(sizeof(CYouKnow) <= 96 * 1024,
                   "Rack native object exceeded its port memory budget");
 
     Result low;
@@ -1205,7 +1480,9 @@ int main()
         && testInitialQualitySelection()
         && testPerVoiceEnvelopeAndResidualRetrigger()
         && testPhysicalHeldNoteState()
+        && testNonFiniteNoteVelocity()
         && testLegatoRetarget()
+        && testEqualNoteOverlapsAndGaplessHandoffs()
         && testFastIdlePolicies()
         && testLoadedBbdOutputTopology()
         && low.factor == 1 && balanced.factor == 2 && high.factor == 4

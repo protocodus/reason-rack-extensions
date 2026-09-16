@@ -6,7 +6,12 @@
 #   "reportlab==5.0.1",
 # ]
 # ///
-"""Build the YouKnow Shop images and render-checked PDF manual source."""
+"""Build the YouKnow Shop images and PDF manual into the version's release directory.
+
+Front and back panel views, the 1:1 product thumbnail and the manual are all
+written to `Release/<version>/`, the single target directory that
+`Docs/assemble_release.py` completes with the U45, manifest and checksums.
+"""
 
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
@@ -31,26 +36,28 @@ from reportlab.platypus import (
 
 DOCS = Path(__file__).resolve().parent
 PROJECT = DOCS.parent
-OUTPUT = PROJECT / "Release"
-PDF_OUTPUT = OUTPUT / "pdf"
-SHOP_OUTPUT = OUTPUT / "shop"
 GUIDE = DOCS / "USER_GUIDE.md"
 SHOP_COPY = DOCS / "SHOP_COPY.md"
 LICENSE = PROJECT / "LICENSE"
 PRIVACY = PROJECT / "PRIVACY.md"
 THIRD_PARTY = PROJECT / "THIRD_PARTY_NOTICES.md"
-MANUAL = PDF_OUTPUT / "YouKnow_User_Manual.pdf"
 
 INFO = (PROJECT / "info.lua").read_text(encoding="utf-8")
 VERSION_MATCH = re.search(r'^version_number\s*=\s*"([^"]+)"', INFO, re.MULTILINE)
 assert VERSION_MATCH, "info.lua has no version_number"
 RAW_VERSION = VERSION_MATCH.group(1)
 VERSION = RAW_VERSION
-INK = "#eef1f1"
-MUTED = "#b8c4ca"
+# Every artifact of one version goes to this single target directory.
+OUTPUT = PROJECT / "Release" / VERSION
+MANUAL = OUTPUT / "YouKnow_User_Manual.pdf"
 ICE = "#6ec1d4"
 RED = "#e1775c"
-DARK = "#151c21"
+# Protocodus company palette, from the support site's stylesheet: page
+# background, brand cabbage and primrose, and foreground ink.
+COMPANY_BACKGROUND = "#0d0e12"
+COMPANY_MINT = (135, 215, 190)
+COMPANY_PRIMROSE = (246, 209, 85)
+COMPANY_INK = "#f3f4f4"
 
 
 def validate_shop_copy():
@@ -164,47 +171,71 @@ def fit(image, maximum):
     return copy
 
 
-def build_shop_images(panels, front, back):
-    SHOP_OUTPUT.mkdir(parents=True, exist_ok=True)
-    front_shop = fit(front.convert("RGB"), (1600, 1200))
-    back_shop = fit(back.convert("RGB"), (1600, 1200))
-    front_path = SHOP_OUTPUT / "YouKnow_Front.png"
-    back_path = SHOP_OUTPUT / "YouKnow_Back.png"
-    front_shop.save(front_path, optimize=True)
-    back_shop.save(back_path, optimize=True)
+def company_background(size):
+    """Protocodus's site field: its page colour lit by the two brand colours."""
+    width, height = size
+    background = Image.new("RGBA", size, COMPANY_BACKGROUND)
+    light = Image.new("RGBA", size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(light)
+    draw.ellipse((-0.25 * width, 0.10 * height, 0.70 * width, 1.05 * height),
+                 fill=(*COMPANY_MINT, 44))
+    draw.ellipse((0.40 * width, -0.30 * height, 1.25 * width, 0.55 * height),
+                 fill=(*COMPANY_PRIMROSE, 30))
+    light = light.filter(ImageFilter.GaussianBlur(0.14 * width))
+    return Image.alpha_composite(background, light)
 
-    thumbnail = Image.new("RGB", (800, 800), DARK)
-    glow = Image.new("RGBA", thumbnail.size, (0, 0, 0, 0))
-    glow_draw = ImageDraw.Draw(glow)
-    glow_draw.ellipse((95, 120, 705, 730), fill=(102, 188, 216, 28))
-    glow = glow.filter(ImageFilter.GaussianBlur(70))
-    thumbnail = Image.alpha_composite(thumbnail.convert("RGBA"), glow)
-    draw = ImageDraw.Draw(thumbnail)
-    display = ImageFont.truetype(str(panels.DISPLAY_FONT), 74)
-    label = ImageFont.truetype(str(panels.LABEL_FONT), 24)
-    small = ImageFont.truetype(str(panels.SECTION_FONT), 24)
-    draw.text((42, 32), "PROTOCODUS", font=small, fill=ICE)
-    draw.text((40, 62), "YOUKNOW", font=display, fill=INK)
-    draw.text((43, 143), "CIRCUIT-MODELLED SYNTH FOR REASON",
-              font=label, fill=MUTED)
-    device = fit(front.convert("RGBA"), (760, 556))
-    x = (800 - device.width) // 2
-    y = 188
-    shadow = Image.new("RGBA", thumbnail.size, (0, 0, 0, 0))
+
+def build_thumbnail(front, display_font, path, size=800):
+    """1:1 Shop thumbnail: the front panel on the company background, with
+    the product name centred over it inside a soft shadow."""
+    canvas = (size, size)
+    thumbnail = company_background(canvas)
+
+    device = fit(front.convert("RGBA"), (round(0.9 * size), round(0.9 * size)))
+    x = (size - device.width) // 2
+    y = (size - device.height) // 2
+    shadow = Image.new("RGBA", canvas, (0, 0, 0, 0))
     shadow.alpha_composite(
-        Image.new("RGBA", device.size, (0, 0, 0, 180)), (x + 8, y + 12)
+        Image.new("RGBA", device.size, (0, 0, 0, 190)),
+        (x + round(0.008 * size), y + round(0.018 * size)),
     )
-    shadow = shadow.filter(ImageFilter.GaussianBlur(14))
+    shadow = shadow.filter(ImageFilter.GaussianBlur(0.022 * size))
     thumbnail = Image.alpha_composite(thumbnail, shadow)
     thumbnail.alpha_composite(device, (x, y))
-    draw = ImageDraw.Draw(thumbnail)
-    draw.rectangle((40, 764, 760, 768), fill=RED)
-    thumb_path = SHOP_OUTPUT / "YouKnow_Thumbnail_800.png"
-    thumbnail.convert("RGB").save(thumb_path, optimize=True)
+
+    name = "YOUKNOW"
+    font = ImageFont.truetype(str(display_font), round(0.21 * size))
+    left, top, right, bottom = ImageDraw.Draw(thumbnail).textbbox(
+        (0, 0), name, font=font)
+    origin = ((size - (right - left)) / 2 - left, (size - (bottom - top)) / 2 - top)
+    # A dark halo around the glyphs keeps the name legible over any control.
+    halo = Image.new("RGBA", canvas, (0, 0, 0, 0))
+    ImageDraw.Draw(halo).text(
+        origin, name, font=font, fill=(0, 0, 0, 255),
+        stroke_width=round(0.02 * size), stroke_fill=(0, 0, 0, 255))
+    halo = halo.filter(ImageFilter.GaussianBlur(0.03 * size))
+    for _ in range(2):
+        thumbnail = Image.alpha_composite(thumbnail, halo)
+    ImageDraw.Draw(thumbnail).text(origin, name, font=font, fill=COMPANY_INK)
+
+    thumbnail.convert("RGB").save(path, optimize=True)
+    assert Image.open(path).size == canvas
+    return path
+
+
+def build_shop_images(panels, front, back):
+    OUTPUT.mkdir(parents=True, exist_ok=True)
+    front_shop = fit(front.convert("RGB"), (1600, 1200))
+    back_shop = fit(back.convert("RGB"), (1600, 1200))
+    front_path = OUTPUT / "YouKnow_Front.png"
+    back_path = OUTPUT / "YouKnow_Back.png"
+    front_shop.save(front_path, optimize=True)
+    back_shop.save(back_path, optimize=True)
+    thumb_path = build_thumbnail(
+        front, panels.DISPLAY_FONT, OUTPUT / "YouKnow_Thumbnail_800.png")
 
     assert front_shop.width <= 1600 and front_shop.height <= 1200
     assert back_shop.width <= 1600 and back_shop.height <= 1200
-    assert Image.open(thumb_path).size == (800, 800)
     return front_path, back_path, thumb_path
 
 
@@ -280,7 +311,7 @@ def markdown_flowables(markdown, styles, back_image):
 
 
 def build_manual(front_image, back_image):
-    PDF_OUTPUT.mkdir(parents=True, exist_ok=True)
+    OUTPUT.mkdir(parents=True, exist_ok=True)
     markdown = GUIDE.read_text(encoding="utf-8")
     patch_count = sum(1 for _ in (PROJECT / "Resources" / "Public").rglob("*.repatch"))
     forbidden_dashes = {"\u2010", "\u2011", "\u2012", "\u2013", "\u2014"}

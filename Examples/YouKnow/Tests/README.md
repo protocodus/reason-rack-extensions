@@ -13,8 +13,9 @@ python3 Design/render_panels.py
 ```
 
 The metadata check covers localization, all 100 authored patches, ranges,
-versions, identity, level trims, permanent automation IDs, socket order, and CV
-notifications. The renderer checks both GUI formats, property bindings,
+versions, identity, level trims, permanent automation IDs, socket order, CV
+notifications, and that the wrapper's `kParameterDefaults` table (the value a
+nonfinite property reads as) equals every declaration in `motherboard_def.lua`. The renderer checks both GUI formats, property bindings,
 widget geometry, stock sprites, asset inventory, and readable label spacing.
 Review the resulting full, folded, and browser images at their displayed size.
 
@@ -25,6 +26,7 @@ clang++ -std=c++17 -O3 -Wall -Wextra -Wpedantic -Werror \
   -I"${JUKEBOX_SDK_DIR:-../..}/API" \
   Tests/WrapperHostContract.cpp YouKnow.cpp \
   DSP/YouKnowEngine.cpp DSP/YouKnowChorus.cpp \
+  DSP/YouKnowFirmwareTrace.cpp \
   -o /tmp/youknow-wrapper-host-contract
 /tmp/youknow-wrapper-host-contract
 ```
@@ -46,6 +48,33 @@ policy and original-instrument evidence are recorded in the
 Pedal changes at a retrigger are covered across POLY1/POLY2/Unison and
 ENV/GATE. Current fix results and the outstanding Reason reproduction are in
 the [boundary-fix evidence](../Docs/MIDI_BOUNDARY_FIX.md).
+
+Musical phrases run through the complete MIDI path in every key mode, with and
+without the pedal, at 44.1/48 kHz: an equal pitch pressed again while held (in
+later batches and twice in one frame), legato semitone runs whose notes touch,
+overlap or leave one-sample gaps on batch edges and frame 63 in both diff
+orders, a rapid repeated note, and semitone clusters within and beyond the
+voice pool. After every batch the MIDI and engine hold counts must match a
+model, no voice may stay keyed to a released pitch, every keyed voice must carry
+its pitch's first-press velocity (so an extra press in the same frame cannot
+replace it), a batch of extra presses must leave every voice's assignment
+generation unchanged, and every held pitch must own a voice once the converter
+scan has run (the pool permitting).
+
+The product-configuration check requires the wrapper to render bit for bit what
+an engine independently configured like the source plug-in renders
+(`ProductFidelityProfile` plus chart-geometry converter timing). Malformed
+controls - NaN, infinities and out-of-range numbers for every stepped and
+continuous property, through both the restore snapshot and timed diffs and
+under CV modulation, plus Reason's master tune and the audio-reset counter -
+must resolve to declared defaults or clamped positions without undefined
+conversions or stuck state. The randomized host fuzz (24 seeds x 400 batches)
+then checks the hold counts against a model of the same-frame boundary rule
+plus the CV hold, stuck voices, determinism, a complete drain and a sounding
+recovery note. Both fuzzers draw their programs from raw `std::mt19937` words
+rather than the non-portable standard distributions, so a seed that fails in
+Linux CI replays identically on macOS.
+
 For memory/undefined-behavior checks, build this same contract with
 `-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer` in place of `-O3`.
 
@@ -59,34 +88,68 @@ clang++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Werror \
 clang++ -std=c++17 -O3 -DNDEBUG -Wall -Wextra -Wpedantic -Werror \
   -I"${JUKEBOX_SDK_DIR:-../..}/API" Tests/EngineRenderContract.cpp \
   DSP/YouKnowEngine.cpp DSP/YouKnowChorus.cpp \
+  DSP/YouKnowFirmwareTrace.cpp \
   -o /tmp/youknow-engine-port-contract
 /tmp/youknow-engine-port-contract
 
 clang++ -std=c++17 -O3 -DNDEBUG -Wall -Wextra -Wpedantic -Werror \
   Tests/UpstreamDspRegressionContract.cpp \
   DSP/YouKnowEngine.cpp DSP/YouKnowChorus.cpp \
+  DSP/YouKnowFirmwareTrace.cpp \
   -o /tmp/youknow-upstream-dsp-regressions
 /tmp/youknow-upstream-dsp-regressions
 
 clang++ -std=c++17 -O2 -I. Tests/rendercheck.cpp \
-  DSP/YouKnowEngine.cpp DSP/YouKnowChorus.cpp -o /tmp/youknow-rendercheck
+  DSP/YouKnowEngine.cpp DSP/YouKnowChorus.cpp \
+  DSP/YouKnowFirmwareTrace.cpp -o /tmp/youknow-rendercheck
 /tmp/youknow-rendercheck
+
+clang++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Werror \
+  Tests/EnvelopeFirmwareContract.cpp DSP/YouKnowEngine.cpp \
+  DSP/YouKnowChorus.cpp DSP/YouKnowFirmwareTrace.cpp \
+  -o /tmp/youknow-envelope-firmware
+/tmp/youknow-envelope-firmware
 ```
 
 These contracts cover frozen-table identity, deterministic quality/kernel
 paths, voice retirement and wake-up, chorus state, notes/sustain/release,
-parameter comparison, the 64 KiB memory ceiling, and fixed 41-sample latency.
+parameter comparison, nonfinite note velocities, a 96 KiB object-growth guard,
+and fixed 41-sample latency.
 Envelope preservation checks cover independent voice states in POLY1/POLY2
 and ENV/GATE, shared attack coefficients, and the recovered B-2 firmware's
 exact residual-level retrigger vector.
 The upstream `isNoteHeld()` query is checked against overlapping presses,
 dropped assignments, sustain tails, invalid pitches, and reset/release paths.
-The upstream regression contract pins the Sep 10 firmware and circuit changes:
+The envelope firmware contract is the upstream B-2 branch oracle, verbatim
+apart from its include path: exhaustive reachable note/HOLD/pass sequences,
+retained-decay witnesses and block-partition independence.
+The upstream regression contract (19 groups) pins the Sep 10 firmware and circuit changes:
 integer VCF modulation/bend, running-voice LFO delay, attack overshoot, pulse
 duty, correction boundaries, quality-fade timing, measured decimator latency,
 unknown sample rates, Gaussian noise statistics, the output-jack pole and
 temperature-dependent common VCA. It also checks identical audio across
 callback partitions and chorus settling without a host denormal policy.
+
+## Engine fuzz
+
+```sh
+clang++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Werror \
+  Tests/EngineFuzzContract.cpp DSP/YouKnowEngine.cpp \
+  DSP/YouKnowChorus.cpp DSP/YouKnowFirmwareTrace.cpp -o /tmp/youknow-engine-fuzz
+/tmp/youknow-engine-fuzz                    # 48 seeds x 600 blocks
+/tmp/youknow-engine-fuzz --first-seed 1000 --seeds 200 --blocks 1000
+```
+
+Seeded programs drive the public engine API with hostile values: NaN,
+infinite, huge and out-of-range controls and enumerations, notes beyond the MIDI
+range dense on a small pitch cluster, zero-gap handoffs, legato retargets,
+quality changes, resets, global releases and hostile re-preparation, across host
+rates and irregular block sizes, on the reference and product configurations.
+Every sample must stay finite and bounded, every pitch's press count must match
+an independent model after every call, no voice may stay keyed to a released
+pitch, and each seed must render identically twice. Outstanding presses are
+then released and the pool must empty; a plain note must sound again. Build it
+with `-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer` too.
 
 ## Automation artifacts
 
@@ -94,11 +157,13 @@ callback partitions and chorus settling without a host denormal policy.
 clang++ -std=c++17 -O3 -DNDEBUG -Wall -Wextra -Wpedantic -Werror -I. \
   Tests/AutomationArtifactContract.cpp \
   DSP/YouKnowEngine.cpp DSP/YouKnowChorus.cpp \
+  DSP/YouKnowFirmwareTrace.cpp \
   -o /tmp/youknow-automation-artifacts
 /tmp/youknow-automation-artifacts          # add --verbose for every measurement
 ```
 
-Automates all 40 host-automatable parameters under a sounding note, each as a
+Automates all 40 host-automatable parameters under a sounding note on the
+shipped product configuration, each as a
 single full-travel jump and as a fast sweep, dry and through the chorus, and
 measures whether the change injects a discontinuity the signal was not already
 producing. The reference is causal: a moving control is compared against the
@@ -115,7 +180,7 @@ analogue trims at once, so the wrapper glides it over 30 ms
 (`AdvanceCalibrationGlide` in YouKnow.cpp); the test reproduces that glide so it
 measures the path the instrument ships rather than the bare engine.
 [DSP/SYNC.md](../DSP/SYNC.md) identifies the exact upstream revision, source
-hashes, Rack adaptations, and retained 26-program scalar parity evidence.
+hashes, Rack adaptations, and the 42-program scalar parity evidence.
 Recheck parity when shared DSP changes; retain labelled results when its bytes
 are unchanged.
 
@@ -128,7 +193,8 @@ python3 Tests/run_all_patch_render.py --stress-levels
 ```
 
 The normal gate uses fresh-device Aging 50%, the shipped 1x/Poly/Cubic/Normal
-policy, and a fixed three-note chord. Every patch must be audible, finite,
+policy, the product configuration from `ProductConfiguration.h`, and a fixed
+three-note chord. Every patch must be audible, finite,
 bounded, and deterministic. Peak limits are 0.04–0.185; RMS must not exceed
 0.041. `--aging` accepts any finite percentage from 0 to 100. Stress mode
 checks low/high six-note chords below full scale.
@@ -151,7 +217,7 @@ Do not recalibrate merely to hide a failed sound or compatibility check.
 ```sh
 clang++ -std=c++17 -O3 -DNDEBUG -Wall -Wextra -Wpedantic -Werror \
   Tests/PerformanceProbe.cpp DSP/YouKnowEngine.cpp \
-  DSP/YouKnowChorus.cpp -o /tmp/youknow-performance-probe
+  DSP/YouKnowChorus.cpp DSP/YouKnowFirmwareTrace.cpp -o /tmp/youknow-performance-probe
 /tmp/youknow-performance-probe
 
 python3 build45.py local45 Deployment
@@ -160,8 +226,8 @@ unzip -t Output/Universal45/YouKnow.u45
 ```
 
 Run timing without concurrent compilation or rendering. The default probe
-records six voices, 1x, Poly/Cubic/Normal, Aging 50%, 48 kHz, and 64-frame
-blocks. Non-stress runs fail on any wall-clock deadline miss. Optional modes
+records the product configuration with six voices, 1x, Poly/Cubic/Normal,
+Aging 50%, 48 kHz, and 64-frame blocks. Non-stress runs fail on any wall-clock deadline miss. Optional modes
 are `--quality-2x`, `--vcf-exact`, `--vcf-fast`, `--vcf-fast-cubic`, `--idle`,
 `--idle-exact`, and the 16-voice/4x `--stress` diagnostic. Retain failed runs
 and their workload instead of silently retrying until one passes.

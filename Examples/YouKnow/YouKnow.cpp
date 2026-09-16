@@ -1,6 +1,7 @@
 #include "YouKnow.h"
 
 #include "Constants.h"
+#include "ProductConfiguration.h"
 
 #include <algorithm>
 #include <cmath>
@@ -8,25 +9,37 @@
 
 namespace
 {
-template <typename Enum>
-Enum ClampedEnum(double value, int maximum)
+double FiniteOr(double value, double fallback)
 {
-    const int rounded = static_cast<int>(std::floor(value + 0.5));
-    return static_cast<Enum>(std::clamp(rounded, 0, maximum));
+    return std::isfinite(value) ? value : fallback;
+}
+
+// Round and clamp a stepped value in floating point before converting, so no
+// value can reach an undefined float-to-int conversion. CYouKnow::Number()
+// has already replaced a nonfinite value with its property default.
+int StepIndex(double value, int steps)
+{
+    const double last = static_cast<double>(steps - 1);
+    return static_cast<int>(
+        std::floor(std::clamp(FiniteOr(value, 0.0), 0.0, last) + 0.5));
+}
+
+template <typename Enum>
+Enum StepEnum(double value, int steps)
+{
+    return static_cast<Enum>(StepIndex(value, steps));
 }
 
 int OversamplingFactor(double value)
 {
-    const int index = std::clamp(static_cast<int>(std::floor(value + 0.5)),
-                                 0, 2);
-    return youknow::YouKnowEngine::oversampleFactors[
-        static_cast<std::size_t>(index)];
+    const auto& factors = youknow::YouKnowEngine::oversampleFactors;
+    return factors[static_cast<std::size_t>(
+        StepIndex(value, static_cast<int>(factors.size())))];
 }
 
 float PatchGain(double value)
 {
-    const double travel = std::isfinite(value)
-                            ? std::clamp(value, 0.0, 1.0) : 0.5;
+    const double travel = std::clamp(FiniteOr(value, 0.5), 0.0, 1.0);
     return static_cast<float>(std::exp2((travel - 0.5) * 6.0));
 }
 
@@ -37,15 +50,12 @@ int EventFrame(const TJBox_PropertyDiff& diff)
         diff.fAtFrameIndex, static_cast<TJBox_UInt16>(kBatchSize - 1)));
 }
 
-double FiniteCV(double value)
-{
-    return std::isfinite(value) ? value : 0.0;
-}
-
+// A note state without a finite velocity carries no key press, so it reads as
+// a release, as a zero velocity does.
 float NoteVelocity(const TJBox_PropertyDiff& diff)
 {
     return static_cast<float>(std::clamp(
-        FiniteCV(JBox_GetNumber(diff.fCurrentValue)), 0.0, 127.0));
+        FiniteOr(JBox_GetNumber(diff.fCurrentValue), 0.0), 0.0, 127.0));
 }
 }
 
@@ -145,6 +155,15 @@ CYouKnow::CYouKnow(double sampleRate)
     fKeyModeReassert = JBox_MakePropertyRef(
         fCustomProperties, "keyModeReassertPress");
 
+    // The product's circuit selections (converter timing, finite HPF switch,
+    // C56 input coupling, thermal DCO clock proxy) are configured once, before
+    // the first prepare(). They are constants: the wrapper contract proves the
+    // engine accepts them, so a refusal is a source defect that debug builds
+    // assert on rather than a runtime condition needing a fallback path.
+    const bool productConfigured =
+        youknow::RackProductConfiguration::configureBeforePrepare(fEngine);
+    JBOX_ASSERT(productConfigured);
+    (void) productConfigured;
     fEngine.prepare(fSampleRate, static_cast<int>(kBatchSize),
                     OversamplingFactor(0.0));
 }
@@ -213,7 +232,15 @@ bool CYouKnow::ApplyPropertyDiff(const TJBox_PropertyDiff& diff, bool previous)
 
 double CYouKnow::Number(EParameter parameter) const
 {
-    return fValues[parameter];
+    const double value = fValues[parameter];
+    return std::isfinite(value) ? value : kParameterDefaults[parameter];
+}
+
+// A normalized 0..1 control, clamped in double precision so that no
+// out-of-range value reaches the float conversion.
+float CYouKnow::Unit(EParameter parameter) const
+{
+    return static_cast<float>(std::clamp(Number(parameter), 0.0, 1.0));
 }
 
 bool CYouKnow::Boolean(EParameter parameter) const
@@ -224,10 +251,10 @@ bool CYouKnow::Boolean(EParameter parameter) const
 float CYouKnow::Modulated(EParameter parameter, ECVInput input, bool multiply) const
 {
     const auto& cv = fCVInputs[input];
-    const double base = Number(parameter);
+    const double base = std::clamp(Number(parameter), 0.0, 1.0);
     if (!cv.connected)
         return static_cast<float>(base);
-    const double amount = FiniteCV(cv.value);
+    const double amount = FiniteOr(cv.value, 0.0);
     return static_cast<float>(std::clamp(
         multiply ? base * std::clamp(amount, 0.0, 1.0) : base + amount,
         0.0, 1.0));
@@ -237,6 +264,9 @@ void CYouKnow::LoadEngineParameters(double reasonMasterTune)
 {
     using namespace youknow;
     EngineParameters parameters;
+    // Product selections that are not stored tone parameters travel with
+    // every snapshot, so patch recall and song restore keep them.
+    RackProductConfiguration::applyTo(parameters);
 
     parameters.volume = Modulated(kVolume, kVolumeCVInput, true);
     fPatchGainTarget = PatchGain(Number(kPresetGain));
@@ -246,66 +276,63 @@ void CYouKnow::LoadEngineParameters(double reasonMasterTune)
     // retain the click-suppressing five-millisecond glide below.
     if (!fParametersLoaded || fPatchGainSmoothed > fPatchGainTarget)
         fPatchGainSmoothed = fPatchGainTarget;
-    parameters.benderDcoDepth = static_cast<float>(Number(kBenderDco));
-    parameters.benderVcfDepth = static_cast<float>(Number(kBenderVcf));
-    parameters.benderLfoDepth = static_cast<float>(Number(kBenderLfo));
-    parameters.portamento = static_cast<float>(Number(kPortamento));
-    parameters.keyMode = ClampedEnum<KeyMode>(Number(kKeyMode), 2);
+    parameters.benderDcoDepth = Unit(kBenderDco);
+    parameters.benderVcfDepth = Unit(kBenderVcf);
+    parameters.benderLfoDepth = Unit(kBenderLfo);
+    parameters.portamento = Unit(kPortamento);
+    parameters.keyMode = StepEnum<KeyMode>(Number(kKeyMode), 3);
 
-    parameters.lfoRate = static_cast<float>(Number(kLfoRate));
-    parameters.lfoDelay = static_cast<float>(Number(kLfoDelay));
-    parameters.dcoLfoDepth = static_cast<float>(Number(kDcoLfo));
-    parameters.pwmDepth = static_cast<float>(Number(kPwm));
-    parameters.pwmSource = ClampedEnum<PwmSource>(Number(kPwmMode), 1);
-    parameters.range = ClampedEnum<DcoRange>(Number(kRange), 2);
+    parameters.lfoRate = Unit(kLfoRate);
+    parameters.lfoDelay = Unit(kLfoDelay);
+    parameters.dcoLfoDepth = Unit(kDcoLfo);
+    parameters.pwmDepth = Unit(kPwm);
+    parameters.pwmSource = StepEnum<PwmSource>(Number(kPwmMode), 2);
+    parameters.range = StepEnum<DcoRange>(Number(kRange), 3);
     parameters.sawEnabled = Boolean(kSaw);
     parameters.pulseEnabled = Boolean(kPulse);
     parameters.subLevel = Modulated(kSub, kSubCVInput, true);
     parameters.noiseLevel = Modulated(kNoise, kNoiseCVInput, true);
 
-    parameters.highPass = ClampedEnum<HighPassMode>(Number(kHighPass), 3);
+    parameters.highPass = StepEnum<HighPassMode>(Number(kHighPass), 4);
     parameters.cutoff = Modulated(kCutoff, kCutoffCVInput, false);
     parameters.resonance = Modulated(kResonance, kResonanceCVInput, false);
-    parameters.envPolarity = ClampedEnum<EnvPolarity>(Number(kEnvPolarity), 1);
-    parameters.envDepth = static_cast<float>(Number(kVcfEnv));
-    parameters.vcfLfoDepth = static_cast<float>(Number(kVcfLfo));
-    parameters.keyFollow = static_cast<float>(Number(kKeyFollow));
+    parameters.envPolarity = StepEnum<EnvPolarity>(Number(kEnvPolarity), 2);
+    parameters.envDepth = Unit(kVcfEnv);
+    parameters.vcfLfoDepth = Unit(kVcfLfo);
+    parameters.keyFollow = Unit(kKeyFollow);
 
-    parameters.vcaMode = ClampedEnum<VcaMode>(Number(kVcaMode), 1);
+    parameters.vcaMode = StepEnum<VcaMode>(Number(kVcaMode), 2);
     parameters.vcaLevel = Modulated(kVcaLevel, kVcaLevelCVInput, true);
-    parameters.attack = static_cast<float>(Number(kAttack));
-    parameters.decay = static_cast<float>(Number(kDecay));
-    parameters.sustain = static_cast<float>(Number(kSustain));
-    parameters.release = static_cast<float>(Number(kRelease));
-    parameters.chorus = ClampedEnum<ChorusMode>(Number(kChorus), 3);
+    parameters.attack = Unit(kAttack);
+    parameters.decay = Unit(kDecay);
+    parameters.sustain = Unit(kSustain);
+    parameters.release = Unit(kRelease);
+    parameters.chorus = StepEnum<ChorusMode>(Number(kChorus), 4);
 
-    parameters.keyTranspose = std::clamp(static_cast<int>(Number(kTranspose)) - 12,
-                                         -12, 12);
+    parameters.keyTranspose = StepIndex(Number(kTranspose), 25) - 12;
+    // The panel trim keeps its own +/-50-cent travel before Reason's global
+    // tuning is added; the engine bounds the combined offset.
     parameters.masterTuneCents = static_cast<float>(
-        reasonMasterTune + (Number(kMasterTune) * 100.0 - 50.0));
-    parameters.velocityDepth = static_cast<float>(Number(kVelocity));
-    fCalibrationTarget = static_cast<float>(Number(kCalibration) * 2.0);
+        reasonMasterTune + (Unit(kMasterTune) * 100.0 - 50.0));
+    parameters.velocityDepth = Unit(kVelocity);
+    fCalibrationTarget = Unit(kCalibration) * 2.0f;
     // An initial restore or reset adopts the new unit outright; only a move made
     // while the instrument is already running is glided.
     if (!fParametersLoaded)
         fCalibrationCurrent = fCalibrationTarget;
     parameters.calibration = fCalibrationCurrent;
-    parameters.aging = static_cast<float>(Number(kAging));
-    parameters.chorusNoise = static_cast<float>(Number(kChorusNoise));
-    parameters.polyphony = std::clamp(static_cast<int>(Number(kPolyphony)) + 1,
-                                      1, YouKnowEngine::maxVoices);
-    parameters.vcfTanhMode = ClampedEnum<VcfTanhMode>(
-        Number(kVcfTanhMode), 2);
-    parameters.vcfFastEarlyMode = ClampedEnum<VcfFastEarlyMode>(
-        Number(kVcfFastEarlyMode), 1);
-    parameters.vcfSolverMode = ClampedEnum<VcfSolverMode>(
-        Number(kVcfSolverMode), 2);
+    parameters.aging = Unit(kAging);
+    parameters.chorusNoise = Unit(kChorusNoise);
+    parameters.polyphony = StepIndex(Number(kPolyphony), YouKnowEngine::maxVoices) + 1;
+    parameters.vcfTanhMode = StepEnum<VcfTanhMode>(Number(kVcfTanhMode), 3);
+    parameters.vcfFastEarlyMode = StepEnum<VcfFastEarlyMode>(Number(kVcfFastEarlyMode), 2);
+    parameters.vcfSolverMode = StepEnum<VcfSolverMode>(Number(kVcfSolverMode), 3);
     fRequestedOversamplingFactor = OversamplingFactor(Number(kQuality));
 
     fEngineParameters = parameters;
     fEngine.setParameters(parameters);
-    fEngine.setPitchBend(static_cast<float>(Number(kPitchBend) * 2.0 - 1.0));
-    fEngine.setModWheel(static_cast<float>(Number(kModWheel)));
+    fEngine.setPitchBend(Unit(kPitchBend) * 2.0f - 1.0f);
+    fEngine.setModWheel(Unit(kModWheel));
     fEngine.setSustainPedal(Number(kSustainPedal) >= 0.5);
 }
 
@@ -321,9 +348,9 @@ void CYouKnow::HandleCV()
         return;
     }
 
-    const double gate = std::clamp(FiniteCV(gateInput.value), 0.0, 1.0);
+    const double gate = std::clamp(FiniteOr(gateInput.value, 0.0), 0.0, 1.0);
     const int note = std::clamp(static_cast<int>(
-        std::clamp(FiniteCV(fCVInputs[kNoteCVInput].value), 0.0, 1.0)
+        std::clamp(FiniteOr(fCVInputs[kNoteCVInput].value, 0.0), 0.0, 1.0)
             * 127.0 + 0.1), 0, 127);
     const bool on = gate > 0.0;
 
@@ -357,7 +384,9 @@ bool CYouKnow::ResetIfRequested()
 {
     const double counter = JBox_LoadMOMPropertyAsNumber(
         fTransport, kJBox_TransportRequestResetAudio);
-    if (counter != 0.0 && counter != fLastResetCounter)
+    // A nonfinite value is not a counter change, and NaN would otherwise
+    // compare unequal and reset the instrument on every batch.
+    if (std::isfinite(counter) && counter != 0.0 && counter != fLastResetCounter)
     {
         fEngine.reset();
         fMidiHeldCounts.fill(0);
@@ -499,8 +528,10 @@ void CYouKnow::RenderBatch(const TJBox_PropertyDiff propertyDiffs[],
         fInitialQualityApplied = true;
     }
 
-    const double reasonMasterTune = JBox_LoadMOMPropertyAsNumber(
-        fEnvironment, kJBox_EnvironmentMasterTune);
+    // A nonfinite global tuning carries no offset. Sanitise it before the
+    // change test, which NaN would otherwise pass on every batch.
+    const double reasonMasterTune = FiniteOr(JBox_LoadMOMPropertyAsNumber(
+        fEnvironment, kJBox_EnvironmentMasterTune), 0.0);
     if (needsSnapshot || reasonMasterTune != fLastReasonMasterTune)
     {
         LoadEngineParameters(reasonMasterTune);

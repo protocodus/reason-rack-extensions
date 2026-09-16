@@ -27,11 +27,40 @@ namespace youknow
 //
 // The original instrument's owner manual and recovered control path describe
 // one enable bit plus one binary I/II bit, not a third analogue clock setting.
-// Keep the user-requested physical both-button combination as a fourth product
-// state; `settingsFor()` documents its compatibility policy while the exact
-// original-unit transfer remains unmeasured. The audited Roland Cloud
-// original instrument exposes only Off/I/II and therefore supplies no I+II precedent.
+// Keep the user-requested both-button combination as a fourth product state;
+// `settingsFor()` documents this extension's compatibility policy. Roland's
+// original owner manual explicitly disallows simultaneous I and II, also
+// confirmed by its Boutique developers when describing the JU-06 extension:
+// https://www.roland.com/au/promos/roland_boutique/interview_1/
 enum class ChorusMode { Off, One, Two, OneTwo };
+
+// Which Mode I timing coordinates the chorus runs on.
+//
+// Comparison-only. Shipping is the default and the only one a product build
+// selects; the rest exist so the four candidates OQ-01 names can be rendered
+// against each other. Their evidence differs: one is an effective recording
+// fit, one a clock-click estimate, and one a conditional circuit calculation.
+// None establishes original-unit population calibration.
+//
+//   Shipping        The third-party scope measurement of a designator-faithful
+//                   clone board: 3.9 ms centre, +/-2.5 ms, at the schematic's
+//                   own derived 0.5533 Hz. Below the project's anchoring bar,
+//                   which is why the question is open at all.
+//   A11Spectral     Effective coordinates fitted to the verified A11 recording
+//                   of identified unit #439522, holding out C2/C4.
+//   A11ClickTiming  The same unit read by a different estimator entirely, the
+//                   clock-click series, whose 16 us straight-line residual is
+//                   independent of the spectral fit's assumptions.
+//   DerivedNominal  Conditional p. 15 oscillator estimate with nominal C53
+//                   and assumed current, junction drops, output saturation
+//                   and reset dead time. Not an installed tolerance bound.
+enum class ChorusTimingProfile
+{
+    Shipping,
+    A11Spectral,
+    A11ClickTiming,
+    DerivedNominal
+};
 
 // The four parameter states map one-to-one to the four button combinations.
 [[nodiscard]] constexpr ChorusMode chorusModeFor(bool one, bool two) noexcept
@@ -241,7 +270,8 @@ public:
                  bool enableNarrowOneTwo = true,
                  bool enableMuteDrive = false,
                  bool enableLineGainSpread = false,
-                 bool useA11EffectiveTimingProfile = false) noexcept;
+                 ChorusTimingProfile timingProfile = ChorusTimingProfile::Shipping,
+                 bool enableClockMuteCircuit = false) noexcept;
 
     // ------------------------------------------------------------------
     // The wet-mute drive, jack board p. 15. The CHORUS on/off line reaches
@@ -256,20 +286,24 @@ public:
     // junction threshold:
     //   - chorus OFF: Tr5 opens; R50/C16 and R48/C13 exchange current in
     //     both directions, against R49+R42. The coupled network mutes when
-    //     Tr4's base reaches one junction drop -- about 84.5 ms later;
-    //   - chorus ON: Tr5 saturates, C16 is emptied at once, C13 decays from
-    //     its +8.68 V rest toward -15 V and un-mutes about 113 ms in.
+    //     Tr4's base reaches one junction drop -- about 80.2 ms later;
+    //   - chorus ON: Tr5 conducts through R46 330 Ohm. Both capacitor
+    //     voltages remain continuous; C16 approaches about -14.04 V and C13
+    //     about -14.23 V, un-muting about 121 ms after a settled OFF.
     // Both are derived from the drawn parts with the same 0.6 V junction
     // prior the resonance and NOISE onsets use; the JFET transition itself
     // keeps the declared 5 ms glide policy, because the 2SK30A's
     // pinch-off spread is not fixed by any source. Off by default at this
     // level so the bare-chorus suites keep their immediate switching; the
     // engine enables it. The passive two-node solve includes R48's loading
-    // back into C16; Tr4's base-current loading above the threshold and the
-    // transistor's actual junction voltage still need device data. These
+    // back into C16 and R46's finite sink in the conducting state. Tr5's
+    // saturation voltage is still idealised; Tr4's base-current loading above
+    // threshold, the shared C15 clock-clamp branch and the transistors'
+    // actual junction voltages still need a fuller model/device data. These
     // are circuit-prior timings, not measured original-unit switching times.
     // https://www.synfo.nl/servicemanuals/Roland/ROLAND_JUNO-106_SERVICE_NOTES_1st.pdf#page=15
     static constexpr float muteDrivePullUpOhms = 10.0e3f;        // R50
+    static constexpr float muteDriveSinkOhms = 330.0f;          // R46
     static constexpr float muteDriveNodeFarads = 2.2e-6f;        // C16
     static constexpr float muteDriveSeriesOhms = 150.0e3f;       // R48
     static constexpr float muteDriveHoldFarads = 1.0e-6f;        // C13
@@ -301,6 +335,17 @@ public:
             / (muteDrivePullUpOhms + muteDriveSeriesOhms
                + muteDriveBaseOhms + muteDriveEmitterOhms);
     }
+    // Tr5 conducting: R46 and R48+R49+R42 are parallel paths from C16
+    // to -15 V; R50 continues sourcing from +15 V. No extra fitted voltage
+    // or transistor resistance is needed to restore the drawn R46.
+    [[nodiscard]] static constexpr double muteDriveConductingNodeRestVolts() noexcept
+    {
+        const double sink = 1.0 / muteDriveSinkOhms
+            + 1.0 / (muteDriveSeriesOhms + muteDriveBaseOhms
+                     + muteDriveEmitterOhms);
+        return -muteDriveRailVolts + 2.0 * muteDriveRailVolts
+            / (1.0 + muteDrivePullUpOhms * sink);
+    }
     // C13's rest for a fixed Tr5 node voltage.
     [[nodiscard]] static constexpr double muteDriveHoldRestVolts(
         double nodeVolts) noexcept
@@ -310,6 +355,24 @@ public:
              / (lower + muteDriveSeriesOhms);
     }
     [[nodiscard]] bool muteDriveMuted() const noexcept { return muteDriveMuted_; }
+
+    // Optional completion of the same p.15 circuit: D3's cathode is at C16,
+    // its anode reaches C15 through R41; R47 bypasses that diode/resistor pair.
+    // C15 also loads BOTH Tr23/Tr28 330k/33k base dividers. Those transistors
+    // clamp the clock oscillators while the wet-return switch remains separate.
+    // The topology/parts are anchored; D3 and both ideal transistor switches
+    // reuse the existing 0.6 V junction prior. Finite transistor base currents,
+    // clock restart phase, capacitor leakage and installed switching times are
+    // unmeasured. Stopped buckets retain charge ideally, without invented decay.
+    static constexpr double clockMuteBypassOhms = 330000.0;     // R47
+    static constexpr double clockMuteDiodeSeriesOhms = 10000.0; // R41
+    static constexpr double clockMuteFarads = 2.2e-6;           // C15
+    static constexpr double clockMuteBaseOhms = 330000.0;      // R130/R146
+    static constexpr double clockMuteEmitterOhms = 33000.0;    // R131/R145
+    static constexpr double clockMuteThresholdVolts = -muteDriveRailVolts
+        + muteDriveJunctionVolts * (clockMuteBaseOhms + clockMuteEmitterOhms)
+            / clockMuteEmitterOhms;
+    [[nodiscard]] bool clocksStopped() const noexcept { return clocksStopped_; }
 
     // ------------------------------------------------------------------
     // Panasonic specifies the MN3009's insertion loss as Min -4 / Typ 0 /
@@ -332,9 +395,8 @@ public:
     // usable even though its absolute dBFS figures and true-peak statistic
     // cannot calibrate this model. Apply 3.95 dB empirically by default while
     // leaving mode I's explicit recovered-wet-line product normalization
-    // untouched. There is no corresponding
-    // calibrated I+II capture, so that product mode provisionally retains the
-    // measured mode-II profile until one exists.
+    // untouched. The I+II product extension retains the mode-II noise profile
+    // as a compatibility choice, not an original JUNO-106 noise calibration.
     static constexpr float measuredModeTwoNoiseDeltaDb = 3.95f;
     static constexpr float measuredModeTwoNoiseGain = 1.57579602f;
     [[nodiscard]] static constexpr float measuredModeNoiseGain(
@@ -486,7 +548,7 @@ public:
     // Optional offline comparison of the identified A11 Mode-I timing.
     // Off/II/I+II keep their ordinary programs; nothing is inferred for them.
     [[nodiscard]] static ModeSettings settingsFor(
-        ChorusMode mode, bool useA11EffectiveTimingProfile = false) noexcept;
+        ChorusMode mode, ChorusTimingProfile timingProfile = ChorusTimingProfile::Shipping) noexcept;
 
     // The legacy low-rate input fallback, exposed as a coefficient and a
     // single step so the suites can measure where its corner actually lands
@@ -537,6 +599,11 @@ public:
 
         float inputCouplingG { 0.001f };    // C44 / R120, wet path only
         float passiveG { 0.1f };            // R122 / C52, ahead of the line
+        // Inverse trapezoidal nodal system for the two unbuffered input
+        // capacitors, plus its input drive. Stored separately from the
+        // isolated pole coefficients used to define low-rate prewarping.
+        std::array<std::array<double, 2>, 2> inputCouplingInverse {};
+        std::array<double, 2> inputCouplingDrive {};
         // Legacy TPT coefficients retained only for the low-rate input policy.
         // The output side is exclusively the exact continuous transition.
         BiquadCoefficients antiAliasFirst {};
@@ -547,7 +614,17 @@ public:
         // Prepared with the audio support at every cached numerical rate, so
         // live quality changes also avoid building the control transition.
         std::array<std::array<double, 2>, 2> muteDriveOpenTransition {};
-        double muteDriveHoldGlide { 0.0 };
+        std::array<std::array<double, 2>, 2> muteDriveConductingTransition {};
+        struct ClockMuteTransition
+        {
+            // Augmented affine matrices act on [C16, C13, C15, 1].
+            std::array<std::array<double, 4>, 4> generator {};
+            std::array<std::array<double, 4>, 4> transition {};
+            std::array<double, 3> equilibrium {};
+        };
+        // Tr5 open/conducting, each with D3 blocked/conducting. Prepared here
+        // so a live quality change never constructs a matrix exponential.
+        std::array<ClockMuteTransition, 4> clockMuteTransitions {};
     };
     [[nodiscard]] static SupportChain supportChainFor(float sampleRate) noexcept;
 
@@ -556,6 +633,7 @@ public:
 private:
     friend struct YouKnowTestAccess;
     void advanceMuteDrive(bool commandMute) noexcept;
+    void advanceClockMuteDrive(bool commandMute) noexcept;
 
     // OQ-03 keeps the compatibility hiss and the still-unknown mechanisms as
     // distinct components.  Every number in this profile is voiced/unknown,
@@ -679,8 +757,10 @@ private:
     // say -- and this has to be split back into the two lines first.
     struct InputSupport
     {
-        float couplingState { 0.0f };
-        float passiveState { 0.0f };
+        // Coupled TPT carries use the solve's double precision so a held DC
+        // input cannot park a float-rounding remainder at the wet BBD node.
+        double couplingState { 0.0 };
+        double passiveState { 0.0 };
         BiquadState antiAliasFirst {};
         BiquadState antiAliasSecond {};
         std::array<double, 6> exactState {};
@@ -742,6 +822,9 @@ private:
     double muteDriveHoldVolts_ { 0.0 };
     bool muteDriveMuted_ { true };
     bool muteDriveEnabled_ { false };
+    double clockMuteVolts_ { -15.0 };
+    bool clockMuteEnabled_ { false };
+    bool clocksStopped_ { false };
     // Per-line insertion gains at the last calibration they were solved for.
     float lineGainA_ { 1.0f };
     float lineGainB_ { 1.0f };

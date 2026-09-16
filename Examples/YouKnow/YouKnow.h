@@ -64,6 +64,59 @@ private:
         kParameterCount
     };
 
+    // Every custom property's motherboard_def.lua default, in EParameter
+    // order. Songs, patches and automation deliver doubles; a nonfinite one
+    // carries no position and reads as this default. The performance
+    // controllers use the SDK's rest positions. Tests/validate_patches.py
+    // checks every entry against the Lua declaration named in its comment.
+    static constexpr std::array<double, kParameterCount> kParameterDefaults {
+        0.80,       // volume
+        0.50,       // presetGain
+        0.30,       // benderDco
+        0.00,       // benderVcf
+        0.00,       // benderLfo
+        0.00,       // portamento
+        0,          // keyMode
+        0.42,       // lfoRate
+        0.00,       // lfoDelay
+        0.00,       // dcoLfo
+        0.30,       // pwm
+        1,          // pwmMode
+        1,          // range
+        1,          // saw
+        0,          // pulse
+        0.00,       // sub
+        0.00,       // noise
+        1,          // highPass
+        0.62,       // cutoff
+        0.10,       // resonance
+        0,          // envPolarity
+        0.35,       // vcfEnv
+        0.00,       // vcfLfo
+        0.50,       // keyFollow
+        0,          // vcaMode
+        0.80,       // vcaLevel
+        0.00,       // attack
+        0.45,       // decay
+        0.70,       // sustain
+        0.30,       // release
+        0,          // chorus
+        12,         // transpose
+        0.50,       // masterTune
+        0.00,       // velocity
+        0.50,       // calibration
+        0.50,       // aging
+        0.29858038, // chorusNoise
+        5,          // polyphony
+        0,          // quality
+        2,          // vcfTanhMode
+        1,          // vcfFastEarlyMode
+        2,          // vcfSolverMode
+        0.50,       // pitchBend
+        0.00,       // modWheel
+        0.00,       // sustainPedal
+    };
+
     enum ECVInput
     {
         kNoteCVInput, kGateCVInput, kCutoffCVInput, kResonanceCVInput,
@@ -84,6 +137,7 @@ private:
     void SnapshotProperties();
     bool ApplyPropertyDiff(const TJBox_PropertyDiff& diff, bool previous = false);
     double Number(EParameter parameter) const;
+    float Unit(EParameter parameter) const;
     bool Boolean(EParameter parameter) const;
     float Modulated(EParameter parameter, ECVInput input, bool multiply) const;
     void LoadEngineParameters(double reasonMasterTune);

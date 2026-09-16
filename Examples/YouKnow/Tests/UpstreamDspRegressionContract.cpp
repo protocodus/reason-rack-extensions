@@ -1,5 +1,5 @@
-// Focused regressions from protocodus/virtual-instrument-youknow c9d3c57.
-// These pin the changed circuit/firmware behavior in the C++17 Rack port.
+// Focused regressions adapted from protocodus/virtual-instrument-youknow,
+// refreshed at 5d9390d. They pin circuit/firmware behavior in the C++17 port.
 // Test-only vectors and allocations do not enter the shipped DSP.
 #include "../DSP/YouKnowEngine.h"
 #include <algorithm>
@@ -7,6 +7,7 @@
 #include <cmath>
 #include <complex>
 #include <cstdio>
+#include <cstring>
 #include <cstdlib>
 #include <limits>
 #include <string>
@@ -120,9 +121,10 @@ struct YouKnowTestAccess
         return YouKnowEngine::totalLatencySamples(factor);
     }
 
-    static float outputJackBlend(const YouKnowEngine& engine) noexcept
+    static OutputJackLowPass::Coefficients outputJackCoefficients(
+        const YouKnowEngine& engine) noexcept
     {
-        return engine.outputJackBlend_;
+        return engine.outputJackCoefficients_;
     }
 
     static void performVcfWrite(YouKnowEngine& engine, int slot,
@@ -188,9 +190,11 @@ struct YouKnowTestAccess
     static std::pair<std::uint16_t, bool> runAttack(
         std::uint16_t increment, int passes) noexcept
     {
+        // The Sep 2026 firmware latches choose the branch: a voice command
+        // sets the gate, and the pass-start FF11 latch makes it run.
         YouKnowEngine::Envelope envelope;
-        envelope.stage = YouKnowEngine::EnvelopeStage::Attack;
-        envelope.level = 0;
+        envelope.noteOn();
+        envelope.latchGate(false);
         for (int pass = 0; pass < passes; ++pass)
             envelope.tick(increment, 0u, 0u, 0u);
         return { envelope.level,
@@ -201,8 +205,9 @@ struct YouKnowTestAccess
                                         double seconds) noexcept
     {
         engine.thermalWarmupSeconds_ = seconds;
-        engine.thermalWarmupFraction_ =
-            1.0f - std::exp(-static_cast<float>(seconds) / 900.0f);
+        engine.thermalWarmupFraction_ = 1.0f - std::exp(
+            -static_cast<float>(seconds)
+            / static_cast<float>(YouKnowEngine::thermalWarmupTimeConstantSeconds));
     }
 
     static std::int32_t vcfBendCountsWord(
@@ -248,6 +253,21 @@ Render renderExact(YouKnowEngine& engine, int samples)
                        result.right.data() + offset, count);
     }
     return result;
+}
+
+double peakOf(const std::vector<float>& signal, std::size_t from)
+{
+    double peak = 0.0;
+    for (std::size_t index = from; index < signal.size(); ++index)
+        peak = std::max(peak, static_cast<double>(std::abs(signal[index])));
+    return peak;
+}
+
+// The upstream suite's block-rounded render, kept for tests copied verbatim.
+Render render(YouKnowEngine& engine, int samples)
+{
+    const int blocks = (samples + blockSize - 1) / blockSize;
+    return renderExact(engine, blocks * blockSize);
 }
 
 double maximumDifference(const std::vector<float>& first,
@@ -586,7 +606,7 @@ void testPrepareSurvivesAnUnusableHostSampleRate()
 
         engine.setParameters(plainPatch());
         engine.noteOn(60, 1.0f);
-        const auto rendered = renderExact(engine, 4096);
+        const auto rendered = render(engine, 4096);
         for (std::size_t index = 0; index < rendered.left.size(); ++index)
             if (!std::isfinite(rendered.left[index])
                 || !std::isfinite(rendered.right[index]))
@@ -820,7 +840,7 @@ void testVcaLevelGainWarmsWithTheChassis()
     // temperature (patchLevelGain), and the jack board follows the chassis
     // warm-up without the cards' spatial gradient. A quiet stored level
     // therefore grows towards 0 dB as the instrument warms: stored byte 0,
-    // -16.32 dB at 25 C, reads -15.54 dB at the 40 C asymptote of Unit
+    // -15.994 dB at 25 C, reads -15.227 dB at the 40 C asymptote of Unit
     // Character 1. The drive is a small sub alone, so the cascade the same
     // warm-up also relaxes (dynamicOtaHeadroomVolts) stays linear to well
     // under a millidecibel and the render measures the VCA. Unit Character 0
@@ -835,6 +855,9 @@ void testVcaLevelGainWarmsWithTheChassis()
         parameters.vcaLevel = 0.0f;
         parameters.calibration = calibration;
         parameters.enableSpatialThermalGradient = false;
+        // Isolate the jack-board VCA's control constant: the voice BA662's
+        // separate temperature-dependent gain would also change this level.
+        parameters.enableVoiceVcaTemperature = false;
         return parameters;
     };
     const auto renderWarmedTo = [&](float calibration, double warmupSeconds) {
@@ -855,26 +878,90 @@ void testVcaLevelGainWarmsWithTheChassis()
             energy / static_cast<double>(rendered.left.size() - from));
     };
 
-    // A million seconds is the asymptote: 1 - exp(-1111) is exactly one.
+    // A million seconds is numerically at the three-second law's asymptote.
     constexpr double asymptote = 1.0e6;
     const double cold = levelDb(renderWarmedTo(1.0f, 0.0));
     const double warm = levelDb(renderWarmedTo(1.0f, asymptote));
     expect(cold > -90.0, "fixture: the quiet sub is not above the noise floor ("
                              + std::to_string(cold) + " dBFS)");
-    const double expected = 20.0 * std::log10(
+    const double endpointChange = 20.0 * std::log10(
         YouKnowEngine::patchLevelGain(0.0f, 40.0f)
         / YouKnowEngine::patchLevelGain(0.0f, 25.0f));
-    expectNear(expected, 0.78, 0.01,
-               "fixture: the law does not put +0.78 dB on stored byte 0 at "
+    // Independent p.13/p.15 nominal DC solve: at DAC zero IC28a holds
+    // 15*(10k/39k) V. GC1=(hold/3700+15/15000)/(1/3700+1/47+1/15000)
+    // is 0.0943622253 V, giving -15.9935975 dB at NEC's 5.9 mV/dB and
+    // +0.7660992 dB after the 298.15/313.15 thermal ratio is applied.
+    expectNear(endpointChange, 0.7660992, 0.01,
+               "fixture: the law does not put +0.7661 dB on stored byte 0 at "
                "40 C");
+    // The cold take is already warming over the measured 0.5..1.0 s window.
+    // Average squared gain, matching the RMS detector, using the independent
+    // DC solve above and the requested three-second temperature law. Treating
+    // this whole window as 25 C would overstate the expected audio difference.
+    constexpr double levelAt25C = -15.9935975;
+    double coldGainSquared = 0.0;
+    for (int sample = samples / 2; sample < samples; ++sample)
+    {
+        const double seconds = (sample + 0.5) / sampleRate;
+        const double celsius = 25.0 + 15.0 * (1.0 - std::exp(-seconds / 3.0));
+        const double gainDb = levelAt25C * 298.15 / (celsius + 273.15);
+        coldGainSquared += std::pow(10.0, gainDb / 10.0);
+    }
+    coldGainSquared /= samples - samples / 2;
+    const double expected = levelAt25C * 298.15 / 313.15
+                          - 10.0 * std::log10(coldGainSquared);
     expectNear(warm - cold, expected, 0.02,
                "a quiet VCA LEVEL does not grow by the warm control constant "
-               "between t = 0 and the warm-up asymptote");
+               "between the measured cold-start window and the warm-up asymptote");
 
     const auto nominalCold = renderWarmedTo(0.0f, 0.0);
     const auto nominalWarm = renderWarmedTo(0.0f, asymptote);
     expect(maximumDifference(nominalCold.left, nominalWarm.left) == 0.0,
            "Unit Character 0 let the chassis warm-up reach the VCA LEVEL");
+}
+
+void testEnvelopeAndGateModes()
+{
+    constexpr double sampleRate = 48000.0;
+    YouKnowEngine engine;
+    engine.prepare(sampleRate, blockSize, true);
+
+    auto parameters = plainPatch();
+    parameters.attack = 0.0f;
+    parameters.decay = 0.3f;
+    parameters.sustain = 0.0f;
+    parameters.release = 0.0f;
+    engine.setParameters(parameters);
+    engine.noteOn(60, 1.0f);
+    const auto decaying = render(engine, static_cast<int>(sampleRate * 2));
+
+    // The generator's falling segment is exponential and the amplifier
+    // quasi-linear, so equal slices of time must fall by roughly equal
+    // numbers of decibels while the segment runs through the amplifier's
+    // linear region.
+    const auto levelAt = [&](double seconds) {
+        const auto start = static_cast<std::size_t>(seconds * sampleRate);
+        return 20.0 * std::log10(peakOf({ decaying.left.begin() + static_cast<long>(start),
+                                          decaying.left.begin()
+                                              + static_cast<long>(start + 1200) }, 0)
+                                 + 1.0e-12);
+    };
+    const double first = levelAt(0.05) - levelAt(0.15);
+    const double second = levelAt(0.15) - levelAt(0.25);
+    expect(first > 3.0, "the decay segment is not falling");
+    expectNear(second / first, 1.0, 0.45,
+               "amplitude decay is not close to constant decibels per second");
+
+    // Gate mode ignores the generator's shape entirely.
+    YouKnowEngine gated;
+    gated.prepare(sampleRate, blockSize, true);
+    parameters.vcaMode = VcaMode::Gate;
+    gated.setParameters(parameters);
+    gated.noteOn(60, 1.0f);
+    const auto held = render(gated, static_cast<int>(sampleRate));
+    expect(peakOf(held.left, held.left.size() / 2)
+               > 0.05 * YouKnowEngine::outputBoundaryGain(),
+           "gate mode falls silent while the key is held");
 }
 
 void testOutputJackPoleRollsOffTheTopOfTheBandAtHighHostRates()
@@ -887,10 +974,9 @@ void testOutputJackPoleRollsOffTheTopOfTheBandAtHighHostRates()
     // corner differ. The 20th harmonic of a B5 saw against its fundamental,
     // one position against the other, is therefore the pole's own transfer
     // ratio and nothing else, rendered through the shipping path. The
-    // 46.15 kHz and 33.32 kHz corners only tell apart at a high host rate:
-    // at 192 kHz they are 0.57 dB apart at 19.8 kHz, while at 48 kHz both
-    // blends sit within 0.04 dB of transparent, which is the numerical
-    // limitation the engine's comment states.
+    // 46.15 kHz and 33.32 kHz corners now remain audible at ordinary host
+    // rates too (the independent OutputJack test covers those). This high-rate
+    // integration fixture isolates a clean 20th harmonic from the DCO path.
     constexpr double hostRate = 192000.0;
     constexpr int midiNote = 83; // B5, 987.8 Hz; harmonic 20 at 19.76 kHz
     constexpr int harmonic = 20;
@@ -900,7 +986,7 @@ void testOutputJackPoleRollsOffTheTopOfTheBandAtHighHostRates()
     struct Rendered
     {
         std::vector<float> left;
-        float blend;
+        double corner;
     };
     const auto renderAt = [&](float volume) {
         YouKnowEngine engine;
@@ -911,7 +997,7 @@ void testOutputJackPoleRollsOffTheTopOfTheBandAtHighHostRates()
         engine.noteOn(midiNote, 1.0f);
         auto rendered = renderExact(engine, samples);
         return Rendered { std::move(rendered.left),
-                          YouKnowTestAccess::outputJackBlend(engine) };
+                          YouKnowEngine::outputJackCornerHz(volume) };
     };
     const auto full = renderAt(1.0f);
     const auto half = renderAt(0.5f);
@@ -962,53 +1048,109 @@ void testOutputJackPoleRollsOffTheTopOfTheBandAtHighHostRates()
     };
     const double measured = ratioDb(full.left) - ratioDb(half.left);
 
-    // |b / (1 - (1 - b) z^-1)| of the blend at a frequency.
-    const auto blendMagnitudeDb = [](double blend, double frequency,
-                                     double rate) {
-        const double pole = 1.0 - blend;
-        const double omega = 2.0 * pi * frequency / rate;
-        return 10.0 * std::log10(
-            blend * blend / (1.0 - 2.0 * pole * std::cos(omega) + pole * pole));
+    // Compare the actual audio against the continuous RC transfer, not a
+    // second copy of the new coefficient expression.
+    const auto magnitudeDb = [](double corner, double frequency) {
+        const double ratio = frequency / corner;
+        return -10.0 * std::log10(1.0 + ratio * ratio);
     };
-    const auto analyticBlend = [](float volume, double rate) {
-        return 1.0 - std::exp(-2.0 * pi
-                              * YouKnowEngine::outputJackCornerHz(volume)
-                              / rate);
-    };
-    expectNear(full.blend, analyticBlend(1.0f, hostRate), 1.0e-6,
-               "the full-volume jack blend is not 1 - exp(-2 pi fc / fs) at "
-               "a 192 kHz host");
-    expectNear(half.blend, analyticBlend(0.5f, hostRate), 1.0e-6,
-               "the half-volume jack blend is not 1 - exp(-2 pi fc / fs) at "
-               "a 192 kHz host");
     const double expected =
-        (blendMagnitudeDb(full.blend, top, hostRate)
-         - blendMagnitudeDb(full.blend, fundamental, hostRate))
-        - (blendMagnitudeDb(half.blend, top, hostRate)
-           - blendMagnitudeDb(half.blend, fundamental, hostRate));
+        (magnitudeDb(full.corner, top) - magnitudeDb(full.corner, fundamental))
+        - (magnitudeDb(half.corner, top) - magnitudeDb(half.corner, fundamental));
     expect(expected > 0.4,
            "fixture: the two jack corners are not telling apart at 192 kHz ("
                + std::to_string(expected) + " dB)");
     expectNear(measured, expected, 0.05,
-               "the rendered jack pole does not match its blend's analytic "
-               "magnitude at a 192 kHz host");
-    // The absolute figures the README quotes for the same blend.
-    expectNear(blendMagnitudeDb(full.blend, 20000.0, hostRate), -0.61, 0.01,
-               "a 192 kHz host does not roll off 0.61 dB at 20 kHz");
-    expectNear(blendMagnitudeDb(analyticBlend(1.0f, 96000.0), 20000.0, 96000.0),
-               -0.33, 0.01, "a 96 kHz host does not roll off 0.33 dB at 20 kHz");
-    {
-        YouKnowEngine engine;
-        engine.prepare(48000.0, blockSize, true);
-        engine.setParameters(plainPatch());
-        renderExact(engine, blockSize);
-        const double blend = YouKnowTestAccess::outputJackBlend(engine);
-        expectNear(blend, analyticBlend(1.0f, 48000.0), 1.0e-6,
-                   "the jack blend at a 48 kHz host is not the matched-Z "
-                   "blend of its above-Nyquist corner");
-        expectNear(blendMagnitudeDb(blend, 20000.0, 48000.0), -0.04, 0.01,
-                   "a 48 kHz host is not nearly transparent at 20 kHz");
-    }
+               "the rendered jack pole does not match the analog RC magnitude");
+}
+
+void testOutputJackCoefficientsTrackTheAnalogCornerAtEveryHostRate()
+{
+    // The matched one-pole (OutputJackLowPass) replaces the former
+    // exponential blend. Adapted from the upstream OutputJack suite: at every
+    // supported host rate and wiper position the discretization must be
+    // stable, finite, and within 0.35 dB of the continuous RC magnitude up to
+    // min(20 kHz, 0.45 fs), where the former design lost most of the roll-off.
+    const auto corner = [](double volume) {
+        // Independent p.15 component reduction, not the production helper.
+        constexpr double load = 41300.0 * 101000.0 / (41300.0 + 101000.0);
+        const double upper = 1500.0 + 10000.0 * (1.0 - volume);
+        const double lower = 10000.0 * volume;
+        const double shunt = lower * load / (lower + load);
+        return 1.0 / (2.0 * pi * 1e-9 * (2200.0 + upper * shunt / (upper + shunt)));
+    };
+    double worst = 0.0;
+    for (const double rate : { 8000.0, 11025.0, 22050.0, 32000.0, 44100.0,
+                               48000.0, 64000.0, 88200.0, 96000.0, 192000.0,
+                               384000.0, 768000.0 })
+        for (const double position : { 0.0, 0.25, 0.5, 0.75, 1.0 })
+        {
+            const double pole = corner(position);
+            const auto coefficients = OutputJackLowPass::coefficients(pole, rate);
+            expect(std::isfinite(coefficients.a1)
+                       && std::isfinite(coefficients.correction)
+                       && std::abs(coefficients.a1) < 1.0,
+                   "jack coefficients are nonfinite or unstable at "
+                       + std::to_string(rate) + " Hz");
+            expectNear(YouKnowEngine::outputJackCornerHz(static_cast<float>(position)),
+                       pole, 1.0e-3 * pole,
+                       "the production jack corner departs from the p.15 reduction");
+            OutputJackLowPass filter;
+            std::array<float, 256> impulse {};
+            for (std::size_t index = 0; index < impulse.size(); ++index)
+            {
+                impulse[index] = filter.process(index == 0 ? 1.0f : 0.0f, coefficients);
+                expect(std::isfinite(impulse[index]), "jack impulse is nonfinite");
+            }
+            for (int bin = 0; bin <= 160; ++bin)
+            {
+                const double frequency = std::min(20000.0, 0.45 * rate) * bin / 160.0;
+                const auto z = std::polar(1.0, -2.0 * pi * frequency / rate);
+                std::complex<double> response {}, power { 1.0, 0.0 };
+                for (const float value : impulse)
+                {
+                    response += static_cast<double>(value) * power;
+                    power *= z;
+                }
+                const double analog =
+                    1.0 / std::sqrt(1.0 + (frequency / pole) * (frequency / pole));
+                const double error = std::abs(
+                    20.0 * std::log10(std::abs(response) / analog));
+                expect(std::isfinite(error), "jack frequency response is nonfinite");
+                worst = std::max(worst, error);
+            }
+        }
+    expect(worst <= 0.35,
+           "the matched jack pole departs from the analog RC by "
+               + std::to_string(worst) + " dB");
+
+    // A constant input must stay exactly constant through the correction
+    // term, whatever coefficients VOLUME hands it.
+    OutputJackLowPass filter;
+    const auto coefficients = OutputJackLowPass::coefficients(corner(0.5), 48000.0);
+    float last = 0.0f;
+    for (int index = 0; index < 4096; ++index)
+        last = filter.process(0.25f, coefficients);
+    expect(last == 0.25f, "a held input drifted through the jack pole");
+}
+
+void testVoiceVcaServiceGainIsFrozenBitExactly()
+{
+    // Rack freezes VoiceVcaSignalLaw::serviceGain() so chip code carries no
+    // guarded static; the source expression must still reproduce it exactly.
+    using Signal = YouKnowEngine::VoiceVcaSignalLaw;
+    using Control = YouKnowEngine::VoiceVcaControlLaw;
+    const float expected = Signal::trimOutputPeakVolts
+        / (Signal::shape(Signal::trimFilterPeakVolts)
+           * Control::gain(4064.0f / 4095.0f));
+    std::uint32_t frozenBits {}, expectedBits {};
+    const float frozen = Signal::serviceGain();
+    std::memcpy(&frozenBits, &frozen, sizeof(frozenBits));
+    std::memcpy(&expectedBits, &expected, sizeof(expectedBits));
+    expect(frozenBits == expectedBits,
+           "the frozen VCA service gain differs from the source expression");
+    expectNear(frozen, 1.2790, 5.0e-4,
+               "the service gain is not the documented +2.138 dB");
 }
 
 void testMainNoiseSourceIsGaussianAcrossQualityRungs()
@@ -1183,14 +1325,14 @@ void testCommonVcaControlConstantIsProportionalToAbsoluteTemperature()
         expectNear(warmDb(position), coldDb(position) / warmRatio, 1.0e-4,
                    "the warm law is not the cold decibels over 313.15/298.15 "
                    "at position " + std::to_string(position));
-    expectNear(coldDb(0.0f), -16.32, 0.01, "stored byte 0 is not -16.3 dB cold");
-    expectNear(warmDb(0.0f), -15.54, 0.01,
-               "stored byte 0 does not read -15.5 dB at full warm-up");
-    expectNear(warmDb(0.0f) - coldDb(0.0f), 0.78, 0.01,
-               "stored byte 0 does not gain 0.78 dB at full warm-up");
-    expectNear(coldDb(1.0f), 4.71, 0.01, "full travel is not +4.7 dB cold");
-    expectNear(warmDb(1.0f), 4.48, 0.01,
-               "full travel does not read +4.48 dB at full warm-up");
+    expectNear(coldDb(0.0f), -15.9936, 0.01, "stored byte 0 is not -15.99 dB cold");
+    expectNear(warmDb(0.0f), -15.2275, 0.01,
+               "stored byte 0 does not read -15.23 dB at full warm-up");
+    expectNear(warmDb(0.0f) - coldDb(0.0f), 0.7661, 0.01,
+               "stored byte 0 does not gain 0.77 dB at full warm-up");
+    expectNear(coldDb(1.0f), 5.0773, 0.01, "full travel is not +5.08 dB cold");
+    expectNear(warmDb(1.0f), 4.8341, 0.01,
+               "full travel does not read +4.83 dB at full warm-up");
 
     // The gain is monotone in position, so bisect the cold law for the
     // position reading -10 dB and the position where Vc = 0: the first warms
@@ -1308,11 +1450,14 @@ int main()
     testLfoDelayRearmsOnTheFirmwaresRunningVoiceMask();
     testAttackHandsOverOnTheOvershootingPass();
     testVcaLevelGainWarmsWithTheChassis();
+    testEnvelopeAndGateModes();
     testOutputJackPoleRollsOffTheTopOfTheBandAtHighHostRates();
+    testOutputJackCoefficientsTrackTheAnalogCornerAtEveryHostRate();
+    testVoiceVcaServiceGainIsFrozenBitExactly();
     testMainNoiseSourceIsGaussianAcrossQualityRungs();
     testOutputJackPoleFollowsTheWiperSourceResistance();
     testCommonVcaControlConstantIsProportionalToAbsoluteTemperature();
     testWarmOutputIsIndependentOfBlockPartition();
     testChorusSettlesWithoutHostDenormalPolicy();
-    std::puts("upstream firmware/circuit regressions passed (16 groups)");
+    std::puts("upstream firmware/circuit regressions passed (19 groups)");
 }

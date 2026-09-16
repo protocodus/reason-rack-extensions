@@ -127,8 +127,9 @@ double interpolatedBbdTransfer(double normalised) noexcept
 //   Tr14 / Tr16   1.8 nF feedback, 270 pF shunt  -> 10.38 kHz, Q 1.291
 //
 // and the input adds one passive pole, R122 10 kOhm against C52 2.2 nF, at
-// 7.23 kHz. The coupling capacitor C44/C47 adds a wet-only high-pass against
-// R120/R114 100 kOhm at 15.9 Hz.
+// an isolated 7.23 kHz. C44/C47 and R120/R114 100 kOhm give an isolated
+// 15.9 Hz high-pass. These last two capacitors share an unbuffered node;
+// inputSupportMatrix() includes their mutual loading.
 //
 // This replaces a single pole at 9.9 kHz in and 9.5 kHz out, which was a guess
 // at a fifth-order response rather than the response itself, and was therefore
@@ -143,8 +144,14 @@ constexpr float antiAliasFirstShuntF = 680.0e-12f;
 constexpr float antiAliasSecondHz = 10377.0f;
 constexpr float antiAliasSecondFeedbackF = 1.8e-9f;
 constexpr float antiAliasSecondShuntF = 270.0e-12f;
-constexpr float antiAliasPassiveHz = 7234.0f;   // R122 10 kOhm x C52 2.2 nF
-constexpr float inputCouplingHz = 15.9155f;     // C44 0.1 uF x R120 100 kOhm
+constexpr double inputCouplingFarads = 0.1e-6; // C44 / C47
+constexpr double inputBiasReturnOhms = 100000.0; // R120 / R114
+constexpr double inputPassiveSeriesOhms = 10000.0; // R122 / R115
+constexpr double inputPassiveFarads = 2.2e-9; // C52 / C56
+constexpr float antiAliasPassiveHz = static_cast<float>(1.0
+    / (2.0 * pi * inputPassiveSeriesOhms * inputPassiveFarads));
+constexpr float inputCouplingHz = static_cast<float>(1.0
+    / (2.0 * pi * inputBiasReturnOhms * inputCouplingFarads));
 constexpr float wetOutputCouplingCapacitanceF = 1.0e-6f; // C28 / C25
 constexpr float wetOutputBleedOhms = 22000.0f;           // R103 / R81
 constexpr float wetMixerInputOhms = 39000.0f;            // R72 / R74
@@ -401,15 +408,26 @@ AnalogMatrix inputSupportMatrix() noexcept
 {
     const double w1 = 2.0 * pi * antiAliasFirstHz;
     const double w2 = 2.0 * pi * antiAliasSecondHz;
-    const double wc = 2.0 * pi * inputCouplingHz;
-    const double wp = 2.0 * pi * antiAliasPassiveHz;
+    const double wc = 1.0 / (inputBiasReturnOhms * inputCouplingFarads);
+    const double wp = 1.0 / (inputPassiveSeriesOhms * inputPassiveFarads);
+    const double loading = 1.0 / (inputPassiveSeriesOhms * inputCouplingFarads);
     const double k1 = 1.0 / Chorus::sallenKeyQ(
         antiAliasFirstFeedbackF, antiAliasFirstShuntF);
     const double k2 = 1.0 / Chorus::sallenKeyQ(
         antiAliasSecondFeedbackF, antiAliasSecondShuntF);
     AnalogMatrix matrix {};
     // Voltage-like analog integrator coordinates: BP1, LP1, BP2, LP2,
-    // coupling-capacitor lowpass voltage and passive-pole output voltage.
+    // voltage across the coupling capacitor and passive-pole output voltage.
+    // Roland JUNO-106 Service Notes, July 31, 1984, jack board p. 15:
+    // https://www.kiwitechnics.com/downloads/Kiwi-106/Roland%20Juno-106%20Service%20Manual.pdf#page=15
+    // C44/C47 drives R120/R114 and the unbuffered R122/C52 (R115/C56)
+    // branch together. With u=LP2, x=voltage across C44 and y=C52 voltage,
+    // KCL gives x'=(wc+loading)*(u-x)-loading*y, y'=wp*(u-x-y).
+    // The separable HP*LP approximation omitted loading, losing Rbias*C52
+    // from the transfer denominator and making the wet input about 0.19 dB
+    // too hot at midband. Both paths retain the existing ideal bias-source
+    // boundary: the unknown installed VR1/VR2 setting/source impedance and
+    // emitter-follower output impedance are not newly calibrated here.
     matrix[0][0] = -k1 * w1;
     matrix[0][1] = -w1;
     matrix[1][0] = w1;
@@ -417,8 +435,9 @@ AnalogMatrix inputSupportMatrix() noexcept
     matrix[2][2] = -k2 * w2;
     matrix[2][3] = -w2;
     matrix[3][2] = w2;
-    matrix[4][3] = wc;
-    matrix[4][4] = -wc;
+    matrix[4][3] = wc + loading;
+    matrix[4][4] = -wc - loading;
+    matrix[4][5] = -loading;
     matrix[5][3] = wp;
     matrix[5][4] = -wp;
     matrix[5][5] = -wp;
@@ -584,7 +603,7 @@ float Chorus::deterministicToneStep(double& phase, float frequencyHz,
 }
 
 Chorus::ModeSettings Chorus::settingsFor(
-    ChorusMode mode, bool useA11EffectiveTimingProfile) noexcept
+    ChorusMode mode, ChorusTimingProfile timingProfile) noexcept
 {
     // The rates are this instrument's own, straight from its circuit:
     // derivedRateHz() evaluates f = 1/(4 * beta * R_eff * C3) with the
@@ -611,10 +630,11 @@ Chorus::ModeSettings Chorus::settingsFor(
     // contradictions under OQ-01, which still requests a calibrated capture
     // of an original unit.
     //
-    // Modes I and II differ in speed alone, not in depth: the mode line changes
-    // a timing resistance, while the triangle's amplitude is set by the
-    // comparator's threshold ratio, which the mode line does not touch. That
-    // is why II reads as more agitated rather than wider.
+    // In the nominal circuit, modes I and II differ in speed alone: the mode
+    // line changes a timing resistance, while the triangle's amplitude is set
+    // by the comparator's unchanged threshold ratio. This derives equal
+    // nominal excursion; it does not measure Mode II's installed endpoints
+    // or transfer the effective Mode-I fit below to that mode.
     constexpr float centre = 0.5f * (0.0014f + 0.0064f);
     constexpr float sweep = 0.5f * (0.0064f - 0.0014f);
     constexpr float rateOne = static_cast<float>(derivedRateHz(true));
@@ -633,17 +653,43 @@ Chorus::ModeSettings Chorus::settingsFor(
             // measurements, a population nominal, or a Mode-II calibration.
             // AIFF SHA256: b235ba2236c1a509627ce1e84fa35004b0d7c3e99eb36899c4c5de63cc668662
             // https://github.com/kayrockscreenprinting/ultramaster_kr106/issues/16#issuecomment-4184997000
-            if (useA11EffectiveTimingProfile)
-                return { 0.5159334275f, 0.00338027575f, 0.00176176683f, lineGain };
+            // Three OQ-01 comparison candidates with distinct evidence; see
+            // ChorusTimingProfile. The spectral coordinates above are fitted,
+            // while the circuit estimate below depends on unmeasured values.
+            switch (timingProfile)
+            {
+                case ChorusTimingProfile::A11Spectral:
+                    return { 0.5159334275f, 0.00338027575f, 0.00176176683f, lineGain };
+                case ChorusTimingProfile::A11ClickTiming:
+                    return { 0.514f, 0.00330f, 0.00213f, lineGain };
+                case ChorusTimingProfile::DerivedNominal:
+                    // Conditional estimate, not a measured hardware bound:
+                    // Roland p. 15 puts R123=1.8k and R125=10k in the base
+                    // divider; R124=8.2k is Tr19's emitter resistor. Ignoring
+                    // base current, I0 ~= (15*R123/(R123+R125)-Vbe)/R124,
+                    // or 199.77 uA at assumed Vbe=0.65 V. Even independent
+                    // +/-1% resistors give 193.14-206.60 uA at those fixed
+                    // supply/junction voltages, not a 195-203 uA guarantee.
+                    // d(delay)/dV = 256*C53/I0; TP4 is +/-beta*Vsat, so its
+                    // ~9.48 V PEAK at Vsat=13.5 V gives ~1.83 ms half-depth
+                    // with C53=150 pF and I0=199 uA. The 3.02 ms centre also
+                    // assumes junction drops and an unmeasured reset dead time.
+                    // Roland p. 15 and Panasonic MN3101 (fCP=fosc/2):
+                    // https://www.synfo.nl/servicemanuals/Roland/ROLAND_JUNO-106_SERVICE_NOTES_1st.pdf#page=15
+                    // https://www.experimentalistsanonymous.com/diy/Datasheets/MN3101.pdf#page=3
+                    return { rateOne, 0.00302f, 0.00183f, lineGain };
+                case ChorusTimingProfile::Shipping:
+                default:
+                    break;
+            }
             return { rateOne, centre, sweep, lineGain };
         case ChorusMode::Two:  return { rateTwo, centre, sweep, lineGain };
-        // Product compatibility policy, not a claim about a third resistance
-        // in the original circuit. The audited Roland Cloud original instrument exposes
-        // only Off/I/II, and no calibrated original-unit both-button trace is
-        // published. Retain this plug-in's established summed-rate sound so
-        // the fourth state is stable and audibly distinct. The shared centre,
-        // depth and gain are the least speculative continuation of the two
-        // measured modes; a qualifying I+II capture can replace this policy.
+        // Product extension. Roland's original owner manual permits Off/I/II
+        // and excludes simultaneous I+II; the board has an enable line plus
+        // one binary rate line, not a third timing resistance. Retain the
+        // established summed-rate sound as a product compatibility choice.
+        // No JUNO-6/60 fast-mode calibration is inferred for this extension.
+        // https://cdn.roland.com/assets/media/pdf/JUNO-106_OM.pdf#page=3
         case ChorusMode::OneTwo:
             return { rateOne + rateTwo, centre, sweep, lineGain };
         case ChorusMode::Off:
@@ -836,6 +882,20 @@ Chorus::SupportChain Chorus::supportChainFor(float sampleRate) noexcept
     SupportChain chain;
     chain.inputCouplingG = onePoleG(inputCouplingHz, sampleRate);
     chain.passiveG = onePoleG(antiAliasPassiveHz, sampleRate);
+    // Keep the reviewed low-grid prewarping of each reactive rate, but solve
+    // both capacitor currents simultaneously. Both currents through C44 use
+    // its same warped capacitance; their ratio stays R120/R122 = 10.
+    const double gc = chain.inputCouplingG / (1.0 - chain.inputCouplingG);
+    const double gp = chain.passiveG / (1.0 - chain.passiveG);
+    const double gl = gc * inputBiasReturnOhms / inputPassiveSeriesOhms;
+    const double determinant = (1.0 + gc + gl) * (1.0 + gp) - gl * gp;
+    chain.inputCouplingInverse = {{
+        {{ (1.0 + gp) / determinant, -gl / determinant }},
+        {{ -gp / determinant, (1.0 + gc + gl) / determinant }}
+    }};
+    chain.inputCouplingDrive = {{
+        (gc * (1.0 + gp) + gl) / determinant, gp / determinant
+    }};
     chain.antiAliasFirst = sallenKeyCoefficients(
         antiAliasFirstHz,
         sallenKeyQ(antiAliasFirstFeedbackF, antiAliasFirstShuntF), sampleRate);
@@ -870,9 +930,55 @@ Chorus::SupportChain Chorus::supportChainFor(float sampleRate) noexcept
            -dt * (series + lower) / muteDriveHoldFarads }}
     }};
     chain.muteDriveOpenTransition = matrixExponential(muteDriveMatrix);
-    // Tr5 conducting clamps C16 to -15 V, leaving C13's one-pole discharge.
-    chain.muteDriveHoldGlide = -std::expm1(
-        -dt * (series + lower) / muteDriveHoldFarads);
+    // Roland Service Notes p.15: R46 330 Ohm remains between Tr5's
+    // collector and C16 when the transistor conducts. The same two-node
+    // system gains (Vnode + 15) / R46 sink current; R50 still pulls upward.
+    // C16*dVnode/dt = (15-Vnode)/R50 - (Vnode-Vhold)/R48
+    //                 - (Vnode+15)/R46.
+    // C13*dVhold/dt = (Vnode-Vhold)/R48 - (Vhold+15)/(R49+R42).
+    // This restores the known resistor while keeping the established ideal
+    // Tr5 saturation coordinate and 0.6 V Tr4 threshold prior.
+    // https://www.synfo.nl/servicemanuals/Roland/ROLAND_JUNO-106_SERVICE_NOTES_1st.pdf#page=15
+    muteDriveMatrix[0][0] -= dt / (muteDriveSinkOhms * muteDriveNodeFarads);
+    chain.muteDriveConductingTransition = matrixExponential(muteDriveMatrix);
+
+    for (std::size_t index = 0; index < chain.clockMuteTransitions.size(); ++index)
+    {
+        const bool tr5Conducting = (index & 2u) != 0;
+        const bool diodeConducting = (index & 1u) != 0;
+        auto& circuit = chain.clockMuteTransitions[index];
+        auto& a = circuit.generator;
+        const double sink = tr5Conducting ? 1.0 / muteDriveSinkOhms : 0.0;
+        const double diode = diodeConducting ? 1.0 / clockMuteDiodeSeriesOhms : 0.0;
+        const double branch = 1.0 / clockMuteBypassOhms + diode;
+        const double clockDown = 2.0 / (clockMuteBaseOhms + clockMuteEmitterOhms);
+        const double junctionCurrent = diode * muteDriveJunctionVolts;
+        // Current C15 -> C16 is (Vc-Vn)/R47 + max(Vc-Vn-Vj,0)/R41.
+        // Its sign reverses in the two capacitor equations. Both base-divider
+        // paths are present even though only one clock clamp would stop audio.
+        a[0] = {{ -(pullUp + series + sink + branch) / muteDriveNodeFarads,
+                    series / muteDriveNodeFarads, branch / muteDriveNodeFarads,
+                    (muteDriveRailVolts * (pullUp - sink) - junctionCurrent)
+                        / muteDriveNodeFarads }};
+        a[1] = {{ series / muteDriveHoldFarads, -(series + lower) / muteDriveHoldFarads,
+                    0.0, -muteDriveRailVolts * lower / muteDriveHoldFarads }};
+        a[2] = {{ branch / clockMuteFarads, 0.0, -(branch + clockDown) / clockMuteFarads,
+                    (junctionCurrent - muteDriveRailVolts * clockDown) / clockMuteFarads }};
+        FixedMatrix<3> dcMatrix {}, dcDrive {}, dcSolution {};
+        for (std::size_t row = 0; row < 3; ++row)
+        {
+            for (std::size_t column = 0; column < 3; ++column)
+                dcMatrix[row][column] = a[row][column];
+            dcDrive[row][0] = -a[row][3];
+        }
+        if (matrixSolve(dcMatrix, dcDrive, dcSolution))
+            for (std::size_t row = 0; row < 3; ++row)
+                circuit.equilibrium[row] = dcSolution[row][0];
+        for (auto& row : a)
+            for (double& value : row)
+                value *= dt;
+        circuit.transition = matrixExponential(a);
+    }
     return chain;
 }
 
@@ -927,11 +1033,17 @@ float Chorus::advanceInputSupport(float input) noexcept
         inputSupport_.antiAliasFirst, supportInput, support_.antiAliasFirst);
     limited = Chorus::biquadStep(
         inputSupport_.antiAliasSecond, limited, support_.antiAliasSecond);
-    const float couplingLow = Chorus::supportFilterStep(
-        inputSupport_.couplingState, limited, support_.inputCouplingG);
-    limited -= couplingLow;
-    return Chorus::supportFilterStep(
-        inputSupport_.passiveState, limited, support_.passiveG);
+    const auto& inverse = support_.inputCouplingInverse;
+    const auto& drive = support_.inputCouplingDrive;
+    const double coupling = inverse[0][0] * inputSupport_.couplingState
+                          + inverse[0][1] * inputSupport_.passiveState
+                          + drive[0] * limited;
+    const double passive = inverse[1][0] * inputSupport_.couplingState
+                         + inverse[1][1] * inputSupport_.passiveState
+                         + drive[1] * limited;
+    inputSupport_.couplingState = 2.0 * coupling - inputSupport_.couplingState;
+    inputSupport_.passiveState = 2.0 * passive - inputSupport_.passiveState;
+    return static_cast<float>(passive);
 }
 
 void Chorus::Line::reset(std::uint32_t seed) noexcept
@@ -1250,6 +1362,9 @@ void Chorus::reset(bool preserveLfoPhase) noexcept
     muteDriveHoldVolts_ = muteDriveHoldRestVolts(muteDriveNodeVolts_);
     muteDriveMuted_ = true;
     muteDriveEnabled_ = false;
+    clockMuteVolts_ = -muteDriveRailVolts;
+    clockMuteEnabled_ = false;
+    clocksStopped_ = false;
 }
 
 float Chorus::lineInsertionGainDraw() noexcept
@@ -1273,7 +1388,13 @@ float Chorus::rateProportionalNoiseGain(float rateHz) noexcept
 bool Chorus::processBypassedWhenSettled(float input, float& left,
                                         float& right) noexcept
 {
-    if (!primed_ || wetGain_ != 0.0f)
+    // Until the wet-mute glide has decayed to exactly zero -- or before the
+    // first process() call has primed the settings -- the full path still
+    // contributes audible wet, so the caller must keep running it.
+    // This comparison circuit preserves stopped bucket charge and all analog
+    // filter coordinates. The old skip deliberately discards that history;
+    // keep ordinary support evolution here (clock=0 already skips BBD shifts).
+    if (!primed_ || wetGain_ != 0.0f || clockMuteEnabled_)
         return false;
 
     // Muting the return does not disconnect C16/C13 from their drive circuit
@@ -1296,28 +1417,88 @@ bool Chorus::processBypassedWhenSettled(float input, float& left,
 
 void Chorus::advanceMuteDrive(bool commandMute) noexcept
 {
-    // Same 0.6 V junction prior and 5 ms JFET glide; only the passive
-    // network's missing reciprocal R48 current is corrected here.
-    if (commandMute)
+    if (clockMuteEnabled_)
     {
-        constexpr double nodeRest = muteDriveMutedNodeRestVolts();
-        constexpr double holdRest = muteDriveHoldRestVolts(nodeRest);
-        const double node = muteDriveNodeVolts_ - nodeRest;
-        const double hold = muteDriveHoldVolts_ - holdRest;
-        muteDriveNodeVolts_ = nodeRest
-            + support_.muteDriveOpenTransition[0][0] * node
-            + support_.muteDriveOpenTransition[0][1] * hold;
-        muteDriveHoldVolts_ = holdRest
-            + support_.muteDriveOpenTransition[1][0] * node
-            + support_.muteDriveOpenTransition[1][1] * hold;
+        advanceClockMuteDrive(commandMute);
+        return;
+    }
+    // Both command states retain the two physical capacitor coordinates.
+    // Only the prepared conductance matrix and its DC equilibrium switch;
+    // there is no charge reset when Tr5 begins conducting through R46.
+    const double nodeRest = commandMute ? muteDriveMutedNodeRestVolts()
+                                       : muteDriveConductingNodeRestVolts();
+    const double holdRest = muteDriveHoldRestVolts(nodeRest);
+    const auto& transition = commandMute ? support_.muteDriveOpenTransition
+                                        : support_.muteDriveConductingTransition;
+    const double node = muteDriveNodeVolts_ - nodeRest;
+    const double hold = muteDriveHoldVolts_ - holdRest;
+    muteDriveNodeVolts_ = nodeRest + transition[0][0] * node + transition[0][1] * hold;
+    muteDriveHoldVolts_ = holdRest + transition[1][0] * node + transition[1][1] * hold;
+    muteDriveMuted_ = muteDriveHoldVolts_ >= muteDriveThresholdVolts;
+}
+
+void Chorus::advanceClockMuteDrive(bool commandMute) noexcept
+{
+    using State = std::array<double, 4>;
+    State state {{ muteDriveNodeVolts_, muteDriveHoldVolts_, clockMuteVolts_, 1.0 }};
+    const auto apply = [](const FixedMatrix<4>& matrix, const State& input) {
+        State result {};
+        for (std::size_t row = 0; row < 4; ++row)
+            for (std::size_t column = 0; column < 4; ++column)
+                result[row] += matrix[row][column] * input[column];
+        return result;
+    };
+    // Fractional intervals are needed only at a D3 conduction crossing.
+    // A 12-term exponential action is converged on the supported >=8 kHz
+    // grid (fastest RC ~0.7 ms), without constructing matrices on the callback.
+    const auto fractional = [&](const FixedMatrix<4>& generator,
+                                const State& input, double fraction) {
+        State result = input;
+        State term = input;
+        for (int order = 1; order <= 12; ++order)
+        {
+            term = apply(generator, term);
+            for (std::size_t row = 0; row < 4; ++row)
+            {
+                term[row] *= fraction / order;
+                result[row] += term[row];
+            }
+        }
+        return result;
+    };
+    const auto diodeVoltage = [](const State& value) {
+        return value[2] - value[0] - muteDriveJunctionVolts;
+    };
+    const bool diodeConducting = diodeVoltage(state) > 0.0;
+    const std::size_t base = commandMute ? 0u : 2u;
+    const auto& circuit = support_.clockMuteTransitions[base + (diodeConducting ? 1u : 0u)];
+    const State candidate = apply(circuit.transition, state);
+    if ((diodeVoltage(candidate) > 0.0) != diodeConducting)
+    {
+        // Locate the physical diode crossing within the sample and continue
+        // with the other conductance matrix, preserving all capacitor charge.
+        double lower = 0.0, upper = 1.0;
+        for (int iteration = 0; iteration < 32; ++iteration)
+        {
+            const double middle = 0.5 * (lower + upper);
+            const auto value = fractional(circuit.generator, state, middle);
+            if ((diodeVoltage(value) > 0.0) == diodeConducting)
+                lower = middle;
+            else
+                upper = middle;
+        }
+        const double crossing = 0.5 * (lower + upper);
+        state = fractional(circuit.generator, state, crossing);
+        const auto& next = support_.clockMuteTransitions[base + (diodeConducting ? 0u : 1u)];
+        state = fractional(next.generator, state, 1.0 - crossing);
     }
     else
-    {
-        muteDriveNodeVolts_ = -muteDriveRailVolts;
-        muteDriveHoldVolts_ += (-muteDriveRailVolts - muteDriveHoldVolts_)
-                             * support_.muteDriveHoldGlide;
-    }
+        state = candidate;
+    muteDriveNodeVolts_ = state[0];
+    muteDriveHoldVolts_ = state[1];
+    clockMuteVolts_ = state[2];
     muteDriveMuted_ = muteDriveHoldVolts_ >= muteDriveThresholdVolts;
+    clocksStopped_ = clockMuteVolts_ >= clockMuteThresholdVolts;
 }
 
 void Chorus::process(float input, ChorusMode mode, float noiseScale,
@@ -1329,7 +1510,8 @@ void Chorus::process(float input, ChorusMode mode, float noiseScale,
                      bool enableNarrowOneTwo,
                      bool enableMuteDrive,
                      bool enableLineGainSpread,
-                     bool useA11EffectiveTimingProfile) noexcept
+                     ChorusTimingProfile timingProfile,
+                     bool enableClockMuteCircuit) noexcept
 {
 #if defined(YOUKNOW_WORK_AUDIT)
     YOUKNOW_COUNT_DOMAIN_WORK(chorusFrames, 1);
@@ -1346,9 +1528,10 @@ void Chorus::process(float input, ChorusMode mode, float noiseScale,
         clockSpurPhaseB_ = 0.0;
     }
 
-    const auto target = settingsFor(mode, useA11EffectiveTimingProfile);
+    const auto target = settingsFor(mode, timingProfile);
 
     const bool commandMute = mode == ChorusMode::Off;
+    const bool nextClockMuteEnabled = enableClockMuteCircuit && enableMuteDrive;
     if (!primed_)
     {
         rateHz_ = target.rateHz;
@@ -1356,14 +1539,25 @@ void Chorus::process(float input, ChorusMode mode, float noiseScale,
         centreDelay_ = target.centreDelaySeconds;
         wetGain_ = target.wetGain;
         // The drive rests where the command has held it: Tr5 open and both
-        // capacitors at their positive rests when muted, both on the
-        // negative rail when conducting.
+        // capacitors at their positive rests when muted, or the finite-R46
+        // loaded rests when conducting.
         muteDriveNodeVolts_ = commandMute ? muteDriveMutedNodeRestVolts()
-                                          : -muteDriveRailVolts;
+                                          : muteDriveConductingNodeRestVolts();
         muteDriveHoldVolts_ = muteDriveHoldRestVolts(muteDriveNodeVolts_);
         muteDriveMuted_ = commandMute;
+        if (nextClockMuteEnabled)
+        {
+            // D3 is reverse biased at both settled command states.
+            const auto& rest = support_.clockMuteTransitions[commandMute ? 0u : 2u].equilibrium;
+            muteDriveNodeVolts_ = rest[0];
+            muteDriveHoldVolts_ = rest[1];
+            clockMuteVolts_ = rest[2];
+        }
         primed_ = true;
     }
+
+    clockMuteEnabled_ = nextClockMuteEnabled;
+    clocksStopped_ = clockMuteEnabled_ && clockMuteVolts_ >= clockMuteThresholdVolts;
 
     if (mode != ChorusMode::Off)
     {
@@ -1460,14 +1654,14 @@ void Chorus::process(float input, ChorusMode mode, float noiseScale,
 
     const float delayA = std::max(nominalDelayA, 1.0e-4f);
     const float delayB = std::max(nominalDelayB, 1.0e-4f);
-    const float clockA = std::clamp(clockForDelaySeconds(delayA),
+    const float clockA = clocksStopped_ ? 0.0f : std::clamp(clockForDelaySeconds(delayA),
                                     minimumClockHz, maximumClockHz);
-    const float clockB = std::clamp(clockForDelaySeconds(delayB),
+    const float clockB = clocksStopped_ ? 0.0f : std::clamp(clockForDelaySeconds(delayB),
                                     minimumClockHz, maximumClockHz);
 
     // C28/C25 see the 39 kOhm mixer legs through Tr11/Tr12, so their
     // loading follows the RC-delayed gate state. The button command can
-    // precede that switch by roughly 81 ms off or 115 ms on.
+    // precede that switch by roughly 80 ms off or 121 ms on.
     const auto& wetOutputTransition = muteDriveMuted_
         ? support_.exactOutputMuted
         : support_.exactOutputConnected;
@@ -1490,7 +1684,7 @@ void Chorus::process(float input, ChorusMode mode, float noiseScale,
     float wetB = lineB_.process(limitedInput, clockB, sampleRate_,
                                 wetOutputTransition, lineNoiseScale);
 
-    if (enableClockBleed)
+    if (enableClockBleed && !clocksStopped_)
     {
         clockSpurPhaseA_ += static_cast<double>(clockA) * inverseSampleRate_;
         clockSpurPhaseB_ += static_cast<double>(clockB) * inverseSampleRate_;
@@ -1541,7 +1735,7 @@ void Chorus::process(float input, ChorusMode mode, float noiseScale,
             optionalB += hum;
         }
 
-        if (optionalNoise_.clockSpurAmplitude != 0.0f)
+        if (optionalNoise_.clockSpurAmplitude != 0.0f && !clocksStopped_)
         {
             // Each candidate spur follows its own modulated BBD clock, on its
             // own accumulator.  The harmonic and post-line insertion level are
@@ -1564,14 +1758,11 @@ void Chorus::process(float input, ChorusMode mode, float noiseScale,
         wetB += optionalB * noiseScale;
     }
 
-    // Both ordinary modes carry dry plus one wet line per channel. I+II is a
-    // live product extension rather than a tone-memory state, and its former
-    // implementation simply reused that wide routing. An original-unit owner
-    // remembers the physical both-button result as conspicuously narrow and
-    // coloured. Equal mid folding is the only zero-parameter continuation of
-    // the known two-line circuit: it preserves the exact mono sum (and thus
-    // the comb colour heard in mono) while removing only the unsupported side.
-    // The comparison switch retains the former wide result pending a capture.
+    // Both ordinary modes carry dry plus one wet line per channel. The I+II
+    // product extension uses the owner's chosen narrow colour: equal mid
+    // folding preserves the exact mono sum while removing the wet side.
+    // This is a product routing choice, not a stock JUNO-106 both-button
+    // circuit. The comparison switch retains the former wide routing.
     // Each MN3009 carries its own insertion gain inside Panasonic's +/-4 dB
     // row and nothing on the board trims it; solved only when Unit Character
     // moves. The narrow I+II fold below then averages the two returns exactly

@@ -1,4 +1,5 @@
 #include "../YouKnow.h"
+#include "../DSP/YouKnowProductFidelity.h"
 
 #include <algorithm>
 #include <array>
@@ -10,6 +11,7 @@
 #include <cstring>
 #include <limits>
 #include <new>
+#include <random>
 #include <set>
 #include <string>
 #include <utility>
@@ -112,9 +114,51 @@ struct YouKnowTestAccess
         return engine.pitchBendTarget_;
     }
 
+    static float modWheelTarget(const YouKnowEngine& engine) noexcept
+    {
+        return engine.modWheelTarget_;
+    }
+
+    static bool sustainPedalDown(const YouKnowEngine& engine) noexcept
+    {
+        return engine.sustainPedalDown_;
+    }
+
     static const EngineParameters& parameters(const YouKnowEngine& engine) noexcept
     {
         return engine.activeParameters_;
+    }
+
+    // The pitch a voice slot is keyed to, or -1.
+    static int keyedNote(const YouKnowEngine& engine, int slot) noexcept
+    {
+        const auto& voice = engine.voices_[static_cast<std::size_t>(slot)];
+        return voice.active && voice.keyDown ? voice.rootMidi : -1;
+    }
+
+    static std::uint64_t generation(const YouKnowEngine& engine, int slot) noexcept
+    {
+        return engine.voices_[static_cast<std::size_t>(slot)].generation;
+    }
+
+    static int keyedVoiceCount(const YouKnowEngine& engine, int note) noexcept
+    {
+        return static_cast<int>(std::count_if(
+            engine.voices_.begin(), engine.voices_.end(), [note](const auto& voice) {
+                return voice.active && voice.keyDown && voice.rootMidi == note;
+            }));
+    }
+
+    // A voice keyed to a pitch nobody holds is a stuck note.
+    static bool keyedWithoutHeldKey(const YouKnowEngine& engine) noexcept
+    {
+        return std::any_of(
+            engine.voices_.begin(), engine.voices_.end(), [&engine](const auto& voice) {
+                return voice.active && voice.keyDown
+                    && (voice.rootMidi < 0 || voice.rootMidi > 127
+                        || engine.heldNoteCounts_[static_cast<std::size_t>(
+                               voice.rootMidi)] == 0);
+            });
     }
 
 };
@@ -156,6 +200,38 @@ struct CYouKnowTestAccess
     static float patchGainSmoothed(const CYouKnow& device) noexcept
     {
         return device.fPatchGainSmoothed;
+    }
+
+    static std::uint16_t midiHeldCount(const CYouKnow& device, int note) noexcept
+    {
+        return device.fMidiHeldCounts[static_cast<std::size_t>(note)];
+    }
+
+    static const youknow::EngineParameters& engineParameters(
+        const CYouKnow& device) noexcept
+    {
+        return device.fEngineParameters;
+    }
+
+    static int requestedOversamplingFactor(const CYouKnow& device) noexcept
+    {
+        return device.fRequestedOversamplingFactor;
+    }
+
+    static float calibrationTarget(const CYouKnow& device) noexcept
+    {
+        return device.fCalibrationTarget;
+    }
+
+    // The wrapper's declared default for a custom property, by name.
+    static double parameterDefault(const CYouKnow& device, const char* name)
+    {
+        const auto property = JBox_MakePropertyRef(device.fCustomProperties, name);
+        for (std::size_t index = 0; index < device.fProperties.size(); ++index)
+            if (device.fProperties[index] == property)
+                return CYouKnow::kParameterDefaults[index];
+        assert(false);
+        return 0.0;
     }
 };
 
@@ -1471,9 +1547,830 @@ void JBox_SetDSPBufferData(TJBox_Value value, TJBox_AudioFramePos first,
     else wroteRight = true;
 }
 
+// --- Musical note phrases -----------------------------------------------------
+// Phrases a player actually produces, rendered through the complete Rack MIDI
+// path at sample-exact positions: an equal pitch pressed again while it is
+// still held (in later batches and twice within one frame), legato runs over
+// adjacent semitones whose notes touch, overlap or leave a one-sample gap
+// (on batch edges, frame 63 and in between, in both same-frame diff orders),
+// a rapid repeated note, and semitone clusters within and beyond the voice
+// pool. Every key mode runs with and without the sustain pedal. After every
+// batch the MIDI and engine hold counts must match an independent model, no
+// voice may stay keyed to a released pitch, every keyed voice must carry the
+// velocity of its pitch's first outstanding press, and once the converter scan
+// has run every held pitch must own a voice (the pool permitting; Unison keys
+// one held pitch). An extra press of a held pitch, in a later batch or in the
+// same frame, must not reassign or retrigger it, and every phrase must end
+// silent with nothing latched.
+struct PhraseEvent
+{
+    int sample;
+    int note;
+    int velocity; // zero releases
+};
+
+struct Phrase
+{
+    std::string name;
+    std::vector<PhraseEvent> events;
+};
+
+std::vector<Phrase> musicalPhrases(double rate)
+{
+    const auto ms = [rate](double milliseconds) {
+        return static_cast<int>(std::lround(milliseconds * rate / 1000.0));
+    };
+    std::vector<Phrase> phrases;
+
+    {
+        Phrase phrase { "equal-pitch overlaps", {} };
+        const int start = 64 * 2 + 20;
+        phrase.events = {
+            { start, 60, 100 },
+            { start + ms(90), 60, 50 },  // second press of a held key
+            { start + ms(200), 60, 0 },  // one of two presses released
+            { start + ms(260), 60, 80 },
+            { start + ms(330), 60, 0 },
+            { start + ms(420), 60, 0 },  // the final release
+            { start + ms(500), 62, 90 }, // two presses in one frame
+            { start + ms(500), 62, 70 },
+            { start + ms(640), 62, 0 },  // two releases in one frame
+            { start + ms(640), 62, 0 },
+        };
+        phrases.push_back(std::move(phrase));
+    }
+
+    for (const int gap : { 0, 1, -ms(30) })
+    {
+        Phrase phrase { gap == 0 ? "touching semitone run"
+                        : gap > 0 ? "one-sample-gap semitone run"
+                                  : "overlapping semitone run", {} };
+        constexpr int notes = 13;
+        int onset = 64 * 3; // the first press on a batch edge
+        phrase.events.push_back({ onset, gap < 0 ? 72 : 48, 64 });
+        for (int step = 0; step < notes; ++step)
+        {
+            const int note = gap < 0 ? 72 - step : 48 + step;
+            // Boundaries land on batch edges, on frame 63 and in between.
+            const int length = step % 3 == 0 ? 64 * 7
+                : step % 3 == 1 ? 64 * 6 + 63 : ms(143);
+            const int release = onset + length;
+            if (step + 1 == notes)
+            {
+                phrase.events.push_back({ release, note, 0 });
+                break;
+            }
+            const int nextNote = gap < 0 ? note - 1 : note + 1;
+            const int nextOnset = release + gap;
+            const PhraseEvent press { nextOnset, nextNote, 64 + 4 * step };
+            const PhraseEvent off { release, note, 0 };
+            // A touching boundary is one frame; exercise both diff orders.
+            if (gap == 0 && step % 2 == 1)
+            {
+                phrase.events.push_back(press);
+                phrase.events.push_back(off);
+            }
+            else
+            {
+                phrase.events.push_back(off);
+                phrase.events.push_back(press);
+            }
+            onset = nextOnset;
+        }
+        phrases.push_back(std::move(phrase));
+    }
+
+    {
+        Phrase phrase { "rapid repeated note", {} };
+        int onset = 64 * 2 + 5;
+        for (int repeat = 0; repeat < 40; ++repeat)
+        {
+            const int length = 64 + 7 * repeat; // 1.3 to 7 ms at 48 kHz
+            phrase.events.push_back({ onset, 64, 40 + repeat });
+            phrase.events.push_back({ onset + length, 64, 0 });
+            onset += length; // the next press shares the release frame
+        }
+        phrases.push_back(std::move(phrase));
+    }
+
+    {
+        Phrase phrase { "adjacent-semitone cluster", {} };
+        const int start = 64 * 4 + 9;
+        for (int note = 60; note < 66; ++note)
+            phrase.events.push_back({ start, note, 100 });
+        for (int note = 65; note >= 60; --note)
+            phrase.events.push_back({ start + ms(300) + (65 - note) * ms(10), note, 0 });
+        phrases.push_back(std::move(phrase));
+    }
+
+    {
+        Phrase phrase { "semitone cluster beyond the pool", {} };
+        const int start = 64 * 4 + 33;
+        for (int note = 60; note < 72; ++note)
+            phrase.events.push_back({ start, note, 90 });
+        for (int note = 60; note < 72; ++note)
+            phrase.events.push_back({ start + ms(250), note, 0 });
+        for (const int note : { 48, 52, 55 })
+            phrase.events.push_back({ start + ms(300), note, 110 });
+        for (const int note : { 48, 52, 55 })
+            phrase.events.push_back({ start + ms(450), note, 0 });
+        phrases.push_back(std::move(phrase));
+    }
+
+    // Time order; equal samples keep their authored diff order.
+    for (auto& phrase : phrases)
+        std::stable_sort(phrase.events.begin(), phrase.events.end(),
+                         [](const PhraseEvent& a, const PhraseEvent& b) {
+                             return a.sample < b.sample;
+                         });
+    return phrases;
+}
+
+void checkMusicalNotePhrases()
+{
+    using Access = youknow::YouKnowTestAccess;
+    const double savedRate = sampleRate;
+    for (const double rate : { 44100.0, 48000.0 })
+        for (const double keyMode : { 0.0, 1.0, 2.0 })
+            for (const bool pedal : { false, true })
+                for (const auto& phrase : musicalPhrases(rate))
+                {
+                    sampleRate = rate;
+                    configureAttackHost();
+                    set("/custom_properties", "keyMode", Kind::Number, keyMode);
+                    CYouKnow device(rate);
+                    auto& engine = CYouKnowTestAccess::engine(device);
+                    const bool unison = keyMode == 2.0;
+                    // Let a restored Poly 2/Unison assignment scan finish.
+                    for (int batch = 0; batch < 8; ++batch)
+                        renderBatch(device);
+
+                    const int settle = 64 * 8; // longer than one converter scan
+                    const int lastEvent = phrase.events.back().sample;
+                    const int total = ((lastEvent + static_cast<int>(rate)) / 64 + 1) * 64;
+                    constexpr int voiceSlots = youknow::YouKnowEngine::maxVoices;
+                    std::array<int, 128> held {};
+                    std::array<int, 128> firstPressVelocity {};
+                    int lastChange = 0;
+                    float peak = 0.0f;
+                    std::size_t next = 0;
+                    for (int first = 0; first < total; first += 64)
+                    {
+                        std::vector<TJBox_PropertyDiff> diffs;
+                        if (pedal && first == 0)
+                            diffs.push_back(change("/custom_properties", "sustainPedal",
+                                                   Kind::Number, 1.0, 0));
+                        std::array<int, voiceSlots> noteBefore {};
+                        std::array<std::uint64_t, voiceSlots> generationBefore {};
+                        for (int slot = 0; slot < voiceSlots; ++slot)
+                        {
+                            noteBefore[slot] = Access::keyedNote(engine, slot);
+                            generationBefore[slot] = Access::generation(engine, slot);
+                        }
+                        // True while this batch holds only extra presses of
+                        // pitches that were already held when it began.
+                        bool onlyExtraPresses = true;
+                        bool anyEvent = false;
+                        while (next < phrase.events.size()
+                               && phrase.events[next].sample < first + 64)
+                        {
+                            const auto& event = phrase.events[next++];
+                            diffs.push_back(noteDiff(event.note, event.velocity,
+                                                     event.sample - first));
+                            anyEvent = true;
+                            onlyExtraPresses = onlyExtraPresses && event.velocity > 0
+                                && held[event.note] > 0;
+                            if (event.velocity > 0 && held[event.note] == 0)
+                                firstPressVelocity[event.note] = event.velocity;
+                            held[event.note] += event.velocity > 0 ? 1 : -1;
+                            assert(held[event.note] >= 0);
+                            lastChange = event.sample;
+                        }
+                        if (pedal && first <= lastEvent + static_cast<int>(rate / 50)
+                            && first + 64 > lastEvent + static_cast<int>(rate / 50))
+                            diffs.push_back(change("/custom_properties", "sustainPedal",
+                                                   Kind::Number, 0.0, 0));
+                        const auto audio = renderBatch(device, diffs.empty() ? nullptr : diffs.data(),
+                                                       static_cast<TJBox_UInt32>(diffs.size()));
+                        for (std::size_t frame = 0; frame < 64; ++frame)
+                        {
+                            assert(std::isfinite(audio.left[frame]) && std::isfinite(audio.right[frame]));
+                            assert(std::abs(audio.left[frame]) <= 2.0f
+                                   && std::abs(audio.right[frame]) <= 2.0f);
+                            peak = std::max(peak, std::abs(audio.left[frame]));
+                        }
+
+                        int heldPitches = 0;
+                        for (int note = 0; note < 128; ++note)
+                        {
+                            assert(CYouKnowTestAccess::midiHeldCount(device, note) == held[note]);
+                            assert(Access::heldCount(engine, note) == held[note]);
+                            heldPitches += held[note] > 0 ? 1 : 0;
+                        }
+                        assert(!Access::keyedWithoutHeldKey(engine));
+
+                        // Keyed voices carry their pitch's first press velocity,
+                        // so an extra press in the same frame cannot replace it.
+                        for (int slot = 0; slot < voiceSlots; ++slot)
+                        {
+                            const int note = Access::keyedNote(engine, slot);
+                            if (note >= 0)
+                                assert(Access::velocity(engine, slot)
+                                       == static_cast<float>(firstPressVelocity[note]) / 127.0f);
+                        }
+                        // A batch of nothing but extra presses changes no voice.
+                        if (anyEvent && onlyExtraPresses)
+                            for (int slot = 0; slot < voiceSlots; ++slot)
+                            {
+                                assert(Access::keyedNote(engine, slot) == noteBefore[slot]);
+                                assert(Access::generation(engine, slot) == generationBefore[slot]);
+                            }
+
+                        if (first < lastChange + settle)
+                            continue;
+                        if (unison)
+                        {
+                            int keyedPitches = 0;
+                            for (int note = 0; note < 128; ++note)
+                                if (Access::keyedVoiceCount(engine, note) > 0)
+                                {
+                                    ++keyedPitches;
+                                    assert(held[note] > 0);
+                                }
+                            assert(keyedPitches == (heldPitches > 0 ? 1 : 0));
+                        }
+                        else if (heldPitches <= youknow::YouKnowEngine::hardwareVoices)
+                        {
+                            for (int note = 0; note < 128; ++note)
+                                assert((Access::keyedVoiceCount(engine, note) == 1) == (held[note] > 0));
+                        }
+                        else
+                        {
+                            int keyed = 0;
+                            for (int note = 0; note < 128; ++note)
+                                keyed += Access::keyedVoiceCount(engine, note);
+                            assert(keyed == youknow::YouKnowEngine::hardwareVoices);
+                        }
+                    }
+                    assert(peak > 1.0e-4f);
+                    for (int note = 0; note < 128; ++note)
+                        assert(held[note] == 0);
+                    assert(engine.getActiveVoiceCount() == 0);
+                    assert(!Access::anyLatchedVoice(engine));
+                }
+    sampleRate = savedRate;
+}
+
+// --- Product configuration ----------------------------------------------------
+// The shipped instrument renders with the source plug-in's product circuit
+// selections: ProductFidelityProfile before the first prepare() and on every
+// parameter snapshot, plus the chart-geometry converter timing that the
+// plug-in and its product renderers select before prepare(). An engine
+// configured that way independently, given the wrapper's own control image and
+// the same note, must reproduce the wrapper's output bit for bit.
+void checkProductConfigurationMatchesSourcePlugin()
+{
+    using youknow::YouKnowEngine;
+    const double savedRate = sampleRate;
+    for (double rate : { 44100.0, 48000.0, 96000.0 })
+    {
+        sampleRate = rate;
+        configureCVHost();
+        CYouKnow device(rate);
+        const auto on = noteDiff(60, 127, 0);
+        Batch actual = renderBatch(device, &on, 1);
+
+        YouKnowEngine reference;
+        const bool configured =
+            youknow::ProductFidelityProfile::configureBeforePrepare(reference);
+        assert(configured);
+        reference.selectConverterTimingProfile(
+            YouKnowEngine::ConverterTimingProfile::MeasuredChartGeometry);
+        reference.prepare(rate, 64, 1);
+        const auto& image = CYouKnowTestAccess::engineParameters(device);
+        assert(image.useServiced439522VcfCalibration);
+        reference.setParameters(image);
+        reference.setPitchBend(static_cast<float>(get("/custom_properties", "pitchBend") * 2.0 - 1.0));
+        reference.setModWheel(static_cast<float>(get("/custom_properties", "modWheel")));
+        reference.setSustainPedal(get("/custom_properties", "sustainPedal") >= 0.5);
+        assert(reference.setOversamplingFactor(1));
+        reference.noteOn(60, 1.0f);
+
+        bool audible = false;
+        for (int batch = 0; batch < static_cast<int>(rate / 64.0); ++batch)
+        {
+            if (batch > 0)
+                actual = renderBatch(device);
+            std::array<float, 64> left {}, right {};
+            reference.process(left.data(), right.data(), 64);
+            const bool wrote = wroteLeft || wroteRight;
+            for (std::size_t frame = 0; frame < 64; ++frame)
+            {
+                if (wrote)
+                {
+                    assert(actual.left[frame] == left[frame]);
+                    assert(actual.right[frame] == right[frame]);
+                }
+                else
+                {
+                    assert(std::abs(left[frame]) <= kJBox_SilentThreshold);
+                    assert(std::abs(right[frame]) <= kJBox_SilentThreshold);
+                }
+            }
+            audible = audible || wrote;
+        }
+        assert(audible);
+    }
+    sampleRate = savedRate;
+}
+
+// --- Nonfinite and out-of-range controls -------------------------------------
+// Every control reaches the wrapper as a double from the host, songs and
+// patches. No value may reach an undefined float-to-int or out-of-range float
+// conversion or select an arbitrary state: a nonfinite number takes the
+// property's declared default (checked against motherboard_def.lua by
+// Tests/validate_patches.py) and a finite one rounds and clamps to the
+// control's travel, whether it arrives in the restore snapshot or as a timed
+// diff, and before any CV modulates it. Nonfinite Character, Reason master
+// tune and audio-reset values must not poison later valid input.
+void checkNonFiniteAndOutOfRangeControls()
+{
+    using Access = youknow::YouKnowTestAccess;
+    using Device = CYouKnowTestAccess;
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const double infinity = std::numeric_limits<double>::infinity();
+    const auto assertFinite = [](const Batch& batch) {
+        for (std::size_t frame = 0; frame < 64; ++frame)
+            assert(std::isfinite(batch.left[frame]) && std::isfinite(batch.right[frame]));
+    };
+    // Renders one device restored with `value` and one receiving it as an
+    // automation diff, and hands both to `check`.
+    const auto bothPaths = [&](const char* name, double value, const auto& check) {
+        configureCVHost();
+        set("/custom_properties", name, Kind::Number, value);
+        CYouKnow restored(sampleRate);
+        assertFinite(renderBatch(restored));
+        check(restored);
+
+        configureCVHost();
+        CYouKnow automated(sampleRate);
+        renderBatch(automated);
+        const auto diff = change("/custom_properties", name, Kind::Number, value, 17);
+        assertFinite(renderBatch(automated, &diff, 1));
+        check(automated);
+    };
+
+    struct Stepped
+    {
+        const char* name;
+        int steps;
+        int (*resolved)(const CYouKnow&);
+    };
+    const Stepped stepped[] {
+        { "keyMode", 3, [](const CYouKnow& device) {
+            return static_cast<int>(Device::engineParameters(device).keyMode); } },
+        { "pwmMode", 2, [](const CYouKnow& device) {
+            return static_cast<int>(Device::engineParameters(device).pwmSource); } },
+        { "range", 3, [](const CYouKnow& device) {
+            return static_cast<int>(Device::engineParameters(device).range); } },
+        { "highPass", 4, [](const CYouKnow& device) {
+            return static_cast<int>(Device::engineParameters(device).highPass); } },
+        { "envPolarity", 2, [](const CYouKnow& device) {
+            return static_cast<int>(Device::engineParameters(device).envPolarity); } },
+        { "vcaMode", 2, [](const CYouKnow& device) {
+            return static_cast<int>(Device::engineParameters(device).vcaMode); } },
+        { "chorus", 4, [](const CYouKnow& device) {
+            return static_cast<int>(Device::engineParameters(device).chorus); } },
+        { "transpose", 25, [](const CYouKnow& device) {
+            return Device::engineParameters(device).keyTranspose + 12; } },
+        { "polyphony", 16, [](const CYouKnow& device) {
+            return Device::engineParameters(device).polyphony - 1; } },
+        { "quality", 3, [](const CYouKnow& device) {
+            const int factor = Device::requestedOversamplingFactor(device);
+            return factor == 4 ? 2 : factor - 1; } },
+        { "vcfTanhMode", 3, [](const CYouKnow& device) {
+            return static_cast<int>(Device::engineParameters(device).vcfTanhMode); } },
+        { "vcfFastEarlyMode", 2, [](const CYouKnow& device) {
+            return static_cast<int>(Device::engineParameters(device).vcfFastEarlyMode); } },
+        { "vcfSolverMode", 3, [](const CYouKnow& device) {
+            return static_cast<int>(Device::engineParameters(device).vcfSolverMode); } },
+    };
+    for (const auto& property : stepped)
+    {
+        configureCVHost();
+        const int defaultIndex = static_cast<int>(
+            Device::parameterDefault(CYouKnow(sampleRate), property.name));
+        const int last = property.steps - 1;
+        const std::pair<double, int> cases[] {
+            { nan, defaultIndex }, { infinity, defaultIndex }, { -infinity, defaultIndex },
+            { 1.0e300, last }, { -1.0e300, 0 }, { last + 0.4, last }, { 0.6, 1 }, { -0.4, 0 },
+        };
+        for (const auto& [value, index] : cases)
+        {
+            const int expected = index; // C++17 lambdas cannot capture bindings
+            bothPaths(property.name, value, [&](const CYouKnow& device) {
+                assert(property.resolved(device) == expected);
+            });
+        }
+    }
+
+    // Normalized controls: `resolved` maps a 0..1 position to what the wrapper
+    // hands on, so every case compares against the same mapping of its
+    // expected position.
+    struct Continuous
+    {
+        const char* name;
+        double (*resolved)(CYouKnow&);
+        double (*mapped)(double position);
+    };
+    const auto unit = [](double position) { return position; };
+    const Continuous continuous[] {
+        { "volume", [](CYouKnow& d) { return double(Device::engineParameters(d).volume); }, unit },
+        { "benderDco", [](CYouKnow& d) { return double(Device::engineParameters(d).benderDcoDepth); }, unit },
+        { "benderVcf", [](CYouKnow& d) { return double(Device::engineParameters(d).benderVcfDepth); }, unit },
+        { "benderLfo", [](CYouKnow& d) { return double(Device::engineParameters(d).benderLfoDepth); }, unit },
+        { "portamento", [](CYouKnow& d) { return double(Device::engineParameters(d).portamento); }, unit },
+        { "lfoRate", [](CYouKnow& d) { return double(Device::engineParameters(d).lfoRate); }, unit },
+        { "lfoDelay", [](CYouKnow& d) { return double(Device::engineParameters(d).lfoDelay); }, unit },
+        { "dcoLfo", [](CYouKnow& d) { return double(Device::engineParameters(d).dcoLfoDepth); }, unit },
+        { "pwm", [](CYouKnow& d) { return double(Device::engineParameters(d).pwmDepth); }, unit },
+        { "sub", [](CYouKnow& d) { return double(Device::engineParameters(d).subLevel); }, unit },
+        { "noise", [](CYouKnow& d) { return double(Device::engineParameters(d).noiseLevel); }, unit },
+        { "cutoff", [](CYouKnow& d) { return double(Device::engineParameters(d).cutoff); }, unit },
+        { "resonance", [](CYouKnow& d) { return double(Device::engineParameters(d).resonance); }, unit },
+        { "vcfEnv", [](CYouKnow& d) { return double(Device::engineParameters(d).envDepth); }, unit },
+        { "vcfLfo", [](CYouKnow& d) { return double(Device::engineParameters(d).vcfLfoDepth); }, unit },
+        { "keyFollow", [](CYouKnow& d) { return double(Device::engineParameters(d).keyFollow); }, unit },
+        { "vcaLevel", [](CYouKnow& d) { return double(Device::engineParameters(d).vcaLevel); }, unit },
+        { "attack", [](CYouKnow& d) { return double(Device::engineParameters(d).attack); }, unit },
+        { "decay", [](CYouKnow& d) { return double(Device::engineParameters(d).decay); }, unit },
+        { "sustain", [](CYouKnow& d) { return double(Device::engineParameters(d).sustain); }, unit },
+        { "release", [](CYouKnow& d) { return double(Device::engineParameters(d).release); }, unit },
+        { "velocity", [](CYouKnow& d) { return double(Device::engineParameters(d).velocityDepth); }, unit },
+        { "aging", [](CYouKnow& d) { return double(Device::engineParameters(d).aging); }, unit },
+        { "chorusNoise", [](CYouKnow& d) { return double(Device::engineParameters(d).chorusNoise); }, unit },
+        { "masterTune", [](CYouKnow& d) { return double(Device::engineParameters(d).masterTuneCents); },
+          [](double position) { return double(static_cast<float>(position * 100.0 - 50.0)); } },
+        { "calibration", [](CYouKnow& d) { return double(Device::calibrationTarget(d)); },
+          [](double position) { return double(static_cast<float>(position) * 2.0f); } },
+        { "presetGain", [](CYouKnow& d) { return double(Device::patchGainTarget(d)); },
+          [](double position) { return double(static_cast<float>(std::exp2((position - 0.5) * 6.0))); } },
+        { "pitchBend", [](CYouKnow& d) { return double(Access::pitchBendTarget(Device::engine(d))); },
+          [](double position) { return double(static_cast<float>(position) * 2.0f - 1.0f); } },
+        { "modWheel", [](CYouKnow& d) { return double(Access::modWheelTarget(Device::engine(d))); }, unit },
+        { "sustainPedal", [](CYouKnow& d) { return Access::sustainPedalDown(Device::engine(d)) ? 1.0 : 0.0; },
+          [](double position) { return position >= 0.5 ? 1.0 : 0.0; } },
+    };
+    for (const auto& property : continuous)
+    {
+        configureCVHost();
+        const double fallback = Device::parameterDefault(CYouKnow(sampleRate), property.name);
+        const std::pair<double, double> cases[] {
+            { nan, fallback }, { infinity, fallback }, { -infinity, fallback },
+            { 1.0e300, 1.0 }, { -1.0e300, 0.0 }, { 0.25, 0.25 },
+        };
+        for (const auto& [value, position] : cases)
+        {
+            const double expected = property.mapped == unit
+                ? double(static_cast<float>(position)) : property.mapped(position);
+            bothPaths(property.name, value, [&](const CYouKnow& device) {
+                auto& mutableDevice = const_cast<CYouKnow&>(device);
+                assert(property.resolved(mutableDevice) == expected);
+            });
+        }
+    }
+
+    // CV modulates the default that replaced a nonfinite value, never NaN.
+    {
+        configureCVHost();
+        set("/custom_properties", "volume", Kind::Number, infinity);
+        set("/cv_inputs/volume_cv", "connected", Kind::Boolean, 1.0);
+        set("/cv_inputs/volume_cv", "value", Kind::Number, 0.0);
+        set("/custom_properties", "cutoff", Kind::Number, nan);
+        set("/cv_inputs/cutoff_cv", "connected", Kind::Boolean, 1.0);
+        set("/cv_inputs/cutoff_cv", "value", Kind::Number, 0.25);
+        CYouKnow device(sampleRate);
+        assertFinite(renderBatch(device));
+        assert(Device::engineParameters(device).volume == 0.0f);
+        assert(Device::engineParameters(device).cutoff
+               == static_cast<float>(Device::parameterDefault(device, "cutoff") + 0.25));
+    }
+
+    // A nonfinite Character takes its default; a later valid move still
+    // glides to its exact target instead of staying poisoned.
+    {
+        configureCVHost();
+        set("/custom_properties", "calibration", Kind::Number, 0.50);
+        CYouKnow device(sampleRate);
+        renderBatch(device);
+        const auto invalid = change("/custom_properties", "calibration",
+                                    Kind::Number, nan, 0);
+        assertFinite(renderBatch(device, &invalid, 1));
+        assert(Device::engineParameters(device).calibration == 1.0f);
+        const auto valid = change("/custom_properties", "calibration",
+                                  Kind::Number, 0.25, 0);
+        renderBatch(device, &valid, 1);
+        // The 30 ms exponential glide snaps exactly once within 1e-4.
+        for (int batch = 0; batch < static_cast<int>(0.5 * sampleRate / 64.0); ++batch)
+            assertFinite(renderBatch(device));
+        assert(Device::engineParameters(device).calibration == 0.5f);
+        assert(Access::parameters(Device::engine(device)).calibration == 0.5f);
+    }
+
+    // Reason's global tuning is ignored while nonfinite, then honoured again.
+    {
+        configureCVHost();
+        CYouKnow device(sampleRate);
+        for (const double tune : { nan, infinity, 30.0, -infinity, -20.0 })
+        {
+            masterTune = tune;
+            assertFinite(renderBatch(device));
+            const float expected = std::isfinite(tune) ? static_cast<float>(tune) : 0.0f;
+            assert(Device::engineParameters(device).masterTuneCents == expected);
+        }
+        masterTune = 0.0;
+    }
+
+    // A nonfinite audio-reset counter is not a reset request, in particular
+    // not one repeated on every batch; a later finite change still resets.
+    {
+        configureAttackHost();
+        CYouKnow device(sampleRate);
+        auto& engine = Device::engine(device);
+        const auto on = noteDiff(60, 100, 0);
+        renderBatch(device, &on, 1);
+        for (const double counter : { nan, infinity, -infinity })
+        {
+            resetCounter = counter;
+            for (int batch = 0; batch < 4; ++batch)
+                assertFinite(renderBatch(device));
+            assert(Device::midiHeldCount(device, 60) == 1);
+            assert(Access::heldCount(engine, 60) == 1);
+            assert(engine.getActiveVoiceCount() == 1);
+        }
+        resetCounter = 7.0;
+        renderBatch(device);
+        assert(Device::midiHeldCount(device, 60) == 0);
+        assert(Access::heldCount(engine, 60) == 0);
+        resetCounter = 0.0;
+    }
+}
+
+// --- Randomized host fuzz ----------------------------------------------------
+// Seeded programs of whatever the host contract allows plus what it does not:
+// hostile property values (NaN, infinities, out-of-range numbers), note diffs
+// with any tag, velocity and frame index (dense on a small pitch cluster and a
+// few shared frames, so equal-pitch overlaps and same-frame collisions are
+// common), CV connections and values, master-tune and audio-reset requests.
+// After every batch the audio must be finite and bounded without allocating,
+// the MIDI hold counts must match an independent model of the boundary rule
+// (per frame, releases first and excess releases pair with presses), the engine
+// counts must equal those plus the monophonic CV hold, and no voice may stay
+// keyed to a released pitch. The program then releases every hold one off per
+// press, disconnects the gate and the pool must empty; after an audio reset
+// restores sane panel values a plain note must sound again. The same seed must
+// render the same audio twice.
+void checkRandomizedHostFuzz(int seeds, int batches)
+{
+    using Access = youknow::YouKnowTestAccess;
+    const char* const cvPaths[] {
+        "/cv_inputs/note_cv", "/cv_inputs/gate_cv", "/cv_inputs/cutoff_cv",
+        "/cv_inputs/resonance_cv", "/cv_inputs/volume_cv",
+        "/cv_inputs/vca_level_cv", "/cv_inputs/sub_cv", "/cv_inputs/noise_cv" };
+    const double rates[] { 22050.0, 44100.0, 48000.0, 96000.0, 192000.0 };
+    constexpr float outputBound = 8.0f; // +18 dB preset trim over a hot engine
+    constexpr int sharedFrames[] { 0, 17, 63, 70 };
+
+    // std::mt19937's output is standardized but the std distributions are
+    // not; drawing from raw words replays a seed on every standard library.
+    const auto uniform = [](std::mt19937& rng, int low, int high) {
+        const auto span = static_cast<std::uint64_t>(
+            static_cast<std::int64_t>(high) - static_cast<std::int64_t>(low) + 1);
+        const std::uint64_t limit = (std::uint64_t { 1 } << 32) / span * span;
+        std::uint64_t word = rng();
+        while (word >= limit)
+            word = rng();
+        return static_cast<int>(static_cast<std::int64_t>(low)
+                                + static_cast<std::int64_t>(word % span));
+    };
+    // Uniform in [0, 1) from two words' top 53 bits.
+    const auto unit = [](std::mt19937& rng) {
+        const std::uint64_t high = rng() >> 5;
+        const std::uint64_t low = rng() >> 6;
+        return static_cast<double>((high << 26) | low) * 0x1p-53;
+    };
+    const auto hostile = [&uniform, &unit](std::mt19937& rng) {
+        switch (uniform(rng, 0, 11))
+        {
+            case 0: return std::numeric_limits<double>::quiet_NaN();
+            case 1: return std::numeric_limits<double>::infinity();
+            case 2: return -std::numeric_limits<double>::infinity();
+            case 3: return unit(rng) * 10.0 - 5.0;
+            case 4: return 1.0e300;
+            default: return unit(rng);
+        }
+    };
+
+    float peak = 0.0f;
+    long events = 0;
+    for (int seed = 1; seed <= seeds; ++seed)
+    {
+        std::uint64_t hashes[2] {};
+        for (int pass = 0; pass < 2; ++pass)
+        {
+            std::mt19937 rng(static_cast<std::uint32_t>(seed));
+            sampleRate = rates[static_cast<std::size_t>(uniform(rng, 0, 4))];
+            configureCVHost();
+            CYouKnow device(sampleRate);
+            auto& engine = CYouKnowTestAccess::engine(device);
+            std::uint64_t hash = 14695981039346656037ull;
+            std::vector<TJBox_PropertyDiff> diffs;
+            std::array<int, 128> modelled {};
+            double lastReset = resetCounter;
+
+            const auto verifyHolds = [&]() {
+                for (int note = 0; note < 128; ++note)
+                {
+                    assert(CYouKnowTestAccess::midiHeldCount(device, note)
+                           == modelled[static_cast<std::size_t>(note)]);
+                    const int cv = CYouKnowTestAccess::cvActive(device)
+                        && CYouKnowTestAccess::lastCVNote(device) == note ? 1 : 0;
+                    assert(Access::heldCount(engine, note)
+                           == modelled[static_cast<std::size_t>(note)] + cv);
+                }
+                assert(!Access::keyedWithoutHeldKey(engine));
+            };
+            // The wrapper's boundary rule for one sorted batch: diffs are
+            // grouped by clamped frame; within a group a pitch's count becomes
+            // max(count + presses - releases, 0).
+            const auto modelBatch = [&]() {
+                if (resetCounter != lastReset && std::isfinite(resetCounter)
+                    && resetCounter != 0.0)
+                    modelled.fill(0);
+                lastReset = resetCounter;
+                std::size_t index = 0;
+                while (index < diffs.size())
+                {
+                    const auto frame = std::min<int>(diffs[index].fAtFrameIndex, 63);
+                    std::array<int, 128> change {};
+                    for (; index < diffs.size()
+                           && std::min<int>(diffs[index].fAtFrameIndex, 63) == frame; ++index)
+                    {
+                        const auto& diff = diffs[index];
+                        if (diff.fObjectRef != objectFor("/note_states") || diff.fPropertyTag > 127)
+                            continue;
+                        const double velocity = decode(diff.fCurrentValue).value;
+                        change[diff.fPropertyTag] +=
+                            std::isfinite(velocity) && velocity > 0.0 ? 1 : -1;
+                    }
+                    for (int note = 0; note < 128; ++note)
+                        modelled[static_cast<std::size_t>(note)] = std::max(
+                            modelled[static_cast<std::size_t>(note)]
+                                + change[static_cast<std::size_t>(note)], 0);
+                }
+            };
+
+            for (int batch = 0; batch < batches; ++batch)
+            {
+                diffs.clear();
+                const int count = uniform(rng, 0, 6);
+                for (int event = 0; event < count; ++event)
+                {
+                    ++events;
+                    const int frame = uniform(rng, 0, 1) == 0
+                        ? sharedFrames[static_cast<std::size_t>(uniform(rng, 0, 3))]
+                        : uniform(rng, 0, 70);
+                    switch (uniform(rng, 0, 11))
+                    {
+                        case 0: case 1: case 2: case 3: case 4:
+                        {
+                            const int note = uniform(rng, 0, 2) == 0
+                                ? uniform(rng, 0, 140) : uniform(rng, 58, 64);
+                            int velocity = uniform(rng, 0, 2) == 0 ? 0 : uniform(rng, 1, 127);
+                            if (uniform(rng, 0, 7) == 0)
+                                velocity = uniform(rng, -20, 400);
+                            auto diff = noteDiff(note, velocity, frame);
+                            if (uniform(rng, 0, 15) == 0)
+                                diff.fCurrentValue = encode(Kind::Number, hostile(rng));
+                            diffs.push_back(diff);
+                            break;
+                        }
+                        case 5: case 6:
+                        {
+                            const auto& setting = kPanel[static_cast<std::size_t>(uniform(
+                                rng, 0, static_cast<int>(sizeof(kPanel) / sizeof(kPanel[0])) - 1))];
+                            const double value = setting.kind == Kind::Boolean
+                                ? static_cast<double>(uniform(rng, 0, 1))
+                                : hostile(rng);
+                            diffs.push_back(change("/custom_properties", setting.name,
+                                                   setting.kind, value, frame));
+                            break;
+                        }
+                        case 7: case 8:
+                        {
+                            const char* path = cvPaths[static_cast<std::size_t>(uniform(rng, 0, 7))];
+                            if (uniform(rng, 0, 2) == 0)
+                                diffs.push_back(change(path, "connected", Kind::Boolean,
+                                                       uniform(rng, 0, 1), frame));
+                            else
+                                diffs.push_back(change(path, "value", Kind::Number,
+                                                       hostile(rng), frame));
+                            break;
+                        }
+                        case 9:
+                            diffs.push_back(change("/custom_properties", "keyModeReassertPress",
+                                                   Kind::Boolean, uniform(rng, 0, 1), frame));
+                            break;
+                        case 10:
+                            masterTune = uniform(rng, 0, 3) == 0
+                                ? hostile(rng) * 100.0
+                                : unit(rng) * 200.0 - 100.0;
+                            break;
+                        default:
+                            if (uniform(rng, 0, 7) == 0)
+                                resetCounter += 1.0;
+                            break;
+                    }
+                }
+                // The SDK delivers diffs ordered by frame index.
+                std::stable_sort(diffs.begin(), diffs.end(),
+                    [](const TJBox_PropertyDiff& a, const TJBox_PropertyDiff& b) {
+                        return a.fAtFrameIndex < b.fAtFrameIndex; });
+                modelBatch();
+                const Batch rendered = renderBatch(
+                    device, diffs.empty() ? nullptr : diffs.data(),
+                    static_cast<TJBox_UInt32>(diffs.size()));
+                for (std::size_t frame = 0; frame < 64; ++frame)
+                    for (const float sample : { rendered.left[frame], rendered.right[frame] })
+                    {
+                        assert(std::isfinite(sample));
+                        assert(std::abs(sample) <= outputBound);
+                        peak = std::max(peak, std::abs(sample));
+                        std::uint32_t bits {};
+                        std::memcpy(&bits, &sample, sizeof(bits));
+                        for (int byte = 0; byte < 4; ++byte)
+                        {
+                            hash ^= (bits >> (8 * byte)) & 0xffu;
+                            hash *= 1099511628211ull;
+                        }
+                    }
+                verifyHolds();
+            }
+
+            // Drain: every outstanding MIDI hold released one off per press in
+            // one frame, the gate disconnected, pedal up, instant release.
+            diffs.clear();
+            for (int note = 0; note < 128; ++note)
+                for (int hold = 0; hold < modelled[static_cast<std::size_t>(note)]; ++hold)
+                    diffs.push_back(noteDiff(note, 0, 0));
+            diffs.push_back(change("/cv_inputs/gate_cv", "connected", Kind::Boolean, 0.0, 0));
+            diffs.push_back(change("/custom_properties", "sustainPedal", Kind::Number, 0.0, 0));
+            diffs.push_back(change("/custom_properties", "release", Kind::Number, 0.0, 0));
+            diffs.push_back(change("/custom_properties", "decay", Kind::Number, 0.0, 0));
+            diffs.push_back(change("/custom_properties", "quality", Kind::Number, 0.0, 0));
+            modelBatch();
+            renderBatch(device, diffs.data(), static_cast<TJBox_UInt32>(diffs.size()));
+            verifyHolds();
+            for (int note = 0; note < 128; ++note)
+                assert(Access::heldCount(engine, note) == 0);
+            assert(!CYouKnowTestAccess::cvActive(device));
+            const int drainBatches = static_cast<int>(sampleRate * 3.0 / 64.0);
+            for (int batch = 0; batch < drainBatches; ++batch)
+                renderBatch(device);
+            assert(engine.getActiveVoiceCount() == 0);
+            assert(!Access::anyLatchedVoice(engine));
+
+            // Recovery: an audio reset re-reads a sane panel; a note sounds.
+            configureCVHost();
+            resetCounter = lastReset + 1.0;
+            renderBatch(device);
+            const auto on = noteDiff(60, 110, 0);
+            float recovered = 0.0f;
+            for (int batch = 0; batch < static_cast<int>(sampleRate * 0.3 / 64.0); ++batch)
+            {
+                const auto audio = renderBatch(device, batch == 0 ? &on : nullptr, batch == 0 ? 1 : 0);
+                for (const float sample : audio.left)
+                    recovered = std::max(recovered, std::abs(sample));
+            }
+            assert(recovered > 1.0e-3f);
+            const auto off = noteDiff(60, 0, 0);
+            renderBatch(device, &off, 1);
+            assert(Access::heldCount(engine, 60) == 0);
+            resetCounter = 0.0;
+            hashes[pass] = hash;
+        }
+        assert(hashes[0] == hashes[1]);
+    }
+    std::printf("host fuzz: %d seeds x %d batches, %ld events, peak %.6f\n",
+                seeds, batches, events, static_cast<double>(peak));
+    sampleRate = 48000.0;
+    masterTune = resetCounter = 0.0;
+}
+
 int main()
 {
-    static_assert(sizeof(CYouKnow) < 64 * 1024);
+    // See EngineRenderContract: a growth guard, not an SDK ceiling.
+    static_assert(sizeof(CYouKnow) <= 96 * 1024);
     set("/cv_inputs/note_cv", "value", Kind::Number, 60.0 / 127.0);
     set("/cv_inputs/gate_cv", "value", Kind::Number, 0.0);
     set("/cv_inputs/gate_cv", "connected", Kind::Boolean, 0.0);
@@ -1971,6 +2868,10 @@ int main()
     checkAttackGridSampleTiming();
     checkRetriggerPedalAndGateModes();
     checkInvalidMidiNoteTags();
-    std::puts("Wrapper: frame-accurate automation, MIDI/CV ownership and retriggers, attack timing, gates/reset/restore, and five host rates PASS");
+    checkMusicalNotePhrases();
+    checkProductConfigurationMatchesSourcePlugin();
+    checkNonFiniteAndOutOfRangeControls();
+    checkRandomizedHostFuzz(24, 400);
+    std::puts("Wrapper: frame-accurate automation, MIDI/CV ownership and retriggers, attack timing, gates/reset/restore, randomized host fuzz, and five host rates PASS");
     return 0;
 }

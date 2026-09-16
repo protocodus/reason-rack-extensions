@@ -6,6 +6,13 @@
 #include "YouKnowNoiseCalibration.h"
 #include "YouKnowHighPassSwitch.h"
 #include "YouKnowPwmControl.h"
+#include "YouKnowOutputJack.h"
+#include "YouKnowControlDac.h"
+#include "YouKnowFirmwareTrace.h"
+#include "YouKnowDcoTemperature.h"
+#include "YouKnowDcoComponents.h"
+#include "YouKnowEnvelopeHold.h"
+#include "YouKnowDcoReset.h"
 
 #include <array>
 #include <cmath>
@@ -228,8 +235,25 @@ struct EngineParameters
     // output follows I_tail * tanh(V_d / 2 V_t) rather than a linear multiply,
     // driven as hard as Roland's own trims say through the sibling JUNO-6/60
     // drawing's 47 kOhm load (see VoiceVcaSignalLaw). False retains the former
-    // linear multiply, bit for bit, solely for controlled A/B renders.
+    // linear signal law solely for controlled A/B renders; the separately
+    // selected thermal gain still applies to that linear path.
     bool enableVoiceVcaSignalSaturation { true };
+    // On by default: the p.19 VCA GAIN adjustment turns the same bank-3
+    // 4.8 Vp-p filter sine into 6 Vp-p at TP8. The pair's unity-normalized
+    // shape is not that physical gain. Restore the fixed service gain after
+    // the pair/control multiply, before the voice summer and chorus drive.
+    // A reciprocal scalar at the final digital boundary preserves ordinary
+    // output loudness; it never reduces the drive into a physical circuit.
+    // The existing outputLevelPolicyDb remains unchanged. This normalization
+    // also refers downstream circuit noise to the revised digital boundary.
+    // False retains the former uncalibrated unity gain for controlled A/Bs.
+    bool enableVoiceVcaServiceGain { true };
+    // Hold the service input trim fixed as the BA662 warms: apply T_ref/T to
+    // its differential input, changing both small-signal gain and distortion.
+    // Tr20's existing control-current law is held at its reference condition;
+    // this is a partial thermal model, not a fitted junction temperature law.
+    // False retains the former fixed-temperature VCA for diagnostic renders.
+    bool enableVoiceVcaTemperature { true };
     // C58 and Tr20 form one loaded control circuit. Its time constant tends
     // to 1ms as Tr20 closes and to (10k||22k)*0.1uF at high current. Retains
     // the same DC junction calibration; false is the former fixed-RC A/B.
@@ -258,15 +282,22 @@ struct EngineParameters
     // wet return mutes about 84.5 ms after CHORUS goes off and returns about
     // 113.2 ms after it comes on. False switches at the command, as before.
     bool enableChorusMuteDrive { true };
+    // Comparison circuit: include C15's loading of C16 through D3/R41/R47
+    // and the delayed Tr23/Tr28 BBD-clock clamps. The existing 0.6 V ideal-
+    // junction prior is reused; installed switching thresholds and capacitor
+    // tolerances have not been measured. Retain the established default until
+    // the complete switching model and its processing cost are qualified.
+    bool enableChorusClockMuteCircuit { false };
     // On by default: each MN3009 line carries its own fixed-seed insertion
     // gain inside Panasonic's +/-4 dB row, scaled by Unit Character. False
     // keeps the two returns identical for controlled A/B renders.
     bool enableChorusLineGainSpread { true };
-    // Comparison-only, off by default: Mode I uses the effective timing
-    // identified from Lewis Francis's A11 capture (Chorus::settingsFor).
-    // The engine still uses its ordinary gains, noise, mute circuit and
-    // other chorus modes. Not a host parameter or a saved factory setting.
-    bool useA11EffectiveChorusTimingProfile { false };
+    // Comparison-only: which of OQ-01's Mode I timing candidates the chorus
+    // runs on (Chorus::settingsFor). Shipping is the default and the only one
+    // a product build selects. The engine still uses its ordinary gains,
+    // noise, mute circuit and other chorus modes whichever is chosen. Not a
+    // host parameter and not a saved factory setting.
+    ChorusTimingProfile chorusTimingProfile { ChorusTimingProfile::Shipping };
     // Only the heterodyne clock-bleed tone is implemented (see
     // Chorus::process); no Thiran fractional-delay filter exists. Off by
     // default -- its amplitude is an unvalidated placeholder pending OQ-03.
@@ -359,11 +390,12 @@ struct EngineParameters
     // exactly like the resistor floors -- the exact-silence endpoint at 0 is
     // product policy, not a statement that the floor is a tolerance.
     bool enableCommonVcaNoise { true };
-    // On by default: each voice card's filter input carries the Johnson noise
-    // of its own 68k/560 stage network, referred through that stage's
-    // attenuator -- the same thermal law already applied to IC6's resistor
-    // groups, on resistors p. 9 prints. False restores the former voiced 20 uV
-    // seed bit-exactly for controlled A/B renders. Not serialised.
+    // On by default: four independent 68k/560 Johnson sources enter their
+    // own OTA differential nodes, after the input-compensation branch. The
+    // resistance reads and sqrt(4kTR) law at the live card temperature fix
+    // the density; the remaining
+    // poles fix each source's different output spectrum. False retains the
+    // former input-only voiced 20 uV seed for comparisons. Not serialised.
     bool enableCardJohnsonFloor { true };
     // Engine-level aged-unit extension, exposed as the Aging host parameter
     // (2026-08-21, on request) and still defaulted off. Zero is
@@ -437,13 +469,16 @@ struct EngineParameters
             && enablePulseOffWaveNodeCoupling == other.enablePulseOffWaveNodeCoupling
             && enableSubHalfWaveNodeCoupling == other.enableSubHalfWaveNodeCoupling
             && enableVoiceVcaSignalSaturation == other.enableVoiceVcaSignalSaturation
+            && enableVoiceVcaServiceGain == other.enableVoiceVcaServiceGain
+            && enableVoiceVcaTemperature == other.enableVoiceVcaTemperature
             && enableCoupledVoiceVcaControl == other.enableCoupledVoiceVcaControl
             && enableNoiseLevelBeforeC41 == other.enableNoiseLevelBeforeC41
             && useCircuitDerivedNoiseLevelShape == other.useCircuitDerivedNoiseLevelShape
             && enableNarrowOneTwoChorus == other.enableNarrowOneTwoChorus
             && enableChorusMuteDrive == other.enableChorusMuteDrive
             && enableChorusLineGainSpread == other.enableChorusLineGainSpread
-            && useA11EffectiveChorusTimingProfile == other.useA11EffectiveChorusTimingProfile
+            && enableChorusClockMuteCircuit == other.enableChorusClockMuteCircuit
+            && chorusTimingProfile == other.chorusTimingProfile
             && enableChorusClockBleed == other.enableChorusClockBleed
             && enableChorusHyperbolicSweep == other.enableChorusHyperbolicSweep
             && useChorusRateNoiseHypothesis == other.useChorusRateNoiseHypothesis
@@ -520,6 +555,53 @@ public:
     // No public plug-in parameter, preset byte or shipping default selects it.
     [[nodiscard]] bool configureCoupledMixer(
         const CoupledSubMixer::Calibration& calibration) noexcept;
+    // Before prepare(): effective TOTAL resistance seen by
+    // C56/C50 in the independent one-pole model, including source impedance.
+    // The 1k..1M numerical domain is not an installed-unit tolerance. Retained
+    // across reset/prepare/quality changes; the raw reference stays 33k and
+    // ProductFidelityProfile selects the documented hybrid input estimate.
+    // Mutually exclusive with configureCoupledMixer, which solves C56 itself.
+    [[nodiscard]] bool configureModuleInputCouplingResistanceOhms(
+        double totalResistanceOhms) noexcept;
+    [[nodiscard]] double moduleInputCouplingResistanceOhms() const noexcept;
+    // Comparison only, before prepare(): six IC26 ENV/GATE holds with an
+    // explicitly supplied effective resistance and ideal bus. No calibrated
+    // installed profile or shipping/preset parameter is implied. All six
+    // configurations must validate; rejection leaves the previous set intact.
+    [[nodiscard]] bool configureEnvelopeHolds(
+        const std::array<EnvelopeHoldCircuit::Configuration, 6>& configuration) noexcept;
+    // Comparison/calibration reference frequency for one instrument. Call
+    // before prepare(); retained across reset/prepare, never a preset or host
+    // parameter. The 7.2..8.8 MHz engineering domain keeps the event walk
+    // bounded; it is NOT a measured resonator tolerance. This setter alone
+    // generates no drift; the separately enabled temperature proxy can move
+    // the effective clock around this reference.
+    [[nodiscard]] bool configureDcoMasterClockHz(double frequencyHz) noexcept;
+    // Explicit reduced reset circuit; before prepare only, retained across
+    // reset/prepare. No preset or shipping default supplies unknown MC5534A
+    // gate width, discharge resistance or clamp voltage. See parameter units
+    // and the numerical comparison domain in DcoResetCircuit::Calibration.
+    [[nodiscard]] bool configureDcoResetCircuit(
+        const DcoResetCircuit::Calibration& calibration) noexcept;
+    [[nodiscard]] bool usesDcoResetCircuit() const noexcept
+    {
+        return dcoResetCircuitEnabled_;
+    }
+    [[nodiscard]] double dcoMasterClockHz() const noexcept
+    {
+        return masterClockHz * dcoMasterClockRatio_;
+    }
+    // Explicit component-substitute temperature shape. With it enabled, the
+    // configured master Hz is the frequency AT referenceCelsius (-20..80 C).
+    // Before prepare only; no curve or spread is claimed for the OEM KMFC.
+    [[nodiscard]] bool configureDcoTemperatureProxy(
+        bool enabled, double referenceCelsius) noexcept;
+    // Before prepare only. Settled starts the EXISTING shared thermal model
+    // at its asymptote, including the VCA, OTA headroom and temperature display.
+    [[nodiscard]] bool configureThermalStart(bool settled) noexcept;
+    // User-selected software startup time, not the original chassis's measured
+    // heating rate. 63.2% at 3 s; 95% at 9 s. Retains the existing 15 C rise.
+    static constexpr double thermalWarmupTimeConstantSeconds = 3.0;
     void noteOn(int midiNote, float velocity);
     void noteOff(int midiNote);
     // Audio-thread query for host event ordering. Counts include overlapping
@@ -581,8 +663,7 @@ public:
         // model applies -- ambient, at Character zero.
         return 25.0f
              + 15.0f * activeParameters_.calibration
-                     * (1.0f - std::exp(-static_cast<float>(
-                                            thermalWarmupSeconds_) / 900.0f));
+                     * thermalWarmupFraction_;
     }
     [[nodiscard]] float getDisplayRailDroopVolts() const noexcept
     {
@@ -601,7 +682,7 @@ public:
     // where every constant below comes from.
     // ------------------------------------------------------------------
 
-    // Counter clock the range divider feeds the note timer: the 8 MHz master
+    // Nominal clock the range divider feeds the note timer: the 8 MHz master
     // divided by 8, 4 or 2 for 16', 8' and 4'.
     [[nodiscard]] static double rangeClockHz(DcoRange range) noexcept;
     // One B-2 pitch conversion produces both values which the voice CPU later
@@ -652,6 +733,16 @@ public:
     [[nodiscard]] static std::int32_t vcfLfoCountsWord(
         std::uint16_t accumulator, bool positivePolarity,
         std::uint8_t delayByte, std::uint8_t storedDepth) noexcept;
+    // Envelope RAM retains 14 bits until the doubled ENV byte is multiplied
+    // into it. The separate voice-VCA DAC has already discarded two bits and
+    // is not a valid source for this product.
+    [[nodiscard]] static std::uint16_t vcfEnvelopeCountsWord(
+        std::uint16_t envelopeLevel, std::uint8_t storedDepth) noexcept;
+    // Key follow consumes the voice's 8.8 portamento word, before master tune,
+    // bend and DCO-LFO. Signed input also preserves the host transpose extension
+    // below note zero; actual voice-CPU words are unsigned.
+    [[nodiscard]] static std::int32_t vcfKeyFollowCountsWord(
+        std::int32_t voicePitchWord, std::uint8_t storedDepth) noexcept;
 
     // Convenience adapter for a requested middle-range frequency. Production
     // constructs the 8.8 coordinate directly; this keeps the circuit-law seam
@@ -854,9 +945,10 @@ public:
     // it.
     struct CircuitDerivedResonanceProfile
     {
-        // Byte 127 -> aligned word 0x3F80 -> physical code 4064 on the
-        // 0..+10 V branch (Service Notes p. 8): 10 * 4064 / 4096.
-        static constexpr float controlFullScaleVolts = 9.921875f;
+        // Byte 127 -> aligned word 0x3F80 -> physical code 4064 on IC27b's
+        // positive branch: 10.026514 V after its drawn bias-network loading.
+        static constexpr float controlFullScaleVolts = static_cast<float>(
+            ControlDac::positiveSpanVolts(ControlDac::storedMaximumCode));
         // Nominal silicon emitter-junction drop of the grounded-base stage.
         // One reconstruction lineage reads ~150 mV for a *calibrated* card
         // (atosynth); that trimmed figure is recorded under OQ-09 and not
@@ -912,7 +1004,7 @@ public:
     struct CircuitDerivedNoiseLevelProfile
     {
         // The NOISE LEVEL hold rides the same 0..+10 V converter branch as
-        // the resonance hold (p. 8): byte 127 -> code 4064 -> 9.921875 V.
+        // the resonance hold (p. 8): byte 127 -> code 4064 -> 10.026514 V.
         static constexpr float controlFullScaleVolts =
             CircuitDerivedResonanceProfile::controlFullScaleVolts;
         // Anchored standoff under the hold. p. 18 section 3 adjusts VR34
@@ -945,18 +1037,18 @@ public:
         // deadband the drawn circuit can produce. An end-stop is the least
         // likely installed state but the one that never overstates the
         // deadband; mid-travel (60 kOhm,
-        // 1.025 V onset, travel 0.0771) is the natural second candidate and
-        // the maximum (110 kOhm, 1.380 V, travel 0.1129) the ceiling. If
+        // 1.025 V onset, travel 0.0763) is the natural second candidate and
+        // the maximum (110 kOhm, 1.380 V, travel 0.1117) the ceiling. If
         // the BA662 inherits its BA6110 sibling's 0.5 mA control-current
-        // ceiling, the full-level current (10.18 V - 0.6 V) / Rs - 7.09 uA
-        // needs Rs >= 18.9 kOhm and the floor would move to 0.734 V (travel
-        // 0.0478); not adopted, it is a sibling-part figure.
+        // ceiling, the full-level current (10.29 V - 0.6 V) / Rs - 7.09 uA
+        // needs Rs >= 19.1 kOhm and the floor would move to 0.735 V (travel
+        // 0.0475); not adopted, it is a sibling-part figure.
         static constexpr float trimSeriesOhms = r115Ohms;
         // 0.6709 V at the floor; bracket to 1.380 V at VR32's maximum.
         static constexpr float onsetVolts =
             junctionVolts + trimSeriesOhms * pullDownAmps;
-        // 0.04141 of the converter's travel at the floor; bracket
-        // 0.0414...0.1129. First conducting stored byte is 6.
+        // 0.04098 of the converter's travel at the floor; bracket
+        // 0.0410...0.1117. First conducting stored byte is 6.
         static constexpr float onsetTravel =
             (onsetVolts - holdStandoffVolts) / controlFullScaleVolts;
         // Normalises the conducting span to unity at full travel; a
@@ -993,10 +1085,17 @@ public:
     // fitted to a measured code-to-frequency curve with this ceiling already
     // standing, so the pair moves together or not at all, and the 248 Hz
     // self-oscillation anchor pins absolute cutoff either way. What changes is
-    // its classification: voiced, bracketed by 64.8 kHz (270 pF) and 72.9 kHz
-    // (240 pF), no longer presented as derived from 700 uA on 240 pF.
-    // Refitting the pair belongs to OQ-18, beside the 240-vs-270 pF
-    // integrator question it shares a cause with.
+    // its classification: voiced, and no longer presented as derived from
+    // 700 uA on 240 pF.
+    //
+    // It is NOT bracketed by 64.8 kHz and 72.9 kHz, as this comment used to
+    // say. That bracket's lower end rests on 270 pF, which is the Open80017a
+    // reconstruction's integrator value; `poleCapacitorFarads` below records
+    // 240 pF as Anchored and gives the reasons, so offering the 270 pF branch
+    // as a live alternative contradicted the same file. The honest residue is
+    // that 64 kHz has no recorded derivation at all: on the settled 240 pF it
+    // implies 614 uA, which is neither the teardown's 700 uA nor any other
+    // figure the sources carry. Refitting the pair belongs to OQ-18.
     //
     // The shape is the generalized algebraic clip above, shared with the
     // output summer and the BBD write: numerically linear through the whole
@@ -1022,17 +1121,14 @@ public:
                                                     float feedback,
                                                     int referenceCard = -1) noexcept;
 
-    // Integral non-linearity of the R-2R cutoff converter, in counts, for a
-    // summed count value. A measured code-to-frequency table for a real voice
-    // card shows excess steps of -4.64, +23.31 and -4.48 cents at the three
-    // top bit boundaries (DAC codes 1024, 2048 and 3072), which is where an
-    // R-2R ladder's major-carry error physically belongs. This is a persistent
-    // offset on the converter's own output, not an impulse: a revision wrote
-    // it into the field the same converter write reassigns, so it measured
-    // bit-identical and was removed.
-    //
-    // Scaled by Unit Character, because an ideal ladder has no carry error at
-    // all: the magnitude is resistor matching, which is a tolerance.
+    // Retained cutoff boundary calibration in accumulator counts. The source
+    // frequency table infers -4.64, +23.31 and -4.48 cents of excess at physical
+    // DAC codes 1024, 2048 and 3072 from sparse V4 measurements of serviced
+    // #439522 with replacement VCF/VCA cards; see the pinned source beside
+    // the definition. This does not identify the shared ladder's voltage INL
+    // independently of the downstream filter. The offsets persist in the
+    // held target. The legacy profile scales them by Unit Character; the
+    // approved serviced-card fit retains fixed strength 1.
     [[nodiscard]] static float vcfConverterCarryCounts(float counts) noexcept;
 
     [[nodiscard]] static float envelopeAttackSeconds(float panelPosition) noexcept;
@@ -1091,7 +1187,12 @@ public:
         MeasuredChartGeometry,
         // Comparison-only partial reconstruction: chart anchors outside the
         // DCO train, instruction-count intervals inside it. Not serialised.
-        FirmwareDcoNoInterrupt
+        FirmwareDcoNoInterrupt,
+        // Executes one nominal B-2 control pass from explicit host snapshots.
+        // No serial/ADC ISR entry, wire or pin propagation time is invented.
+        // Returning mid-pass parameter changes wait for the next snapshot;
+        // Voice On/Off keeps completed RAM writes and starts a new trace.
+        FirmwareControlNoInterrupt
     };
     // NormalizedServiceChart is an explicit compatibility/product profile: it
     // preserves the chart's sequential writes across one pass without claiming
@@ -1119,6 +1220,10 @@ public:
         return 867 + (nextVoiceReset ? 106 : 0)
             + (pitchHighByte <= 47 ? 12 : pitchHighByte >= 151 ? 26 : 0);
     }
+    // Entry 02EC through the first loadDac ORI PA. Only HOLD branches here;
+    // these also predict a next-pass inhibit inside the preceding audio interval.
+    [[nodiscard]] static constexpr unsigned firmwareFirstConverterInhibitStates(bool hold) noexcept
+    { return hold ? 129u : 111u; }
     // Selects the profile reset()/prepare() install, so a comparison profile
     // can drive the complete shipping signal path (the A-Z rules forbid
     // offline approximations). Mid-pass switching is deliberately
@@ -1126,6 +1231,34 @@ public:
     // under a running pass would invent an event discontinuity no hardware
     // has, so a selection takes effect at the next reset()/prepare().
     void selectConverterTimingProfile(ConverterTimingProfile profile) noexcept;
+    // Diagnostic replay of already-decoded B-2 command service boundaries.
+    // Select before reset/prepare; requires FirmwareControlNoInterrupt. Ordinary
+    // keyboard note APIs and automatic assigner rescans are bypassed in this
+    // mode. The caller supplies the ordered service times; no MIDI wire, RXB,
+    // interrupt-entry or handler-execution duration is synthesized. All six
+    // cards still divide the same clock. The existing boundary policy first
+    // finishes an already-DI-protected PIT store without inventing its elapsed
+    // ISR duration; that old store may change OUT/sub state. The new command
+    // preserves capacitor voltage and requests any new reset through the later
+    // traced PIT path. It does not assign a new random or per-card pitch phase.
+    void selectVoiceBoardCommandReplay(bool enabled) noexcept
+    { voiceBoardCommandReplayRequested_ = enabled; }
+    [[nodiscard]] bool serviceVoiceBoardNoteOn(int card, int boardPitchByte) noexcept;
+    [[nodiscard]] bool serviceVoiceBoardNoteOff(int card) noexcept;
+    // The selected ADC bank is frozen for this no-interrupt profile. Supply
+    // captured raw/previous bytes to explore its exact main-loop branches;
+    // the default is lower bank, zero samples, conversion flag clear.
+    struct FirmwareAdcSnapshot {
+        std::array<std::uint8_t, 4> raw {}, previous {};
+        bool upperBank { false }, conversionComplete { false };
+    };
+    void configureFirmwareAdcSnapshot(const FirmwareAdcSnapshot& input) noexcept
+    { firmwareAdcSnapshot_ = input; }
+    [[nodiscard]] bool firmwareControlTraceValid() const noexcept
+    { return firmwareControlTraceValid_; }
+    [[nodiscard]] std::uint32_t firmwareControlPassStates() const noexcept
+    { return firmwareControlTrace_.states; }
+
 
     // Comparison-only, before prepare(): solve the literal C14/IC3/HPF
     // network with an explicit finite switch resistance (50..1000 ohms).
@@ -1253,10 +1386,14 @@ public:
     // second digital ceiling below the current analogue policy; this is not a
     // claim that every installed IC6 reaches 13.5 V (OQ-05).
     //
-    // The bound is the steady-state one. The output coupling is a high-pass, so
-    // a large enough transient can overshoot it; the measured worst case over
-    // every source at once, six voices and both controls at maximum is -1.45
-    // dBFS, so the margin is real but is not a mathematical guarantee.
+    // The bound is the steady-state one. Output coupling can overshoot it,
+    // and outputLevelPolicyGain deliberately adds digital gain above this
+    // rail mapping. Hot mixed chords and Unison can exceed full scale; a
+    // historical sampled peak is not a bound on every patch and note history.
+    // This returns the historical boundary including outputLevelPolicyGain.
+    // With enableVoiceVcaServiceGain, process() additionally divides it by
+    // VoiceVcaSignalLaw::serviceGain() after all physical output stages.
+    // Recovering a physical noise voltage from rendered PCM must undo both.
     [[nodiscard]] static float outputBoundaryGain() noexcept;
 
     // In the supplied hash-matched B-2 image, stored continuous controls are
@@ -1275,8 +1412,8 @@ public:
     [[nodiscard]] static std::uint16_t envelopeReleaseLevel(
         std::uint16_t level, std::uint16_t multiplier) noexcept;
     // The recurrence retains all 14 state bits, but the physical 12-bit DAC
-    // receives E>>2. This is the analogue-control fraction actually presented
-    // to the VCF envelope summing path and the ENV-mode voice VCA.
+    // receives E>>2. This is the ENV-mode voice-VCA coordinate, normalized
+    // on DAC code 4095. VCF summing instead retains all fourteen RAM bits.
     [[nodiscard]] static float envelopeDacFraction(
         std::uint16_t level) noexcept;
 
@@ -1362,6 +1499,11 @@ public:
     // separate question and is not assumed here.
     struct VoiceVcaControlLaw
     {
+        // ENV and GATE can reach code 4095; stored RESO/VCA LEVEL sliders
+        // stop at 4064. Keep the envelope's existing code/4095 coordinate,
+        // but assign it the voltage span of the code it actually represents.
+        static constexpr float controlFullScaleVolts = static_cast<float>(
+            ControlDac::positiveSpanVolts(ControlDac::maximumCode));
         // 150 mV of envelope travel above the control rail's anchored
         // operating point, normalised on the converter's 10 V span.
         // Service Notes pp. 18-19 adjust VR34 (10KB) for +0.25...+0.27 V at
@@ -1380,7 +1522,7 @@ public:
         // that path's junction onset.
         //
         // Convention under the exact law: v = 0 (control = turnOn) is where
-        // y + ln y = 0, y = Omega = 0.5671 (Ie = 0.461 uA, -56.3 dB re full
+        // y + ln y = 0, y = Omega = 0.5671 (Ie = 0.461 uA, -56.5 dB re full
         // scale), i.e. the law's sub-knee exponential asymptote coincides
         // with the former softplus's, so this constant keeps meaning what it
         // meant -- the 60 mV/decade tail position the tests pin. The
@@ -1389,12 +1531,19 @@ public:
         // gain above `silenceGain`; it was rejected for that. This mapping is
         // a stated convention, not a derivation. Implied by it, for
         // documentation only: Is = (Vt / R) * exp(-(0.26 + 0.015 * 9.92) / Vt)
-        // = 1.2e-13 A, and Vbe = 0.563 V at the full-scale 300.6 uA, a
+        // = 1.2e-13 A, and Vbe is about 0.564 V at full-scale 306 uA, a
         // plausible small-signal PNP figure and nothing more.
-        static constexpr float turnOn = 0.015f;
+        // Preserve the existing voiced knee in VOLTS while correcting the
+        // envelope's full-scale span. This is a coordinate correction, not
+        // a new transistor fit or a change to the archived softplus option.
+        static constexpr float softplusTurnOn = 0.015f;
+        static constexpr double turnOnVolts = static_cast<double>(softplusTurnOn)
+            * 9.921875; // Historical code4064 coordinate: preserve this prior.
+        static constexpr float turnOn = static_cast<float>(
+            turnOnVolts / controlFullScaleVolts);
         // Legacy softplus scale, comparison path only: ideal-BJT kT/q on the
         // converter span, rounded. The exact law uses the derived
-        // thermalVoltage / controlFullScaleVolts = 0.026 / 9.921875 = 0.0026205.
+        // thermalVoltage / controlFullScaleVolts = 0.026 / 10.1029956 = 0.0025735.
         static constexpr float knee = 0.0026f;
         // the 10 kOhm input resistor 10k + R105 22k, p. 13. Documentation: it cancels in the
         // normalised law and only sets the implied Is above.
@@ -1436,9 +1585,9 @@ public:
     // left to fix is how hard the service trim drives it, and that follows
     // from the output side alone:
     //
-    //   I_tail(full control) = (V_cv,max - V_be) / (the 10 kOhm input resistor + R105)
-    //     V_cv,max = 9.921875 V (code 4064 on the 0..+10 V IC27b branch,
-    //     p. 8) plus the +0.26 V VR34 standoff that branch already stands at
+    //   I_tail(full control) = (V_cv,max - V_be) / (R106 + R105)
+    //     V_cv,max = 10.026514 V (code 4064 on IC27b, including p.13's
+    //     bias-network loading) plus the +0.26 V VR34 standoff it stands at
     //     (p. 18 s. 3; the coordinate VoiceVcaControlLaw::turnOn is in);
     //     the 10 kOhm input resistor 10k + R105 22k into grounded-base Tr20 (p. 13); nominal
     //     2SA1015-class V_be 0.62 V at about 0.3 mA; the BA662's pin-1
@@ -1452,24 +1601,36 @@ public:
     //   I_out,peak = 3.0 V / R_load;  tanh(u_trim) = I_out,peak / I_tail.
     //
     // R_load is the R||C the 80017A module drawing (p. 9) shows on the VCA
-    // BA662's output with no value printed. Roland's JUNO-6 and JUNO-60
-    // Service Notes (CPU BOARD, p. 9 in both) draw the same discrete
-    // IR3109 + BA662 voice circuit the module integrates: BA662 pin 6 ->
-    // R42 47K to GND (no capacitor) -> pin 7 buffer in -> pin 8 out (TP4);
-    // input IR3109 output -> C8 1 uF NP -> R38 56K -> VR4 20K GAIN -> pin 2,
-    // R40 470 and R39 470 to GND on pins 2 and 3; control ENV -> R44 27K ->
-    // R43 10K -> grounded-base PNP TR6 -> pin 1. The Open80017a
-    // reconstruction agrees at 47k; the 80017A's own printed resistor is
-    // unread (OQ-19). Evidence class: derived from a sibling Roland drawing
-    // of the same discrete circuit, never measured on a original instrument.
+    // BA662's output with no value printed. An independent measurement on
+    // a de-potted original 80017A reads that resistor as 47k, its two input
+    // shunts as 560 ohm and the VCA IN series resistor as 4.7k:
+    // https://www.sounddoctorin.com/synthtec/roland/juno106.htm (8/6/2017).
+    // The same account explicitly leaves the parallel capacitor UNKNOWN;
+    // no capacitor value or resulting output pole is inferred here.
+    // Roland's JUNO-6/JUNO-60 CPU BOARD p. 9 separately corroborates the
+    // 47k load as R42 (without a capacitor), but uses different input parts:
+    // R38 56k, VR4 20k, R40/R39 470 ohm. Open80017a also agrees at 47k.
+    // Evidence class: original-module resistance measurement corroborated
+    // by sibling documentation; the full loaded transfer remains OQ-19.
     //
     // Because VR27 fixes the output side, the pin-9 divider (VR27, R108 and
     // the module's internal 4.7k/560) cancels and u_trim refers straight to
     // the engine's vcaInput node: H = 2.4 V / u_trim. The shape is odd, so
     // C59/C14/C12 see no new DC; I_tail scales with the envelope while V_d
     // does not, so the compression is the same at every envelope level; and
-    // u_trim contains no V_t, so the warm-up does not enter it. Predicted
-    // HD3 = u^2/12: -48.1 dBc at the trim level, -36.1 dBc at twice it and
+    // the stored u_trim is solved at the settled card's service temperature.
+    // After trimming the divider stays fixed: finishVoiceFilter applies
+    // T_ref/T to its input, making H_ref*tanh(v*T_ref/(H_ref*T)). This changes
+    // small-signal gain and distortion together while retaining the reference
+    // saturation ceiling; neither H_ref nor the trim follows temperature.
+    // The separately modeled Tr20 current is held at its reference condition.
+    // Its V_be(T), saturation-current and knee changes remain uncalibrated;
+    // this coupling implements the BA662 pair's conditional fixed-current
+    // response, not the entire installed control chain's temperature law.
+    // General bipolar-pair law:
+    // https://www.ti.com/lit/ds/symlink/lm13700.pdf#page=9 (not a BA662 tempco).
+    // Reference-condition predicted
+    // HD3 = u^2/12: -48.3 dBc at the trim level, -36.3 dBc at twice it and
     // about -30 dBc with -0.9 dB of compression on a full saw+pulse+sub
     // open-filter voice (6.8 V peak in the voiced mixer coordinate, OQ-15).
     // With the filter open its own stage tanh is nearly linear, so on bright
@@ -1485,36 +1646,42 @@ public:
         static constexpr float controlSeriesOhms = 32000.0f;
         // Tr20's nominal emitter-junction drop at about 0.3 mA.
         static constexpr float controlJunctionVolts = 0.62f;
-        // R42 on the JUNO-6/60 CPU BOARD drawings (p. 9); the Open80017a
-        // reconstruction agrees; the 80017A's printed value is unread.
+        // Measured on an original 80017A by Sound Doctorin (link above),
+        // corroborated by R42 on the JUNO-6/60 CPU BOARD p. 9 and Open80017a.
         static constexpr float loadOhms = 47000.0f;
         // 6 Vp-p at TP8 (p. 19 s. 6) and 4.8 Vp-p at TP19 (p. 19 s. 5).
         static constexpr float trimOutputPeakVolts = 3.0f;
         static constexpr float trimFilterPeakVolts = 2.4f;
-        // 298.8 uA.
+        // 302.1 uA at bank 3's stored maximum SUSTAIN (ENV, not GATE).
         static constexpr float fullControlTailAmps =
             (controlFullScaleVolts + holdStandoffVolts - controlJunctionVolts)
             / controlSeriesOhms;
         // atanh(trimOutputPeakVolts / loadOhms / fullControlTailAmps)
-        // = atanh(63.83 uA / 298.8 uA) = atanh(0.21361). atanh is not
+        // = atanh(63.83 uA / 302.1 uA) = atanh(0.21130). atanh is not
         // constexpr, so the value is stored here and pinned by the circuit
         // suite to 1e-6.
-        static constexpr float trimDrive = 0.21695541f;
-        // 11.06 V at the vcaInput node.
+        static constexpr float trimDrive = 0.21453375f;
+        // 11.19 V at the vcaInput node.
         static constexpr float headroomVolts = trimFilterPeakVolts / trimDrive;
 
         // headroomVolts * tanh(volts / headroomVolts), through the engine's
         // PolyZoned kernel: |x*Q(x^2) - tanh(x)| <= 4.31e-7 over |x| < 1
-        // (|volts| < 11.06 V, which covers every modelled source; the pinned
+        // (|volts| < 11.19 V, which covers every modelled source; the pinned
         // bound including float rounding is 1e-6), the zoned Hermite tables
         // beyond it.
         [[nodiscard]] static float shape(float volts) noexcept;
+        // Fixed VR27 service gain in the model's voltage coordinate. Bank 3
+        // holds maximum stored SUSTAIN (4064/4095), not the 4095 envelope
+        // peak on which VoiceVcaControlLaw normalizes its current. Including
+        // that ratio restores the TP19-to-TP8 voltage relation without
+        // changing the existing pair drive or relative envelope law.
+        [[nodiscard]] static float serviceGain() noexcept;
     };
     // The stored VCA LEVEL trim drives a second, shared uPC1252H2 after the
-    // voice sum. Roland's converter chart and jack-board drawing establish the
-    // complete nominal path: stored byte b becomes 12-bit code b<<5, the
-    // +4..-6 V hold crosses R30/R32 into the R31/R165-biased GC1 node, and NEC
-    // specifies -5.9 mV/dB typical. The two helpers expose the intermediate
+    // voice sum. Roland's module- and jack-board drawings establish the
+    // complete nominal path: stored byte b becomes 12-bit code b<<5, IC28a's
+    // resistor-derived hold crosses R30/R32 into the R31/R165-biased GC1 node,
+    // and NEC specifies -5.9 mV/dB typical. The two helpers expose the intermediate
     // voltage and C7's derived time constant so the suite can check the
     // resistor solve independently of the final gain conversion. NEC's figure
     // is the part's 25 C value and is proportional to absolute temperature
@@ -1590,6 +1757,8 @@ public:
     // the voice module's pin 1 VCF IN (module board p. 13). The capacitor is a
     // designator-level read; the resistance it works against is not, so the
     // corner itself is voiced -- see the constant's note in the .cpp.
+    // This static helper reports the shipping reference; a comparison's total
+    // resistance is reported by moduleInputCouplingResistanceOhms().
     [[nodiscard]] static float moduleCouplingCornerHz() noexcept;
     // C59 1 uF/50 V NP, the per-voice coupling from pin 3 VCF OUT into the
     // VR27/R108 network and pin 9 VCA IN (module board p. 13). R108 82 kOhm
@@ -1619,10 +1788,12 @@ private:
 
     // --- Modelled hardware constants ---------------------------------------
 
-    // One crystal feeds every voice's note timer, so the six voices are
-    // inherently in tune with one another; what little pitch instability the
-    // instrument has comes from the reference and the control chain, not from
-    // six independent oscillator cores.
+    // One 8 MHz ceramic resonator (Roland 12389728 / KMFC1034T1, service
+    // parts list p. 4) feeds every voice's note timer. Equal counts therefore
+    // have equal steady frequency; staggered updates can still change phase.
+    // No installed-part measurement establishes a different shipping value.
+    // Keep this nominal coordinate for firmware tables and charging current;
+    // configureDcoMasterClockHz supplies a separate physical timer frequency.
     static constexpr double masterClockHz = 8000000.0;
     // IC29 executes one state every 250 ns. The recovered pitch-write paths
     // below are timed in these states, independently of the selected DCO clock.
@@ -1657,7 +1828,7 @@ private:
     // integrator's virtual ground, so capacitor current is constant and the
     // rising ramp is straight. The discharge transistor gives only the reset
     // its finite slope.
-    static constexpr float rampResetSeconds = 2.2e-6f;
+    static constexpr double rampResetSeconds = 2.2e-6;
     static constexpr float rampAmplitudeVolts = 12.0f;
     // The sub's mixer coordinate, here rather than beside its two siblings in
     // the .cpp because the DCO-scan audit's analytic Fourier reference states
@@ -1780,20 +1951,17 @@ private:
     // enough to hear as odd-harmonic grit on every resonant sweep.
     static constexpr float otaEarlyVoltage = 100.0f;
     static constexpr float otaEarlyEffectCoefficient = 0.005f;
-    // Temperature coefficient of the transconductor's cutoff control path, from
-    // the AS3109 datasheet -- the IR3109 clone whose own test condition is this
-    // circuit's 240 pF and 68 kOhm. It is what turns the modelled chassis
-    // thermal gradient into a per-card cutoff difference.
+    // Voiced thermal-character coordinate retained from the AS3109's typical
+    // 0.33%/degC "Tempco of frequency control" row. That replacement-IC row
+    // has no min/max and concerns the control coefficient: it does not bound
+    // an original 80017A's residual cutoff drift at a fixed installed CV.
+    // https://www.alfatriode.lv/eng/sc/AS3109.pdf (v2, 2022-04-29)
     //
-    // A revision instead spread the six cards by 1 + 0.04 * (card - 2.5), which
-    // is +/-165 cents: roughly ten times what this coefficient supports across
-    // the 4 degC gradient computed beside it, linear in the card index while
-    // that gradient is exponential in it, and absent from the README's own Unit
-    // Character table. The module board also carries R111, a 560 Ohm positor --
+    // The module board also carries R111, a 560 Ohm positor --
     // a PTC thermistor, listed as such in the parts legend -- returning the CV
-    // divider node to ground precisely to cancel this tempco, so the derived
-    // figure below is an upper bound on what survives it rather than a
-    // measured residual. How much the positor actually leaves is OQ-10.
+    // divider node to ground for compensation. This model's use of the clone
+    // coefficient is a sound-design prior, not an upper bound or a measured
+    // residual. Installed compensated behavior and its statistics are OQ-10.
     static constexpr float vcfCutoffTempcoPerCelsius = 0.0033f;
     // Card-to-card thermal gradient across the chassis, in degrees Celsius at
     // the card nearest the supply, falling exponentially with the card index.
@@ -1816,7 +1984,6 @@ private:
 
     // Modulation budgets, in converter counts, taken from the instrument's own
     // control tables. 1143 counts is one octave.
-    static constexpr float vcfEnvelopeCounts = 16255.0f;
     // The maximum of vcfLfoCountsWord: depth byte 253 (2 * 127 * 255 >> 8)
     // against the full 8191 accumulator, 253 * 8191 >> 9. The live term is
     // that integer law, not a fraction of this figure.
@@ -1848,25 +2015,42 @@ private:
     // straight onto the DCO CV bus for CH1-CH6 -- the seventh, C75, is the SUB
     // hold through IC17b into R11/C1 and keeps its declared network above --
     // and IC26's C85 ('.01x8', C80-C87) feeds IC22d straight into VR32/R115.
-    // Their acquisition is the HD14051BP switch's on-resistance into the
-    // 0.01 uF hold -- Roland's parts list installs the Hitachi part and
-    // excludes the TC4051 -- for which the datasheet's 15 V column gives
-    // 80 ohm typical / 280 ohm maximum at 25 C (300 ohm at 85 C), so rON x C
-    // is 0.8 us typical and 2.8 us maximum, and even a full-scale step
-    // limited by the switch's 25 mA and the follower's slew completes in
-    // under 10 us. The firmware keeps the hold enabled for the whole
-    // next-voice computation (at least 97 us, more than thirty maximum time
-    // constants) inside a 183 us scan slot, and one internal sample at the
-    // 192 kHz reference is 5.2 us.
-    // That is a derived bound, not a measured time constant: the hold settles
-    // inside its slot, within about two internal samples, so both holds are
-    // assigned at the write. The two 522 us compatibility slews this replaces
-    // overstated the acquisition by two orders of magnitude. Droop between
-    // scans is not modelled: at the same datasheet's typical +/-0.01 nA
-    // off-channel leakage plus the follower's 65 pA typical input bias (TI
-    // TL08xC table, 25 C), 10 nF loses well under 0.1 mV per 4.2 ms pass
-    // against a 2.44 mV LSB (its 1 uA 25 C leakage maximum is a test limit,
-    // not a measurement).
+    // Their finite acquisition includes the installed HD14051BP, the 10 nF
+    // hold and its TL082 source. Hitachi's 15 V table gives 80 ohm typical /
+    // 280 ohm maximum at 25 C (300 ohm at 85 C). Those are test coordinates,
+    // not installed-condition bounds: p. 13 gives IC24/23 +5 V at pin 16,
+    // ground at pin 8, and a shared negative pin-7 rail from Tr23. Its
+    // R121 39k / R122 10k base divider is about -11.94 V unloaded, with the
+    // PNP emitter above that by VBE. IC26 instead has +15 V at pin 16 and
+    // a pin-7 R132 10k / R128 1k divider near -1.36 V. Thus neither the
+    // +5 V logic supply nor an exact 15 V analog span is the whole circuit.
+    // At the 15 V table's two resistances, an IDEAL RC has tau = 0.8/2.8 us,
+    // but a full-scale 12-bit step takes ln(8192)*tau = 7.21/25.23 us to
+    // reach half an LSB. Tau is not settling time. The 25 mA signal-current
+    // row is an absolute maximum, not a guaranteed charging current, and
+    // the small-load switching/slew tables do not qualify 10 nF acquisition.
+    // Nor does every hold stay enabled for >=97 us: B-2's NOISE write at
+    // 07b2 reaches the next RES inhibit at 082f after 141/159 states
+    // (35.25/39.75 us, sustain off/on, no interrupts). These are instruction
+    // starts; the PA latch edge inside ANI/ORI is unpublished. The same
+    // 082f routine inhibits every mux before updating PB and PC, so their
+    // staggered bytes do not justify injecting a glitch into a held CV.
+    // Tools/AuditControlDacTiming.py checks the pinned listing and derives
+    // these conditional estimates independently of the audio engine.
+    // Direct assignment remains an ideal-acquisition approximation, not a
+    // demonstrated two-sample settling bound. The retired 522 us DCO/NOISE
+    // slews have no post-hold capacitor/resistor network to justify them.
+    // Droop and charge injection remain unmeasured and unmodelled. At the
+    // table's typical 10 pA off-channel leakage, plus TI's 25 C typical
+    // follower bias (65 pA TL08xC for DCO; 30 pA TL064C for IC22d NOISE),
+    // same-sign constant-current examples give 31.5/16.8 uV over 4.2 ms on
+    // 10 nF, against a 2.44 mV LSB. These are scale estimates, not installed
+    // limits or a measured drift direction; 1 uA maximum leakage is not a
+    // nominal noise or droop source. References and supply-node derivation:
+    // https://www.kiwitechnics.com/downloads/Kiwi-106/Roland%20Juno-106%20Service%20Manual.pdf#page=13
+    // https://akizukidenshi.com/goodsaffix/hd14051b_e.pdf#page=2
+    // https://www.ti.com/lit/ds/symlink/tl082.pdf (TL08xC bias table)
+    // https://www.ti.com/lit/ds/symlink/tl064.pdf (TL064C bias table)
     static constexpr float vcfHoldSlewSeconds = 522.0e-6f;
     static constexpr float voiceVcaHoldSlewSeconds = 687.0e-6f; // linear A/B reference
     static constexpr float pwmHoldFirstPoleSeconds =        // ~3.249 ms
@@ -1879,14 +2063,14 @@ private:
         subSmoothingR11Ohms * subSmoothingC1Farads;
     // p. 13 '.01x7' (IC24, C73-C79) and '.01x8' (IC26, C80-C87).
     static constexpr float converterHoldFarads = 10.0e-9f;
-    // Hitachi HD14051B, VDD-VEE = 15 V column, 25 C maximum:
+    // Hitachi HD14051B, 15 V table coordinate, 25 C maximum; this diagnostic
+    // checks one ideal-RC time constant, not installed acquisition/settling.
     // https://akizukidenshi.com/goodsaffix/hd14051b_e.pdf#page=2
     static constexpr float hd14051MaximumOnResistanceOhms = 280.0f;
     static_assert(hd14051MaximumOnResistanceOhms * converterHoldFarads
                       < 1.0f / 192000.0f,
-                  "the DCO/NOISE hold acquisition bound must sit inside one "
-                  "internal sample at the 192 kHz reference, or the "
-                  "direct-assignment holds below are wrong");
+                  "the conditional 15 V reference RC time constant exceeds "
+                  "one sample at the 192 kHz reference");
     // The RESO CV destination has no post-hold network at all, so it is not on
     // the list above. IC26's C86 ('.01x8') feeds IC22c, whose output runs as
     // bare wire into the card, through VR26 20KB and R107 27k to the
@@ -1915,7 +2099,6 @@ private:
     // the droop has one transfer rather than an unlabelled number at the
     // summing point. Voiced, like the droop coefficient it multiplies.
     static constexpr float railToCutoffCountsPerVolt = 35.0f;
-    static constexpr float vcfKeyFollowCentreMidi = 60.0f; // C4
     enum class EnvelopeStage { Idle, Attack, Decay, Sustain, Release };
 
     // Hash-matched B-2 firmware mechanics: a 14-bit integer advanced once per
@@ -1937,9 +2120,19 @@ private:
         std::uint16_t level { 0u };
         float value { 0.0f };
 
+        // B-2 keeps these latches separately (FF07/FF08/FF33). In
+        // particular, attack overflow sets the latter two without clearing
+        // FF07; a key-up before the next calculation still takes one decay.
+        bool attackPhase { false };
+        bool decayPhase { false };
+        bool phase { false };
+        bool gate { false };       // FF10, changed by voice commands
+        bool running { false };    // FF11, sampled at the start of a pass
+
         void reset() noexcept;
         void noteOn() noexcept;
-        void noteOff() noexcept;
+        void noteOff(bool hold = false) noexcept;
+        void latchGate(bool hold) noexcept;
         float tick(std::uint16_t attackIncrement,
                    std::uint16_t decayMultiplier,
                    std::uint16_t sustain,
@@ -2028,6 +2221,9 @@ private:
         // handoff may make the retained old-cycle remainder longer than one
         // newly selected period.
         double pitClocksToEvent { 0.0 };
+        // Nominal count/clock period in processing samples. Actual timer
+        // period is this divided by dcoMasterClockRatio_. Neither coordinate
+        // controls charging current at fixed held CV and RANGE.
         double periodSamples { 100.0 };
         // Linear C54 compatibility model. Positive OUT starts the discharge;
         // its exact transistor waveform remains unmeasured, so the established
@@ -2035,16 +2231,22 @@ private:
         double rampValue { -1.0 };
         double rampSlopePerSecond { 0.0 };
         double resetSecondsRemaining { 0.0 };
+        // Optional physical reset retains capacitor voltage at gate opening.
+        // Target is expressed in this cell's fixed base-voltage coordinate.
+        bool physicalResetActive { false };
+        double resetTargetValue { -1.0 };
+        double resetTimeConstant { 1.0 };
+        // Double accumulation prevents cancellation between the sharp reset
+        // onset and its distributed exponential curvature at short Rd*C.
+        // The shipping compatibility path continues to use saw.ring alone.
+        std::array<double, correctionRing> resetSawCorrection {};
         // A supply-limited charge is distinct from every other zero-slope
         // state. While held, live card-current changes reproject rampValue so
         // the physical capacitor node remains exactly +15 V.
         bool positiveRailHeld { false };
-        // The compensation ratio the current cycle's ramp was launched with.
-        // The physical ramp integrates whatever current its slewing CV set at
-        // the discharge, so a CV still catching up changes the *slope of the
-        // next rise*, never the value mid-cycle. Freezing the ratio per cycle
-        // is what keeps the rendered ramp value-continuous: it only takes a
-        // new value at a wrap, where both cycles share the -1 rail.
+        // Fixed coordinate scale for the retained capacitor voltage. It is
+        // selected at the zero-charge boundary only; a held-CV update changes
+        // the derivative immediately without reinterpreting existing charge.
         float renderScale { 1.0f };
         float pulseState { -1.0f };
         // The divider's output level is the whole of its state. Holding a
@@ -2090,6 +2292,14 @@ private:
         // it gains over the former float path-average solve.
         std::array<double, 4> state {};
         std::array<float, 4> offsetVoltage {};
+        // Independent equivalent input voltages of each stage's resistor
+        // network. They use the audio input's same causal cubic reconstruction
+        // at the solver nodes; none enters the resonance compensation input.
+        std::array<std::array<double, 4>, controlNodePositions.size()> stageNoiseAt {};
+        std::array<std::array<double, 4>, 4> stageNoiseHistory {};
+        int stageNoiseHistoryCount { 0 };
+        void setStageNoise(const std::array<double, 4>& volts) noexcept;
+        void prepareStageNoise(unsigned int nodeMask) noexcept;
         // Sample-grid support, not circuit memory. Point zero is the most
         // recent completed endpoint; the current endpoint supplied to process
         // is the fourth point of the causal cubic interpolant.
@@ -2436,7 +2646,7 @@ private:
     // G class (rampCapacitorToleranceClass).
     struct VoiceCard
     {
-        float rampCurrentError { 0.0f };
+        DcoComponentTolerance dcoComponents {};
         float comparatorOffset { 0.0f };
         float cutoffOffsetError { 0.0f };
         float cutoffScaleError { 0.0f };
@@ -2450,6 +2660,10 @@ private:
         // then applies it without rebuilding the same exponent-derived card
         // coordinate every internal sample.
         double thermalFilterOmegaScale { 1.0 };
+        // sqrt(T_card / 298.15 K) for the four independent resistor sources.
+        // Refreshed on the existing wall-clock control cadence, including
+        // idle cards; host block boundaries never resample this coordinate.
+        float johnsonTemperatureScale { 1.0f };
         // Fixed FREQ adjustment at the declared service temperature. Removes
         // the pole spread and static thermal contribution already absorbed
         // by each card's trimmer, before adding its final trim residual.
@@ -2558,10 +2772,9 @@ private:
         // their float-sized increment falls below half an ULP of this state.
         double vcaControl { 0.0 };
         // Oscillator compensation hold in the firmware's unshifted 12-bit DAC
-        // code. The timer's count steps independently; this code slews, and
-        // code*active-count is the momentary ramp-amplitude coordinate frozen
-        // per cycle (`Dco::renderScale`). It reaches the pulse only through
-        // the comparator's edge times.
+        // code. Ideal acquisition occurs at the physical converter timestamp;
+        // its current changes immediately while capacitor voltage is retained.
+        // The timer count steps independently of this analog state.
         float dcoCvTarget { 256.0f };
         float dcoCv { 256.0f };
         // A physical card computes one paired PIT/CV transaction at T-389.
@@ -2596,11 +2809,13 @@ private:
         // write. Keeping volts also survives a renderScale change mid-sample.
         float pulseThresholdVolts { 6.0f };
         bool pulsePinnedHigh { false };
-        // rampCurrentScaleFor(card, calibration), refreshed when calibration
-        // moves and by updatePulseComparator for rendered cards. renderVoice
-        // then consumes this exact cached scale, including on the retired fast
-        // path that deliberately skips the comparator update.
+        // Selected R*C charging scale, refreshed on Character/RANGE edits.
+        // Voltage coordinates are reprojected to retain the capacitor state.
+        // The retired fast path consumes the same cached component values.
         float rampCurrentScale { 1.0f };
+        // Comparator service coordinate remains the nominal 8' B-2 0x5400
+        // reference. RANGE, clock and live temperature never re-trim it.
+        float rampServiceScale { 1.0f };
         // PWM is a moving comparator threshold, not a pulse oscillator whose
         // edge position is frozen for one sample.  Retaining the previous
         // threshold lets renderVoice solve crossings caused by both the ramp
@@ -2664,18 +2879,18 @@ private:
                  float samplesAgo) const noexcept;
     void addSlope(BandlimitedTrack& track, float slopeStep,
                   float samplesAgo) const noexcept;
-    // Start the retained finite-linear C54 discharge on a verified positive
+    // Start the configured or compatibility C54 discharge on a verified positive
     // M82C53 OUT edge and clock the sub flip-flop at the same timestamp.
-    void beginDcoDischarge(Voice& voice, float samplesAgo,
+    void beginDcoDischarge(Voice& voice, double samplesAgo,
                            bool addCorrections) noexcept;
-    void beginDcoCharge(Voice& voice, float samplesAgo,
+    void beginDcoCharge(Voice& voice, double samplesAgo,
                         bool addCorrections) noexcept;
     void writeDcoMode3Control(Voice& voice, double clocksToNextInputEdge,
-                              float samplesAgo,
+                              double samplesAgo,
                               bool addCorrections) noexcept;
     void prestageDcoPitchTransaction(Voice& voice,
                                      double clocksToNextInputEdge,
-                                     float samplesAgo,
+                                     double samplesAgo,
                                      bool addCorrections) noexcept;
     void programDcoCount(Voice& voice, std::uint32_t count,
                          bool writesControlWord) noexcept;
@@ -2705,6 +2920,7 @@ private:
     // audio path.
     void refreshVoiceCardStageTrims() noexcept;
     void refreshVoiceCardThermalScales() noexcept;
+    void refreshCardJohnsonTemperatureScales() noexcept;
     void refreshVoiceCardServiceTrims() noexcept;
     void refreshVoiceRampCurrentScales() noexcept;
     void refreshAgedUnitState() noexcept;
@@ -2716,6 +2932,11 @@ private:
     // volts: 2 Vt(T) / stageAttenuation at the chassis temperature the warm-up
     // clock has reached, plus this card's place in the spatial gradient.
     [[nodiscard]] float dynamicOtaHeadroomVolts(
+        const EngineParameters& parameters, int cardIndex) const noexcept;
+    [[nodiscard]] static float voiceCardCelsius(
+        const EngineParameters& parameters, int cardIndex,
+        float warmupFraction) noexcept;
+    [[nodiscard]] float voiceVcaThermalDriveScale(
         const EngineParameters& parameters, int cardIndex) const noexcept;
     // The jack board's temperature: the chassis warm-up the cards read,
     // without their spatial gradient, because it is not a voice card. Unit
@@ -2793,7 +3014,18 @@ private:
     // converter queue below.
     [[nodiscard]] std::uint32_t updateVoiceScan(
         Voice& voice, const EngineParameters& parameters) noexcept;
-    [[nodiscard]] std::uint32_t updateVoiceEnvelopeAndPitch(
+    void refreshFirmwareControlTrace(bool initialise = false) noexcept;
+    void advanceFirmwareControlEvents(double phase) noexcept;
+    [[nodiscard]] float firmwareConverterTarget(const ConverterWrite&) const noexcept;
+    void updateVoiceEnvelope(
+        Voice& voice, const EngineParameters& parameters) noexcept;
+    void updateEnvelopeBeforeConverterWrite(
+        const ConverterWrite& write, const EngineParameters& parameters) noexcept;
+    void updateVoicePortamento(
+        Voice& voice, const EngineParameters& parameters) noexcept;
+    void updatePortamentoBeforeConverterWrite(
+        const ConverterWrite& write, const EngineParameters& parameters) noexcept;
+    [[nodiscard]] std::uint32_t updateVoicePitch(
         Voice& voice, const EngineParameters& parameters) noexcept;
     void updateVoiceVcfTarget(Voice& voice,
                               const EngineParameters& parameters) noexcept;
@@ -2801,6 +3033,13 @@ private:
         const Voice& voice, const EngineParameters& parameters) const noexcept;
     void updateVoiceVcaTarget(Voice& voice,
                               const EngineParameters& parameters) noexcept;
+    void inhibitEnvelopeHold() noexcept;
+    void beginEnvelopeHoldAcquisition(int slot, float target) noexcept;
+    void advanceEnvelopeHolds(double seconds, const EngineParameters& parameters) noexcept;
+    [[nodiscard]] double envelopeMuxInhibitPhase(std::size_t ordinal) const noexcept;
+    void advanceEnvelopeHoldControls(double phase, double phaseStep,
+        bool hasEnable, int slot, float target, double enablePosition,
+        const EngineParameters& parameters) noexcept;
     [[nodiscard]] float voiceVcaTarget(
         const Voice& voice, const EngineParameters& parameters) const noexcept;
     // The velocity extension's one gain. The modelled hardware has no velocity
@@ -2848,8 +3087,24 @@ private:
     // two cannot drift apart the way resonanceFeedbackFor/cutoffAnalogCounts
     // above were split out to prevent.
     [[nodiscard]] static float rampCurrentScaleFor(
-        const VoiceCard& card, float calibration) noexcept;
+        const VoiceCard& card, float calibration, DcoRange range) noexcept;
+    [[nodiscard]] static double dcoChargingSlope(
+        float heldCode, DcoRange range) noexcept;
     [[nodiscard]] float dcoLaunchScale(const Voice& voice) const noexcept;
+    void updateDcoHeldCv(Voice& voice, float code) noexcept;
+    void refreshDcoResetTrajectory(Voice& voice) noexcept;
+    [[nodiscard]] double dcoCorrectionSlope(double slope) const noexcept;
+    void addDcoSlope(Voice& voice, double slopeStep, double samplesAgo) noexcept;
+    void addDcoResetCurvature(Voice& voice, double slopeAtStart,
+                             double elapsed, double seconds) noexcept;
+    struct SteadyDcoCycle
+    {
+        double periodSeconds, resetSeconds, slopeVoltsPerSecond, peakVolts;
+        double troughVolts { 0.0 }, resetTargetVolts { 0.0 }, resetTauSeconds { 0.0 };
+    };
+    [[nodiscard]] SteadyDcoCycle steadyDcoCycle(const Voice& voice) const noexcept;
+    [[nodiscard]] float steadyDcoPulseDuty(const Voice& voice) const noexcept;
+    [[nodiscard]] float steadyDcoSawMean(const Voice& voice) const noexcept;
     // The PWM comparator is physical and free-running even behind a shut VCA,
     // so it follows the shared held threshold for inactive cards as well.
     void updatePulseComparator(Voice& voice,
@@ -2987,8 +3242,20 @@ private:
     RateTransition rateTransition_ { RateTransition::Idle };
     float rateTransitionGain_ { 1.0f };
     float rateTransitionStep_ { 1.0f };
+    double dcoReferenceClockRatio_ { 1.0 };
+    bool dcoResetCircuitEnabled_ { false };
+    DcoResetCircuit::Calibration dcoResetCalibration_ {};
+    double dcoMasterClockRatio_ { 1.0 };
+    bool dcoTemperatureProxyEnabled_ { false };
+    double dcoTemperatureReferenceFactor_ { 1.0 };
+    float dcoClockTemperatureCelsius_ { -1000.0f };
+    void refreshDcoMasterClock() noexcept;
+    [[nodiscard]] double actualRangeClockHz(DcoRange range) const noexcept
+    {
+        return rangeClockHz(range) * dcoMasterClockRatio_;
+    }
     // IC35 terminal carry makes TP5 fall, and every M82C53 counts on that
-    // falling edge. One raw 8 MHz tick later IC35 synchronously reloads; TP5
+    // falling edge. One raw master-clock tick later IC35 synchronously reloads; TP5
     // then rises after propagation. Keep those phases separate so PIT /WR
     // ties are compared with the former and PF RANGE writes with the latter.
     // Both countdowns use periods of the currently requested range clock and
@@ -3009,12 +3276,39 @@ private:
         ConverterTimingProfile::NormalizedServiceChart };
     std::array<double, converterWritesPerPass> converterEventPhases_ {};
     std::size_t nextConverterWrite_ { 0 };
+    double converterPassEndPhase_ { 1.0 };
+    std::array<double, converterWritesPerPass> converterInhibitPhases_ {};
+    bool voiceBoardCommandReplayRequested_ { false };
+    bool voiceBoardCommandReplayActive_ { false };
+    FirmwareAdcSnapshot firmwareAdcSnapshot_ {};
+    // Coefficient tables the nominal control-pass trace reads. The source
+    // builds them in a function-local static on first use; Rack chip code
+    // avoids guarded initialization, so the constructor fills this member.
+    FirmwareControlTrace::Tables firmwareControlTables_ {};
+    void buildFirmwareControlTables() noexcept;
+    FirmwareControlTrace::State firmwareControlState_ {};
+    FirmwareControlTrace::Result firmwareControlTrace_ {};
+    std::array<std::uint16_t, converterWritesPerPass> firmwareConverterCodes_ {};
+    std::uint8_t firmwarePassResetMask_ { 0 };
+    std::size_t nextFirmwareControlEvent_ { 0 };
+    bool firmwareControlTraceValid_ { true };
+
     // PWM has its own exact FF4F-derived DAC code, computed beside the
     // late-loop LFO update and held until the next PWM converter write so a
     // host edit cannot splice two firmware passes together. The DCO and VCF
     // LFO words below are likewise held for the pass.
     std::uint16_t converterPassPwmDacCode_ { 0x0fffu };
+    // Physical envelopes belong to the later VCF/VCA train, not the DCO
+    // transaction. Fractional PWM/VCA peeks and polls share one update.
+    std::array<bool, hardwareVoices> converterPassEnvelopeUpdated_ {};
+    // All six glide RAM words are stored before the shared SUB write.
+    bool converterPassPortamentoUpdated_ { false };
+    // PhaseZeroDiagnostic has to bootstrap its next pass before PIT prep.
+    bool converterNextPassPortamentoUpdated_ { false };
     PassiveHoldEventLatch passiveHoldEventLatch_ {};
+    bool envelopeHoldsConfigured_ { false };
+    std::array<EnvelopeHoldCircuit::Configuration, hardwareVoices> envelopeHoldConfiguration_ {};
+    std::array<EnvelopeHoldCircuit, hardwareVoices> envelopeHolds_ {};
     VcfHoldInterval resonanceVcfHoldInterval_ {};
     std::array<VcfHoldInterval, maxVoices> cutoffVcfHoldIntervals_ {};
     std::array<bool, maxVoices> exactVcfControlInterval_ {};
@@ -3227,13 +3521,12 @@ private:
     HighPass outputCouplingLeft_ {};
     HighPass outputCouplingRight_ {};
     float outputCouplingG_ { 0.0001f };
-    // One C22/C21 charge state per jack, at the host rate. The pole sits after
-    // the coupling and the wiper noise, and its corner moves with the wiper's
-    // source resistance, so its blend is recomputed beside the coupling
-    // coefficient when Volume moves.
-    float outputJackStateLeft_ { 0.0f };
-    float outputJackStateRight_ { 0.0f };
-    float outputJackBlend_ { 1.0f };
+    // Magnitude-matched C22/C21 pole after coupling and wiper noise, at the
+    // host rate. Recompute the coefficients as VOLUME changes the source
+    // resistance; retain signal histories (not a claimed capacitor voltage).
+    OutputJackLowPass outputJackLeft_ {};
+    OutputJackLowPass outputJackRight_ {};
+    OutputJackLowPass::Coefficients outputJackCoefficients_ {};
 
     // VCA LEVEL controls the single jack-board VCA after the six voice cards
     // and shared HPF. It is not part of each voice's envelope VCA.
@@ -3253,10 +3546,12 @@ private:
     // physics: at a 48 kHz internal rate the freeze was at 512.0 s and
     // 31.51 C, which is exactly what `voiceEnergyFollowerSeconds` above
     // forbids for the same reason. In double the increment stays
-    // eight orders of magnitude above half an ULP and the 900 s law runs to
-    // completion at every rate.
+    // eight orders of magnitude above half an ULP. Keep this precision even
+    // with the accelerated 3 s startup, so session age still advances.
     double thermalWarmupSeconds_ { 0.0 };
-    // 1 - exp(-t/900), advanced once per internal sample beside the timer
+    bool thermalStartsSettled_ { false };
+    // 1 - (1-w0)*exp(-t/tau), where w0 is 1 for an explicitly settled start.
+    // Advanced once per internal sample beside the timer
     // above. It is chassis-wide, so recomputing it per voice recomputed the
     // same number six times.
     float thermalWarmupFraction_ { 0.0f };
@@ -3268,8 +3563,8 @@ private:
 
     // The envelope generator is the one shared digital processor: ATTACK,
     // DECAY and RELEASE resolve to the same increment/multiplier for every
-    // voice (see the note in updateVoiceEnvelopeAndPitch), so recomputing
-    // them from the panel position on every voice's Pitch write recomputed
+    // voice (see the note in updateVoiceEnvelope), so recomputing
+    // them from the panel position on every voice's envelope update recomputed
     // the same three answers as many times as there are sounding cards. The
     // panel position is compared for exact equality, so this memo cannot
     // return anything the piecewise law would not have recomputed; sentinels
@@ -3284,13 +3579,16 @@ private:
     // The glide law is the same shared-processor story: glideStepPerScan()
     // resolves PORTAMENTO's panel position through one eight-bit ADC lookup
     // that is identical for every voice, but both initialiseVoice() and
-    // updateVoiceEnvelopeAndPitch() called it fresh on every voice's note-on
-    // and Pitch write. resolveGlideStepPerScan() memoizes it the same way the
+    // updateVoicePortamento() called it fresh on every voice's note-on
+    // and glide update. resolveGlideStepPerScan() memoizes it the same way the
     // envelopeLaw* cache above memoizes ATTACK/DECAY/RELEASE: comparison is
     // exact equality against the same parameters.portamento source, so the
     // memo can never return anything the unconditional call would not have.
     CoupledSubMixer::Calibration coupledMixerCalibration_ {};
     bool coupledMixerEnabled_ { false };
+    // Zero selects the existing voiced resistance; no preset selects an
+    // override. Keeping this separate also detects incompatible calibration.
+    double moduleInputCouplingResistanceOverrideOhms_ { 0.0 };
 
     float glideLawPortamento_ { -1.0f };
     float glideLawStepPerScan_ { 0.0f };

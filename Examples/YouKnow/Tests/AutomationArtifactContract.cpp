@@ -44,11 +44,12 @@
 // looser bound: changing them is *supposed* to change the sound abruptly. What
 // they must not do is produce a non-finite sample or a full-scale transient.
 
-#include "DSP/YouKnowEngine.h"
+#include "ProductConfiguration.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <functional>
 #include <string>
 #include <vector>
@@ -67,6 +68,7 @@ constexpr int measureBatches = 240;  // ~0.32 s across and after the change
 EngineParameters probePatch()
 {
     EngineParameters p;
+    RackProductConfiguration::applyTo(p);
     p.sawEnabled = true;
     p.pulseEnabled = false;
     p.subLevel = 0.0f;
@@ -90,6 +92,18 @@ EngineParameters probePatch()
     p.calibration = 1.0f;
     p.aging = 0.5f;
     return p;
+}
+
+// Every render measures the shipped product configuration, at this contract's
+// established 2x/Exact/Merson quality.
+void prepareProductEngine(YouKnowEngine& engine)
+{
+    if (!RackProductConfiguration::configureBeforePrepare(engine))
+    {
+        std::fprintf(stderr, "product configuration refused\n");
+        std::exit(1);
+    }
+    engine.prepare(sampleRate, batchSize, 2);
 }
 
 struct Trace
@@ -135,7 +149,7 @@ double heldMaxStep(const Apply& apply, double value, bool withChorus,
                    std::size_t window)
 {
     YouKnowEngine engine;
-    engine.prepare(sampleRate, batchSize, 2);
+    prepareProductEngine(engine);
     EngineParameters p = probePatch();
     if (withChorus)
         p.chorus = ChorusMode::One;
@@ -181,7 +195,7 @@ Result measure(const Apply& apply, double a, double b, bool ramp, bool withChoru
                double rampReference, double glideSeconds = 0.0)
 {
     YouKnowEngine engine;
-    engine.prepare(sampleRate, batchSize, 2);
+    prepareProductEngine(engine);
 
     EngineParameters base = probePatch();
     if (withChorus)
@@ -403,7 +417,7 @@ int checkHeldNotesSurvive(bool verbose)
     for (const Case& test : cases)
     {
         YouKnowEngine engine;
-        engine.prepare(sampleRate, batchSize, 2);
+        prepareProductEngine(engine);
         EngineParameters p = probePatch();
         p.cutoff = 0.45f;
         test.apply(p, test.from);

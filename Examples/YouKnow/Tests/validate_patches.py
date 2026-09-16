@@ -194,6 +194,49 @@ def validate_sdk5_declarations():
     )
 
 
+# Reason's performance controllers declare no Lua default; these are the SDK
+# rest positions the wrapper assumes.
+PERFORMANCE_DEFAULTS = {"pitchBend": 0.5, "modWheel": 0.0, "sustainPedal": 0.0}
+
+
+def motherboard_default(motherboard, name):
+    """The default a custom property's motherboard_def.lua declaration gives."""
+    helper = re.search(
+        rf'^\s*{re.escape(name)} = (?:percent|physical_number|selector|switch)\(\s*'
+        r'"[^"]*",\s*([^,)\s]+)', motherboard, re.MULTILINE)
+    number = re.search(
+        rf'^\s*{re.escape(name)} = jbox\.number\{{\s*(?:steps = \d+,\s*)?'
+        r'default = ([^,\s]+),', motherboard, re.MULTILINE)
+    match = helper or number
+    if match is None:
+        assert name in PERFORMANCE_DEFAULTS, f"motherboard_def.lua declares no default for {name}"
+        return PERFORMANCE_DEFAULTS[name]
+    text = match.group(1)
+    if text in ("true", "false"):
+        return 1.0 if text == "true" else 0.0
+    return float(text)
+
+
+def validate_wrapper_defaults():
+    """The wrapper's nonfinite-value defaults must be the declared defaults."""
+    motherboard = (PROJECT / "motherboard_def.lua").read_text(encoding="utf-8")
+    header = (PROJECT / "YouKnow.h").read_text(encoding="utf-8")
+    table = re.search(r"kParameterDefaults \{\n(.*?)\n\s*\};", header, re.DOTALL)
+    assert table, "YouKnow.h has no kParameterDefaults table"
+    rows = re.findall(r"^\s*([-0-9.]+),\s*//\s*(\w+)\s*$", table.group(1), re.MULTILINE)
+    enum = re.search(r"enum EParameter\s*\{(.*?)kParameterCount", header, re.DOTALL)
+    assert enum, "YouKnow.h has no EParameter enum"
+    order = re.findall(r"\bk(\w+),", enum.group(1))
+    assert len(rows) == len(order), "kParameterDefaults must cover every EParameter"
+    for (value, name), enumerator in zip(rows, order):
+        assert enumerator.lower() == name.lower(), (
+            f"kParameterDefaults row {name} does not follow EParameter k{enumerator}")
+        declared = motherboard_default(motherboard, name)
+        assert abs(float(value) - declared) < 1e-12, (
+            f"{name}: wrapper default {value} differs from motherboard default {declared}")
+    return len(rows)
+
+
 def validate_support_url():
     for relative in ("README.md", "PRIVACY.md", "Docs/SHOP_COPY.md",
                      "Docs/USER_GUIDE.md", "Docs/RELEASE_CHECKLIST.md"):
@@ -336,6 +379,7 @@ def validate_preset_levels(patches):
 
 def main():
     validate_sdk5_declarations()
+    default_count = validate_wrapper_defaults()
     validate_support_url()
     text_count = validate_texts()
     root_patches = sorted(PUBLIC.glob("*.repatch"))
@@ -375,7 +419,8 @@ def main():
         signatures[signature] = relative
     metadata_count = validate_metadata(patches)
     print(
-        f"YouKnow: {text_count} text keys valid; {len(patches)} unique patches, "
+        f"YouKnow: {text_count} text keys valid; {default_count} wrapper defaults match; "
+        f"{len(patches)} unique patches, "
         f"{metadata_count} metadata entries; {level_count} deterministic level trims; "
         "SDK 5/schema/ranges/identity valid"
     )

@@ -2,7 +2,25 @@
 
 Notable customer-facing changes to YouKnow are recorded here.
 
-## 1.0.0f20 - Unreleased
+## 1.0.0f21 - Unreleased
+
+- Synchronize the shared DSP to upstream `5d9390d`: circuit-accurate DCO clock,
+  temperature, component and retained-charge behavior; firmware envelope,
+  portamento and control-precision fixes; finite envelope-hold acquisition;
+  loaded DAC and VCA calibration; temperature-scaled card noise; chorus input
+  loading and mute discharge; the output-jack rolloff; and circuit-derived
+  input coupling.
+- Render with the source instrument's product circuit selections, including its
+  measured converter timing, so YouKnow sounds like the reference product.
+- Harden every control against malformed values: nonfinite or out-of-range
+  numbers, selector positions, note velocities, tuning and reset requests now
+  resolve to defined settings instead of undefined conversions or stuck state.
+- Recalibrate all patch level trims to the updated sound; raise Storm Signal's
+  volume so it stays audible, and attenuate Broken Telemetry and Circuit Rain
+  at Aging 50%. Musical settings are otherwise unchanged.
+- Preserve Reason control identities, fixed latency, and MIDI/CV behavior.
+
+## 1.0.0f20 - Earlier candidate (not uploaded)
 
 - Synchronize the shared DSP to upstream `c9d3c57`, including Gaussian noise,
   firmware modulation and pitch-bend corrections, output-stage filtering and

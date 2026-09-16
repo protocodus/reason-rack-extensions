@@ -6,6 +6,10 @@
 #include <cstring>
 #include <iostream>
 
+// Upstream-verbatim nominal converter network; the corrected voice-VCA
+// span every table below is built on comes from it.
+#include "../DSP/YouKnowControlDac.h"
+
 namespace
 {
 struct BbdNode
@@ -404,18 +408,24 @@ CorrectionTables buildCorrectionTables() noexcept
     return result;
 }
 
+// VoiceVcaControlLaw's coordinates, Sep 2026: the envelope peak code 4095
+// spans ControlDac's loaded positive branch, and the historical 0.015 knee
+// is preserved in volts on the former code-4064 span.
+constexpr float controlFullScaleVolts = static_cast<float>(
+    youknow::ControlDac::positiveSpanVolts(youknow::ControlDac::maximumCode));
+constexpr double turnOnVolts = static_cast<double>(0.015f) * 9.921875;
+static_assert(controlFullScaleVolts == 0x1.434bbep+3f,
+              "the ControlDac full-scale span moved");
+
 std::array<float, 4097> buildVoiceVcaGainTable()
 {
     constexpr int tableSteps = 4096;
-    constexpr float turnOn = 0.015f;
         std::array<double, tableSteps + 1> solved {};
-        constexpr double voltsPerUnit =
-        static_cast<double>(9.921875f)
-        / static_cast<double>(thermalVoltage);
+        constexpr double spanVolts = static_cast<double>(controlFullScaleVolts);
         for (int i = 0; i <= tableSteps; ++i)
         {
-        const double v = (static_cast<double>(i) / tableSteps
-                      - static_cast<double>(turnOn)) * voltsPerUnit;
+        const double v = (static_cast<double>(i) / tableSteps * spanVolts
+                          - turnOnVolts) / static_cast<double>(thermalVoltage);
         double y = v > 1.0 ? v - std::log(v) : std::exp(v);
         for (int step = 0; step < 12; ++step)
         {
@@ -447,8 +457,8 @@ VcaControlTables buildVcaControlTables()
     VcaControlTables result;
     constexpr int steps = 4096;
     constexpr double thermalVolts = static_cast<double>(0.026f);
-    constexpr double spanVolts = static_cast<double>(9.921875f);
-    constexpr double knee = static_cast<double>(0.015f);
+    constexpr double spanVolts = static_cast<double>(controlFullScaleVolts);
+    constexpr double knee = turnOnVolts / controlFullScaleVolts;
     constexpr double inputOhms = 10000.0;
     constexpr double emitterOhms = 22000.0;
     const double scale = spanVolts / thermalVolts;
@@ -558,6 +568,21 @@ int main()
         || !validateVcf(frozenVcfTail, 5.0, 1.0 / 4.0, "VCF tail"))
         return 1;
 
+    // The service-trim reference droop the engine freezes as a hexadecimal
+    // constant is the same harmonic-balance solve at the p.19 anchor.
+    {
+        std::array<double, 4> gains { 1.0, 1.0, 1.0, 1.0 };
+        const double droop = limitCycleFor(
+            2.4, static_cast<double>(otaHeadroomVolts),
+            static_cast<double>(loopHeadroomVolts), gains,
+            buildDescribingTable()).droop;
+        if (!same(droop, 0x1.c8733c8e0dff6p-1))
+        {
+            std::cerr << "nominal service droop mismatch\n";
+            return 1;
+        }
+    }
+
     const auto expectedResonance = buildResonanceFrequencyTrim();
     const auto expectedCorrection = buildCorrectionTables();
     const auto expectedVcaControl = buildVcaControlTables();
@@ -583,6 +608,6 @@ int main()
     std::cout << "validated 513 BBD nodes, 216 VCF intervals, "
               << "129 resonance trims, 6146 correction samples, 513 describing nodes,\n"
               << "4097 voice VCA gains, 8194 VCA control samples, 4097 SUB diode gains,\n"
-              << "and the card Johnson-noise constant\n";
+              << "the nominal service droop, and the card Johnson-noise constant\n";
     return 0;
 }

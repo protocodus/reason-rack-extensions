@@ -151,6 +151,7 @@ def main() -> int:
                 str(PROJECT / "Tests" / "AllPatchRenderContract.cpp"),
                 str(PROJECT / "DSP" / "YouKnowEngine.cpp"),
                 str(PROJECT / "DSP" / "YouKnowChorus.cpp"),
+                str(PROJECT / "DSP" / "YouKnowFirmwareTrace.cpp"),
                 "-o",
                 str(binary),
             ],

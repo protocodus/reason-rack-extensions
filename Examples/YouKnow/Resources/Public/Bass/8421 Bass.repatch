@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <JukeboxPatch version="1.0">
     <DeviceNameInEnglish>YouKnow</DeviceNameInEnglish>
-    <Properties deviceProductID="cz.protocodus.YouKnow" deviceVersion="1.0.0f20">
+    <Properties deviceProductID="cz.protocodus.YouKnow" deviceVersion="1.0.0f21">
         <Object name="custom_properties">
             <Value property="volume" type="number">0.66</Value>
-            <Value property="presetGain" type="number">0.429245333</Value>
+            <Value property="presetGain" type="number">0.400888229</Value>
             <Value property="benderDco" type="number">0.26</Value>
             <Value property="benderVcf" type="number">0.12</Value>
             <Value property="benderLfo" type="number">0.00</Value>

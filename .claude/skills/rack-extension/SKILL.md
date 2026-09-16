@@ -354,3 +354,42 @@ The version_number must be in the following format: 1.2.3d4, where '1' = major, 
 Uploading a Rack Extension with a non-existent product id will create the corresponding product entry.
 
 It is only allowed to use the same product id and version number combination for one upload. Please refer to the SDK documentation for more details.
+
+## Publishing a new version
+
+A version is one matching package: the `.u45` **and** the Shop images generated from the same
+source. Never ship a `.u45` with images left over from an earlier version. **Every artifact of a
+version — binaries, panel views, thumbnail, manual, checksums — goes into one target directory,
+`Release/<version>/`**; nothing is left scattered across `Output/` or shared folders. In order:
+
+1. **Bump the version** — `version_number` in `info.lua`, plus every mirror of it (YouKnow:
+   `Docs/SHOP_COPY.md` candidate and article, `Docs/USER_GUIDE.md`, a new `CHANGELOG.md`
+   entry). Any upload, even a failed one, consumes its version.
+2. **Regenerate versioned assets** — the rear panel prints the version and every patch carries
+   `deviceVersion`: `python3 Design/render_panels.py && python3 Design/generate_presets.py`,
+   then `python3 Tests/validate_patches.py` and `python3 Tests/validate_panel_geometry.py`.
+3. **Validate** — the full `Tests/README.md` suite for the change's scope. After a DSP change
+   that includes recalibrating the patch bank against the shipped product configuration.
+4. **Build** — `python3 build45.py universal45` from the device directory, then
+   `unzip -t Output/Universal45/<Name>.u45`.
+5. **Generate the three Shop images** — required for every version:
+   - **Front panel view** — `<Name>_Front.png`, the composited front panel, at most 1600×1200.
+   - **Back panel view** — `<Name>_Back.png`, the composited rear panel, at most 1600×1200.
+   - **Product thumbnail, 1:1** — `<Name>_Thumbnail_800.png`, 800×800: the front panel on
+     the company background (the Protocodus site palette: `#0d0e12` lit by brand cabbage
+     `#87D7BE` and primrose `#F6D155`), with the product name centred over the panel and a
+     soft dark shadow around the text so it stays legible over the controls.
+
+   For YouKnow, `uv run Docs/build_release_materials.py` renders all three, plus the PDF
+   manual, straight into `Release/<version>/` from the same panel renderer the GUI uses. `uv`
+   panics inside the agent sandbox ("Attempted to create a NULL object"), so run it with the
+   sandbox disabled. Open and look at every image before shipping it.
+6. **Assemble the target directory** — `Release/<version>/` must end up holding the versioned
+   `<Name>-<version>.u45`, the three images, the manual, `CHANGELOG.md`, the release evidence,
+   a short `README.md`, a build manifest (source commit, tree state, U45 and chip hashes) and
+   `SHA256SUMS`. For YouKnow, `python3 Docs/assemble_release.py` copies the U45 in (refusing one
+   built for another version), writes the manifest and checksums, and verifies them with
+   `shasum -a 256 -c SHA256SUMS`.
+7. **Upload** the `.u45` at
+   [developer.reasonstudios.com/developer-area/builds](https://developer.reasonstudios.com/developer-area/builds),
+   then attach the matching images to the Shop product page.

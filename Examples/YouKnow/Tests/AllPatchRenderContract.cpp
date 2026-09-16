@@ -1,4 +1,4 @@
-#include "../DSP/YouKnowEngine.h"
+#include "../ProductConfiguration.h"
 
 #include <algorithm>
 #include <array>
@@ -66,6 +66,7 @@ youknow::EngineParameters parametersFor(const Patch& patch)
 {
     using namespace youknow;
     EngineParameters parameters;
+    RackProductConfiguration::applyTo(parameters);
     parameters.volume = static_cast<float>(value(patch, "volume"));
     parameters.benderDcoDepth = static_cast<float>(value(patch, "benderDco"));
     parameters.benderVcfDepth = static_cast<float>(value(patch, "benderVcf"));
@@ -158,6 +159,10 @@ void checkPatch(const Patch& patch, const Workload& workload)
     using youknow::YouKnowEngine;
     YouKnowEngine first;
     YouKnowEngine second;
+    // Measure the instrument the wrapper ships, not the engine's reference.
+    if (!youknow::RackProductConfiguration::configureBeforePrepare(first)
+        || !youknow::RackProductConfiguration::configureBeforePrepare(second))
+        throw std::runtime_error(patch.name + ": product configuration refused");
     first.prepare(48000.0, blockSize, 1);
     second.prepare(48000.0, blockSize, 1);
     const auto parameters = parametersFor(patch);

@@ -1,4 +1,4 @@
-#include "../DSP/YouKnowEngine.h"
+#include "../ProductConfiguration.h"
 
 #include <algorithm>
 #include <array>
@@ -31,6 +31,7 @@ youknow::EngineParameters workloadPatch(
     youknow::VcfFastEarlyMode earlyMode) noexcept
 {
     youknow::EngineParameters parameters;
+    youknow::RackProductConfiguration::applyTo(parameters);
     parameters.sawEnabled = true;
     parameters.pulseEnabled = true;
     parameters.subLevel = 0.5f;
@@ -136,6 +137,11 @@ int main(int argc, char* argv[])
         : youknow::VcfFastEarlyMode::Cubic;
 
     youknow::YouKnowEngine engine;
+    if (!youknow::RackProductConfiguration::configureBeforePrepare(engine))
+    {
+        std::fprintf(stderr, "product configuration refused\n");
+        return 1;
+    }
     engine.prepare(sampleRate, blockSize, oversamplingFactor);
     auto parameters = workloadPatch(voiceCount, tanhMode, earlyMode);
     if (idle || idleExact)
