@@ -35,6 +35,11 @@ The SDK host shim exercises property snapshots, event timing, parameter
 reachability, saved defaults, reset, tuning, quality transitions, silent-output
 handling, Note/Gate CV, and the six modulation inputs. It checks automation
 and CV together without writing modulation back into stored panel values.
+Output cabling is checked against a both-jacks reference: one cabled jack,
+from the restore snapshot or from a notified diff at any frame, carries the
+exact mean of both channels and the other jack stays unwritten; no cable
+leaves the pair as rendered; a pull and re-plug inside one batch changes
+nothing; and silence stays unwritten whatever is cabled.
 Regressions compare same-frame pitch/gate notification orders, preserve gate
 retriggers, recover dropped CV notes, retain assignment-scan onsets, and restore
 Character correctly after audio reset.

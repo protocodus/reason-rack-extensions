@@ -3,7 +3,9 @@
 YouKnow is a native circuit-modelled polysynth for Reason 14 and later.
 Production candidate `1.0.0f21` includes 100 original Protocodus patches, up to
 16 voices, stereo chorus, eight CV inputs, and 41 automatable custom controls
-alongside Reason's pitch wheel, modulation wheel, and sustain support.
+alongside Reason's pitch wheel, modulation wheel, and sustain support. The
+rear carries Reason's routing symbols, and a single cabled output receives the
+mono fold of both channels as the original instrument's L/MONO jack does.
 
 This candidate synchronizes DSP from Protocodus YouKnow upstream `5d9390d` and
 renders with the source instrument's product circuit selections. It includes

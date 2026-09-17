@@ -52,6 +52,14 @@ The rear groups four Processing Quality selectors, two Unit Model controls,
 eight CV inputs, and stereo audio outputs. Settings occupy the upper half;
 connections sit below them so downward cable runs leave the settings clear.
 
+The two routing symbols above the audio jacks are Reason's standard icons.
+YouKnow's voice bus is mono: with Chorus Off or I+II both jacks carry the
+same signal, and with Chorus I or II the chorus spreads it into stereo. When
+only one jack is cabled, as when Reason auto-routes YouKnow to a mono
+channel, that jack carries the mix of both channels, as the original
+instrument's L/MONO jack does; with both jacks cabled each carries its own
+channel.
+
 **Unit Character** varies circuit tolerances across a 0-200% range. It is
 stored with each patch.
 

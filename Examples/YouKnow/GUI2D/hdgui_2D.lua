@@ -246,6 +246,12 @@ back = jbox.panel{
 			graphics = { node = "S_audio_output_right" },
 			socket = "/audio_outputs/right",
 		},
+		jbox.static_decoration{
+			graphics = { node = "S_routing_mono" },
+		},
+		jbox.static_decoration{
+			graphics = { node = "S_routing_stereo" },
+		},
 	},
 }
 

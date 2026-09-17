@@ -579,6 +579,20 @@ REAR_CV_INPUTS = (
 )
 REAR_AUDIO_OUTPUTS = (("left", "LEFT", 485, 462), ("right", "RIGHT", 575, 462))
 AUDIO_JACK_SIZE = (19, 21)
+# Reason Studios' routing symbols, which the GUI design guidelines require on
+# every back panel, as the stock white icons (RE2D_Stock_Graphics_1_1,
+# Decorations/) at their native 65 x 85 HD pixels, committed byte for byte and
+# never re-encoded here. YouKnow's voice bus is mono: it leaves as mono with
+# chorus Off or I+II (the narrow I+II fold, YouKnowChorus.cpp) and as stereo in
+# I or II, so both mono-source icons apply, which is what the scripting
+# specification asks of a device whose spreading depends on a control.
+REAR_ROUTING_ICONS = (
+    ("mono", "Routing_Icon_White_01_1frames", "CHORUS OFF / I+II", 486, 362),
+    ("stereo", "Routing_Icon_White_02_1frames", "CHORUS I / II", 580, 362),
+)
+ROUTING_ICON_SIZE = (13, 17)
+ROUTING_CAPTION_SIZE = 9.0
+ROUTING_CAPTION_OFFSET = 28   # icon top to caption centre
 CV_CAPTION_SIZE = 12.0
 CV_CAPTION_OFFSET = 22
 REAR_CONTROLS = (
@@ -1054,6 +1068,9 @@ def render_back():
             label(draw, (centre, y + 33), "1 V/OCT", 9.5, MUTED)
     for _, title, x, y in REAR_AUDIO_OUTPUTS:
         label(draw, (x + (AUDIO_JACK_SIZE[0] - 1) / 2, y - 26), title, 12, CAPTION, strong=True)
+    for _, _, caption, x, y in REAR_ROUTING_ICONS:
+        label(draw, (x + ROUTING_ICON_SIZE[0] / 2, y + ROUTING_CAPTION_OFFSET),
+              caption, ROUTING_CAPTION_SIZE, MUTED)
     for item in REAR_CONTROLS:
         label(draw, (item["center"], REAR_CONTROL_CAPTION_Y), item["caption"], 10.0, CAPTION)
         if item["kind"] == "fader":
@@ -1258,6 +1275,21 @@ def standard_asset(name):
     return Image.open(source).convert("RGBA")
 
 
+def routing_icon(name):
+    """A committed Reason Studios routing symbol, read from GUI2D as is.
+
+    The stock decorations are not in the SDK examples, so the copies in GUI2D
+    are the source; Docs/ASSET_PROVENANCE.md pins their hashes. They are only
+    composited here, never re-saved, so those hashes stay true.
+    """
+    source = OUT / f"{name}.png"
+    assert source.is_file(), f"missing committed routing symbol: {source}"
+    image = Image.open(source).convert("RGBA")
+    assert image.size == px(ROUTING_ICON_SIZE), (
+        f"{source.name}: expected {px(ROUTING_ICON_SIZE)}, got {image.size}")
+    return image
+
+
 def copy_frame(strip, frames, frame):
     frame_h = strip.height // frames
     return strip.crop((0, frame * frame_h, strip.width, (frame + 1) * frame_h))
@@ -1306,6 +1338,8 @@ def composite_back(panel, assets):
         image.alpha_composite(copy_frame(assets["CVJack"], 3, 0), px((x, y)))
     for _, _, x, y in REAR_AUDIO_OUTPUTS:
         image.alpha_composite(copy_frame(assets["AudioJack"], 3, 0), px((x, y)))
+    for _, path, _, x, y in REAR_ROUTING_ICONS:
+        image.alpha_composite(assets[path], px((x, y)))
     for node, kind, name, x, y in rear_widgets():
         if kind == "fader":
             image.alpha_composite(
@@ -1480,6 +1514,8 @@ def check_layout():
                      for name, _, x, y in REAR_CV_INPUTS})
     expected.update({f"S_audio_output_{name}": (float(x), float(y))
                      for name, _, x, y in REAR_AUDIO_OUTPUTS})
+    expected.update({f"S_routing_{name}": (float(x), float(y))
+                     for name, _, _, x, y in REAR_ROUTING_ICONS})
     expected.update({
         f'S_status_{item["name"]}': (float(item["x"]), float(ENGINE_STATUS_Y))
         for item in ENGINE_STATUS
@@ -1598,6 +1634,13 @@ def check_layout():
         assert f'{node} = widget({x}, {y}, "AudioJack", 3)' in device_back
         assert (f'graphics = {{ node = "{node}" }},\n\t\t\tsocket = "{socket}",') in hdgui_back
         assert (f'transform = {{ {x}, {y} }},\n\t\t\tsocket = "{socket}",') in gui_back
+    for name, path, _, x, y in REAR_ROUTING_ICONS:
+        node = f"S_routing_{name}"
+        assert f'{node} = widget({x}, {y}, "{path}", 1)' in device_back
+        assert (f'jbox.static_decoration{{\n\t\t\tgraphics = {{ node = "{node}" }},'
+                ) in hdgui_back
+        assert (f'jbox.static_decoration{{\n\t\t\ttransform = {{ {x}, {y} }},\n'
+                f'\t\t\timage = jbox.image{{ path = "{path}" }},') in gui_back
     for item in REAR_CONTROLS:
         automation_suffix = "" if item["automation"] else (
             ", true, false" if item["remote"] else ", false, false")
@@ -1724,6 +1767,22 @@ def check_spacing():
         assert y > REAR_PERSISTENCE_Y + LABEL_GAP, "audio cable run crosses settings"
         assert REAR_OUTPUT_BOX[0] <= x and x + AUDIO_JACK_SIZE[0] <= REAR_OUTPUT_BOX[2]
         assert y + AUDIO_JACK_SIZE[1] <= REAR_OUTPUT_BOX[3]
+    # The routing symbols and their captions sit between the section title and
+    # the jack captions, inside the section's padding.
+    jack_caption_top = min(y for _, _, _, y in REAR_AUDIO_OUTPUTS) - 26 - 6
+    for _, _, caption, x, y in REAR_ROUTING_ICONS:
+        centre = x + ROUTING_ICON_SIZE[0] / 2
+        caption_y = y + ROUTING_CAPTION_OFFSET
+        half_caption = text_ink_width(caption, ROUTING_CAPTION_SIZE) / 2
+        assert x >= REAR_OUTPUT_BOX[0] + GROUP_PADDING
+        assert x + ROUTING_ICON_SIZE[0] <= REAR_OUTPUT_BOX[2] - GROUP_PADDING
+        assert y >= REAR_OUTPUT_BOX[1] + TITLE_H + GROUP_PADDING
+        assert caption_y - ROUTING_CAPTION_SIZE / 2 >= y + ROUTING_ICON_SIZE[1] + 4
+        assert caption_y + ROUTING_CAPTION_SIZE / 2 + 8 <= jack_caption_top
+        assert centre - half_caption >= REAR_OUTPUT_BOX[0] + GROUP_PADDING
+        assert centre + half_caption <= REAR_OUTPUT_BOX[2] - GROUP_PADDING
+    check_label_row([(x + ROUTING_ICON_SIZE[0] / 2, caption, ROUTING_CAPTION_SIZE)
+                     for _, _, caption, x, _ in REAR_ROUTING_ICONS])
     x0, y0, x1, y1 = REAR_INPUT_BOX
     for _, caption, x, y in REAR_CV_INPUTS:
         centre = x + CV_JACK_SIZE[0] / 2
@@ -2039,13 +2098,14 @@ def main():
     }
     for name, image in assets.items():
         image.save(OUT / f"{name}.png", optimize=True)
+    routing_icons = {path: routing_icon(path) for _, path, _, _, _ in REAR_ROUTING_ICONS}
 
     panel_front = render_front()
     panel_back = render_back()
     panel_folded_front = render_folded(True)
     panel_folded_back = render_folded(False)
     preview_front = composite_front(panel_front, assets)
-    preview_back = composite_back(panel_back, assets)
+    preview_back = composite_back(panel_back, {**assets, **routing_icons})
     preview_folded_front = composite_folded(panel_folded_front, assets, True)
     preview_folded_back = composite_folded(panel_folded_back, assets, False)
     render_previews(preview_front, preview_back, preview_folded_front, preview_folded_back)
@@ -2054,7 +2114,8 @@ def main():
         Image.open(OUT / name).convert("RGB").save(HD / name, optimize=True)
     for name in (*(f"{asset}.png" for asset in FADER_ASSETS),
                  "Knob.png", "Toggle.png", "MomentaryOverlay.png",
-                 "Lamp.png", "PitchWheel.png", "ModWheel.png"):
+                 "Lamp.png", "PitchWheel.png", "ModWheel.png",
+                 *(f"{path}.png" for path in routing_icons)):
         shutil.copy2(OUT / name, HD / name)
     validate()
     print(f"YouKnow GUI: {WIDTH}x{HEIGHT} logical / {px(WIDTH)}x{px(HEIGHT)} HD; "

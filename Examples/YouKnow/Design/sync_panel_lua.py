@@ -72,6 +72,8 @@ def positions():
                    for name, _, x, y in R.REAR_CV_INPUTS})
     placed.update({f"S_audio_output_{name}": (x, y)
                    for name, _, x, y in R.REAR_AUDIO_OUTPUTS})
+    placed.update({f"S_routing_{name}": (x, y)
+                   for name, _, _, x, y in R.REAR_ROUTING_ICONS})
     placed.update({f'S_status_{item["name"]}': (item["x"], R.ENGINE_STATUS_Y)
                    for item in R.ENGINE_STATUS})
     key_mode_x = next(

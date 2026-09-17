@@ -9,6 +9,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <functional>
 #include <limits>
 #include <new>
 #include <random>
@@ -2116,6 +2117,157 @@ void checkNonFiniteAndOutOfRangeControls()
     }
 }
 
+// --- Output cabling ----------------------------------------------------------
+// Reason reports each audio jack's cable through its connected property. With
+// both jacks cabled the pair passes through as rendered; with one jack cabled
+// that jack alone carries the L/MONO fold of both channels (their mean,
+// YouKnow.cpp kMonoJackFoldGain) and the other is left unwritten; with none
+// the pair is written as before. Cabling is read from the restore snapshot and
+// from notified diffs at any frame, and a change applies to its whole batch.
+void checkOutputCabling()
+{
+    constexpr int kBatches = 40;
+    const auto cable = [](bool left, bool right) {
+        set("/audio_outputs/left", "connected", Kind::Boolean, left ? 1.0 : 0.0);
+        set("/audio_outputs/right", "connected", Kind::Boolean, right ? 1.0 : 0.0);
+    };
+    struct Rendered
+    {
+        Batch audio;
+        bool left;
+        bool right;
+    };
+    // change() writes the MOM as it builds a diff, so cabling diffs are built
+    // at the batch they belong to, after the device's restore snapshot.
+    using Diffs = std::vector<TJBox_PropertyDiff>;
+    const auto play = [](CYouKnow& device, int extraBatch,
+                         const std::function<Diffs()>& extra = {}) {
+        std::vector<Rendered> out;
+        for (int batch = 0; batch < kBatches; ++batch)
+        {
+            Diffs diffs;
+            if (batch == 0)
+                diffs.push_back(noteDiff(60, 100, 0));
+            if (batch == extraBatch)
+            {
+                const Diffs added = extra();
+                diffs.insert(diffs.end(), added.begin(), added.end());
+            }
+            const auto audio = renderBatch(
+                device, diffs.empty() ? nullptr : diffs.data(),
+                static_cast<TJBox_UInt32>(diffs.size()));
+            out.push_back({ audio, wroteLeft, wroteRight });
+        }
+        return out;
+    };
+    const auto fold = [](const Batch& batch) {
+        std::array<float, 64> mono {};
+        for (std::size_t frame = 0; frame < mono.size(); ++frame)
+            mono[frame] = 0.5f * (batch.left[frame] + batch.right[frame]);
+        return mono;
+    };
+
+    // Reference: both jacks cabled at restore. Chorus I keeps the channels
+    // different, so a fold is distinguishable from either channel alone.
+    configureCVHost();
+    set("/custom_properties", "chorus", Kind::Number, 1.0);
+    cable(true, true);
+    CYouKnow stereo(sampleRate);
+    const auto reference = play(stereo, -1);
+    bool channelsDiffer = false, wrote = false;
+    for (const auto& batch : reference)
+    {
+        assert(batch.left == batch.right);
+        wrote = wrote || batch.left;
+        channelsDiffer = channelsDiffer || batch.audio.left != batch.audio.right;
+    }
+    assert(wrote && channelsDiffer);
+
+    // One jack from the restore snapshot: that jack carries the fold.
+    for (const bool leftOnly : { true, false })
+    {
+        cable(leftOnly, !leftOnly);
+        CYouKnow single(sampleRate);
+        const auto rendered = play(single, -1);
+        for (std::size_t batch = 0; batch < rendered.size(); ++batch)
+        {
+            const auto& expected = reference[batch];
+            const auto& actual = rendered[batch];
+            assert(actual.left == (expected.left && leftOnly));
+            assert(actual.right == (expected.right && !leftOnly));
+            if (!expected.left)
+                continue;
+            const auto& carried = leftOnly ? actual.audio.left : actual.audio.right;
+            assert(carried == fold(expected.audio));
+        }
+    }
+
+    // No jack at all: unchanged, both channels written as rendered.
+    cable(false, false);
+    CYouKnow none(sampleRate);
+    const auto unplugged = play(none, -1);
+    for (std::size_t batch = 0; batch < unplugged.size(); ++batch)
+    {
+        assert(unplugged[batch].left == reference[batch].left);
+        assert(unplugged[batch].right == reference[batch].right);
+        assert(unplugged[batch].audio.left == reference[batch].audio.left);
+        assert(unplugged[batch].audio.right == reference[batch].audio.right);
+    }
+
+    // A cable pulled mid-note, notified at a late frame: the fold takes that
+    // whole batch, and the re-plugged pair passes through again from its own
+    // batch onward. Neither notification is a control change.
+    cable(true, true);
+    CYouKnow live(sampleRate);
+    const auto pulled = play(live, 12, [] {
+        return Diffs { change("/audio_outputs/right", "connected", Kind::Boolean, 0.0, 37) };
+    });
+    for (std::size_t batch = 0; batch < pulled.size(); ++batch)
+    {
+        const auto& expected = reference[batch];
+        const auto& actual = pulled[batch];
+        if (batch < 12)
+        {
+            assert(actual.left == expected.left && actual.right == expected.right);
+            assert(actual.audio.left == expected.audio.left);
+            assert(actual.audio.right == expected.audio.right);
+            continue;
+        }
+        assert(actual.left == expected.left && !actual.right);
+        if (expected.left)
+            assert(actual.audio.left == fold(expected.audio));
+    }
+    cable(true, true);
+    CYouKnow restored(sampleRate);
+    const auto flicker = play(restored, 7, [] {
+        return Diffs {
+            change("/audio_outputs/left", "connected", Kind::Boolean, 0.0, 3),
+            change("/audio_outputs/left", "connected", Kind::Boolean, 1.0, 9) };
+    });
+    for (std::size_t batch = 0; batch < flicker.size(); ++batch)
+    {
+        // A pull and re-plug inside one batch leaves the final state cabled.
+        assert(flicker[batch].left == reference[batch].left);
+        assert(flicker[batch].right == reference[batch].right);
+        assert(flicker[batch].audio.left == reference[batch].audio.left);
+        assert(flicker[batch].audio.right == reference[batch].audio.right);
+    }
+
+    // Silence stays silent whatever is cabled.
+    for (const auto [left, right] : { std::pair { true, false }, std::pair { false, true },
+                                      std::pair { true, true }, std::pair { false, false } })
+    {
+        cable(left, right);
+        CYouKnow idle(sampleRate);
+        for (int batch = 0; batch < 8; ++batch)
+        {
+            renderBatch(idle);
+            assert(!wroteLeft && !wroteRight);
+        }
+    }
+    cable(false, false);
+}
+
 // --- Randomized host fuzz ----------------------------------------------------
 // Seeded programs of whatever the host contract allows plus what it does not:
 // hostile property values (NaN, infinities, out-of-range numbers), note diffs
@@ -2871,7 +3023,8 @@ int main()
     checkMusicalNotePhrases();
     checkProductConfigurationMatchesSourcePlugin();
     checkNonFiniteAndOutOfRangeControls();
+    checkOutputCabling();
     checkRandomizedHostFuzz(24, 400);
-    std::puts("Wrapper: frame-accurate automation, MIDI/CV ownership and retriggers, attack timing, gates/reset/restore, randomized host fuzz, and five host rates PASS");
+    std::puts("Wrapper: frame-accurate automation, MIDI/CV ownership and retriggers, attack timing, gates/reset/restore, output cabling, randomized host fuzz, and five host rates PASS");
     return 0;
 }

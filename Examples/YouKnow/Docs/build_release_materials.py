@@ -152,6 +152,8 @@ def composed_panels():
             "TapeVert", "Placeholder",
         )
     }
+    assets.update({path: panels.routing_icon(path)
+                   for _, path, _, _, _ in panels.REAR_ROUTING_ICONS})
     front_panel = Image.open(
         panels.OUT / "Reason_GUI_front_root_Panel.png"
     ).convert("RGBA")

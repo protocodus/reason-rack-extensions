@@ -501,7 +501,8 @@ struct EngineParameters
             && enableCardJohnsonFloor == other.enableCardJohnsonFloor
             && aging == other.aging
             && vcfFastEarlyMode == other.vcfFastEarlyMode
-            && enableSubDiodeControl == other.enableSubDiodeControl;
+            && enableSubDiodeControl == other.enableSubDiodeControl
+            && enableResonanceOtaOffset == other.enableResonanceOtaOffset;
     }
 };
 

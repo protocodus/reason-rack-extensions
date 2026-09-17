@@ -476,6 +476,10 @@ copying files, so the port's `memcpy` bit-cast, frozen `.inc` tables and the
 - A sibling reading of the JUNO-6 CPU-board DCO reset (TL082 integrator, TR5
   with 2.2 Ω, 270 pF/10 kΩ drive) is recorded beside `rampResetSeconds`; no
   value changes.
+- Port fix, found on review: the hand-written `EngineParameters::operator==`
+  (upstream defaults it) had not been extended with `enableResonanceOtaOffset`,
+  so a change of that switch alone would not have registered as a parameter
+  change. It now compares the switch; nothing in the product toggles it.
 
 **Contracts (Linux, clang 18).** The behavioural render, the upstream regression
 contract (19 groups), the envelope-firmware oracle, the engine fuzz

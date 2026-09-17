@@ -153,6 +153,8 @@ private:
 
     TJBox_ObjectRef fAudioOutLeft;
     TJBox_ObjectRef fAudioOutRight;
+    TJBox_PropertyRef fAudioOutLeftConnected;
+    TJBox_PropertyRef fAudioOutRightConnected;
     TJBox_ObjectRef fEnvironment;
     TJBox_ObjectRef fTransport;
     TJBox_ObjectRef fNoteStates;
@@ -184,6 +186,10 @@ private:
     int fLastCVNote;
     bool fCVActive;
     bool fNoteLampOn;
+    // Cable state of the two audio jacks, from the host's connected
+    // properties (snapshot plus notified diffs, like the CV inputs).
+    bool fLeftConnected = false;
+    bool fRightConnected = false;
     bool fKeyModeReassertPressed = false;
     bool fLastKeyModeReassert;
     bool fInitialQualityApplied;

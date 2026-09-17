@@ -258,6 +258,14 @@ back = jbox.panel{
 			transform = { 575, 462 },
 			socket = "/audio_outputs/right",
 		},
+		jbox.static_decoration{
+			transform = { 486, 362 },
+			image = jbox.image{ path = "Routing_Icon_White_01_1frames" },
+		},
+		jbox.static_decoration{
+			transform = { 580, 362 },
+			image = jbox.image{ path = "Routing_Icon_White_02_1frames" },
+		},
 	},
 }
 
