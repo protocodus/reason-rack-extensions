@@ -125,9 +125,12 @@ JUKEBOX_SDK_DIR=/path/to/SDK python3 Design/render_panels.py && python3 Design/g
 git status --porcelain    # empty = committed assets match a regeneration
 ```
 
-The renderer also needs Pillow, the SDK's `Examples/SimpleInstrument/GUI2D` stock art, and three
-macOS system fonts whose SHA-256 hashes are pinned in `Docs/ASSET_PROVENANCE.md` — a Linux CI box
-cannot reproduce the panels, which is a second reason to keep them committed.
+The renderer also needs Pillow and two macOS system fonts whose SHA-256 hashes are pinned in
+`Docs/ASSET_PROVENANCE.md` (it refuses any other build of them); the SDK's stock art is optional,
+since the committed copies stand in for it. A Linux box cannot render the panels, but GitHub's
+macOS runner can: the **Panels** workflow (`.github/workflows/panels.yml`) checks every pull
+request that touches the panels against a fresh render, pixel for pixel, and a manual run on a
+branch regenerates and commits them and publishes the Shop images and manual as an artifact.
 
 The exception is a frozen artifact whose generator lives **outside** the repo: `DSP/*.inc` holds
 host-built lookup tables as hex doubles, is not reproducible here, and stays committed under
@@ -439,6 +442,9 @@ version — binaries, panel views, thumbnail, manual, checksums — goes into on
 2. **Regenerate versioned assets** — the rear panel prints the version and every patch carries
    `deviceVersion`: `python3 Design/render_panels.py && python3 Design/generate_presets.py`,
    then `python3 Tests/validate_patches.py` and `python3 Tests/validate_panel_geometry.py`.
+   Without a Mac, run the Panels workflow by hand on the branch instead of `render_panels.py`;
+   it commits the regenerated panels to the branch (a workflow-token push starts no further
+   checks, so the run that rendered them is their validation).
 3. **Validate** — the full `Tests/README.md` suite for the change's scope. After a DSP change
    that includes recalibrating the patch bank against the shipped product configuration.
 4. **Build** — `python3 build45.py universal45` from the device directory, then

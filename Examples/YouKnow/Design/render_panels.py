@@ -13,6 +13,7 @@ can never drift away from the control it names.
 
 from pathlib import Path
 from functools import lru_cache
+import hashlib
 import math
 import os
 import random
@@ -49,6 +50,24 @@ FONT_DIR = Path("/System/Library/Fonts/Supplemental")
 DISPLAY_FONT = FONT_DIR / "DIN Condensed Bold.ttf"
 LABEL_FONT = FONT_DIR / "DIN Alternate Bold.ttf"
 SECTION_FONT = FONT_DIR / "DIN Condensed Bold.ttf"
+# The font files are inputs to every panel pixel, so a render refuses any
+# other build of them. Docs/ASSET_PROVENANCE.md pins the same hashes; a new
+# font file is a provenance change to record, not a drift to absorb.
+FONT_SHA256 = {
+    DISPLAY_FONT: "36958182a424e1e8a1307b2636a615a6323ce1bbfadda136735ab4fb3bd26ceb",
+    LABEL_FONT: "78e816b9938fc40dd5383f4a91b598494798e2fa1d526abbd9e7ff7e5b9bf0ee",
+}
+
+
+def verify_fonts():
+    for path, expected in FONT_SHA256.items():
+        assert path.is_file(), (
+            f"missing {path}: the renderer needs macOS's DIN faces (a hosted "
+            f"macos runner has them; see .github/workflows/panels.yml)")
+        actual = hashlib.sha256(path.read_bytes()).hexdigest()
+        assert actual == expected, (
+            f"{path.name}: SHA-256 {actual}, but Docs/ASSET_PROVENANCE.md pins "
+            f"{expected}; a different font build renders different panels")
 
 # A satin graphite chassis with white silkscreen. The neutral-warm grey reads
 # as finely textured moulded plastic, and leaves
@@ -1259,9 +1278,39 @@ def lamp_strip():
     return strip
 
 
+# The SDK's stock furniture is not committed, but the copies this renderer
+# wrote from it are, and validate() proves them pixel-identical whenever the
+# SDK is present. Without an SDK checkout -- CI's macOS runner, or a Mac that
+# has not unpacked one -- those committed copies are the source. They are then
+# left as they are rather than re-encoded, so a render without the SDK cannot
+# move a single furniture byte.
+STANDARD_COPIES = {
+    "Reason_GUI_front_root_Wheel_Pitch.png": "PitchWheel.png",
+    "Reason_GUI_front_root_Wheel_Mod.png": "ModWheel.png",
+    "SharedAudioJack.png": "AudioJack.png",
+    "SharedCVJack.png": "CVJack.png",
+    "TapeHorz.png": "TapeHorz.png",
+    "TapeVert.png": "TapeVert.png",
+    "Placeholder.png": "Placeholder.png",
+}
+FURNITURE_FROM_COMMITTED = set()
+
+
+def standard_source(name):
+    """The SDK's file when the SDK is unpacked, else the committed copy."""
+    source = STANDARD_GUI2D / name
+    if source.is_file():
+        return source
+    committed = OUT / STANDARD_COPIES[name]
+    assert committed.is_file(), (
+        f"missing stock Reason asset {source} and its committed copy {committed}")
+    FURNITURE_FROM_COMMITTED.add(committed.name)
+    return committed
+
+
 def standard_wheel(kind):
     """Load the stock Reason wheel used by the SDK's SimpleInstrument."""
-    source = STANDARD_GUI2D / f"Reason_GUI_front_root_Wheel_{kind}.png"
+    source = standard_source(f"Reason_GUI_front_root_Wheel_{kind}.png")
     image = Image.open(source).convert("RGBA")
     expected = (px(WHEEL_SIZE[0]), px(WHEEL_SIZE[1]) * 64)
     assert image.size == expected, f"{source.name}: expected {expected}, got {image.size}"
@@ -1270,9 +1319,7 @@ def standard_wheel(kind):
 
 def standard_asset(name):
     """Load required Reason furniture from the SDK's instrument example."""
-    source = STANDARD_GUI2D / name
-    assert source.is_file(), f"missing stock Reason asset: {source}"
-    return Image.open(source).convert("RGBA")
+    return Image.open(standard_source(name)).convert("RGBA")
 
 
 def routing_icon(name):
@@ -2019,8 +2066,10 @@ def validate():
         assert first.getbbox() and last.getbbox(), f"{name}: blank visible frame"
         assert ImageChops.difference(first, last).convert("RGB").getbbox(), (
             f"{name}: states do not differ")
+    # Against the SDK these prove the copies faithful; without one the copies
+    # are their own source and the comparison is void by construction.
     for kind, name in (("Pitch", "PitchWheel.png"), ("Mod", "ModWheel.png")):
-        source = Image.open(STANDARD_GUI2D / f"Reason_GUI_front_root_Wheel_{kind}.png").convert("RGBA")
+        source = Image.open(standard_source(f"Reason_GUI_front_root_Wheel_{kind}.png")).convert("RGBA")
         generated = Image.open(OUT / name).convert("RGBA")
         assert ImageChops.difference(source, generated).getbbox() is None, (
             f"{name}: pixels drifted from the standard Reason wheel")
@@ -2030,7 +2079,7 @@ def validate():
             ("TapeHorz.png", "TapeHorz.png"),
             ("TapeVert.png", "TapeVert.png"),
             ("Placeholder.png", "Placeholder.png")):
-        source = Image.open(STANDARD_GUI2D / source_name).convert("RGBA")
+        source = Image.open(standard_source(source_name)).convert("RGBA")
         generated = Image.open(OUT / generated_name).convert("RGBA")
         assert ImageChops.difference(source, generated).getbbox() is None, (
             f"{generated_name}: pixels drifted from the stock Reason asset")
@@ -2074,6 +2123,7 @@ def validate():
 
 
 def main():
+    verify_fonts()
     OUT.mkdir(parents=True, exist_ok=True)
     HD.mkdir(parents=True, exist_ok=True)
     # Development cache-buster twins are useful while iterating, but they are
@@ -2097,7 +2147,8 @@ def main():
         "Placeholder": standard_asset("Placeholder.png"),
     }
     for name, image in assets.items():
-        image.save(OUT / f"{name}.png", optimize=True)
+        if f"{name}.png" not in FURNITURE_FROM_COMMITTED:
+            image.save(OUT / f"{name}.png", optimize=True)
     routing_icons = {path: routing_icon(path) for _, path, _, _, _ in REAR_ROUTING_ICONS}
 
     panel_front = render_front()

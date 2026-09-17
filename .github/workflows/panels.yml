@@ -1,0 +1,113 @@
+name: Panels
+
+# The rendered panels are committed because the U45 build reads them, but
+# they are derived: Design/render_panels.py draws them from its layout tables,
+# macOS's DIN faces and the stock furniture. Those fonts are Apple's and cannot
+# be committed, so this runs on the one hosted runner that has them. On pull
+# requests and main it checks that the committed panels equal a fresh render,
+# pixel for pixel. Run it by hand (Actions > Panels > Run workflow) on a branch
+# and it regenerates them and commits the result to that branch. Either way it
+# publishes the Shop images and the manual as a run artifact.
+#
+# A commit pushed with the workflow token starts no further workflow runs, so
+# a regenerated branch carries the checks of the run that rendered it, not new
+# ones; the render validated itself before committing.
+
+on:
+  pull_request:
+    paths:
+      - "Examples/YouKnow/Design/**"
+      - "Examples/YouKnow/GUI2D/**"
+      - "Examples/YouKnow/GUI/Output/**"
+      - "Examples/YouKnow/info.lua"
+      - "Examples/YouKnow/motherboard_def.lua"
+      - "Examples/YouKnow/Docs/build_release_materials.py"
+      - "Examples/YouKnow/Docs/SHOP_COPY.md"
+      - "Examples/YouKnow/Docs/USER_GUIDE.md"
+      - ".github/workflows/panels.yml"
+  push:
+    branches: [main]
+    paths:
+      - "Examples/YouKnow/Design/**"
+      - "Examples/YouKnow/GUI2D/**"
+      - "Examples/YouKnow/GUI/Output/**"
+      - "Examples/YouKnow/info.lua"
+      - "Examples/YouKnow/motherboard_def.lua"
+      - "Examples/YouKnow/Docs/build_release_materials.py"
+      - "Examples/YouKnow/Docs/SHOP_COPY.md"
+      - "Examples/YouKnow/Docs/USER_GUIDE.md"
+      - ".github/workflows/panels.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: panels-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  render:
+    name: Render panels and Shop images (macOS)
+    runs-on: macos-14
+    timeout-minutes: 30
+    permissions:
+      # Only the manual run pushes; the token is not persisted otherwise.
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: ${{ github.event_name == 'workflow_dispatch' }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install the pinned renderer dependencies
+        # The same Pillow that Docs/build_release_materials.py pins, so the
+        # panels and the Shop images come from one rasterizer.
+        run: python3 -m pip install --disable-pip-version-check "pillow==11.0.0" uv
+
+      - name: Render the panels
+        # No SDK checkout here: the renderer reads the committed furniture and
+        # refuses any DIN font build other than the one provenance pins.
+        working-directory: Examples/YouKnow
+        run: |
+          python3 Design/render_panels.py
+          python3 Tests/validate_panel_geometry.py
+
+      - name: Build the Shop images and the manual
+        working-directory: Examples/YouKnow
+        run: uv run Docs/build_release_materials.py
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: youknow-shop-images
+          if-no-files-found: error
+          path: |
+            Examples/YouKnow/Release/*/YouKnow_Front.png
+            Examples/YouKnow/Release/*/YouKnow_Back.png
+            Examples/YouKnow/Release/*/YouKnow_Thumbnail_800.png
+            Examples/YouKnow/Release/*/YouKnow_User_Manual.pdf
+
+      - name: Compare with the committed panels, pixel for pixel
+        id: diff
+        working-directory: Examples/YouKnow
+        run: python3 Design/panel_diff.py --restore-unchanged --exit-zero
+
+      - name: Fail when the committed panels are stale
+        if: github.event_name != 'workflow_dispatch' && steps.diff.outputs.changed != '0'
+        run: |
+          echo "::error::the committed panels differ from a fresh render; run the Panels workflow on this branch to regenerate and commit them"
+          exit 1
+
+      - name: Commit the regenerated panels
+        if: github.event_name == 'workflow_dispatch' && steps.diff.outputs.changed != '0'
+        working-directory: Examples/YouKnow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add GUI2D GUI/Output
+          git commit -m "Regenerate the YouKnow panels on macOS CI" \
+            -m "Rendered by the Panels workflow, run ${{ github.run_id }}, with Pillow 11.0.0 and the DIN faces Docs/ASSET_PROVENANCE.md pins."
+          git push
