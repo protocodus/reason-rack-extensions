@@ -22,6 +22,22 @@ Start with the [user guide](Docs/USER_GUIDE.md) and
 [protocodus.cz/product/youknow](https://protocodus.cz/product/youknow/) or
 [protocodus+support@proton.me](mailto:protocodus+support@proton.me).
 
+## Where the binaries are
+
+CI never builds a binary (the SDK is not in the repository). Local builds
+against the SDK produce, from this directory:
+
+- `python3 build45.py universal45` → `Output/Universal45/YouKnow.u45`, the
+  file uploaded to the Reason Studios build service;
+- `python3 build45.py local45 Deployment` → an installed development device
+  under `~/Library/Application Support/Propellerhead Software/RackExtensions_Dev`;
+- `python3 Docs/assemble_release.py` → the complete release set of a version
+  under `Release/<version>/` (versioned `.u45`, Shop images, manual,
+  changelog, release evidence, build manifest, verified `SHA256SUMS`).
+
+`Output/` and `Release/` are ignored by Git. See [Build](#build) for the
+prerequisites and the panel and release generators.
+
 ## Build
 
 Use Jukebox SDK 5.0 (`JukeboxSDK_500_028`). From this directory:
