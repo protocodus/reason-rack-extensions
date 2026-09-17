@@ -584,7 +584,7 @@ int main()
                       << std::hexfloat << cycle.droop << '\n';
             return 1;
         }
-        if (!same(cycle.loopGain, 0x1.1ff370af4313bp+2))
+        if (!same(cycle.loopGain, 0x1.1ff370af4313ap+2))
         {
             std::cerr << "nominal service loop gain mismatch: "
                       << std::hexfloat << cycle.loopGain << '\n';

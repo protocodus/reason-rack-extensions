@@ -5424,7 +5424,7 @@ void YouKnowEngine::refreshVoiceCardServiceTrims() noexcept
     // loopHeadroomVolts), its .droop and .loopGain, frozen to avoid a guarded
     // initializer and rebuilt by FrozenTableContract.
     constexpr double nominalDroop = 0x1.c8733c8e0dff6p-1;
-    constexpr double nominalLoopGain = 0x1.1ff370af4313bp+2;
+    constexpr double nominalLoopGain = 0x1.1ff370af4313ap+2;
     for (int index = 0; index < maxVoices; ++index)
     {
         auto& card = cards_[static_cast<std::size_t>(index)];

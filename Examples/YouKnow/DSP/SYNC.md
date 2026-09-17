@@ -514,11 +514,11 @@ and the fuzz contract's switch list:
   harmonic-balance loop gain that sustains 2.4 V peak on that card at its
   settled temperature as a ratio to the nominal card's solve; `resonanceFeedbackFor()`
   scales the whole return by it. The port freezes the nominal solve's loop
-  gain beside its droop (`nominalLoopGain = 0x1.1ff370af4313bp+2`, the value
-  the frozen-table contract's own solve gives on Linux/clang 18; the contract
-  now checks it and prints the actual bits on a mismatch, so the macOS CI job
-  that owns these constants reports the exact value if the host differs by an
-  ULP, as the droop constant does).
+  gain beside its droop (`nominalLoopGain = 0x1.1ff370af4313ap+2`, the
+  macOS value the frozen-table contract's own solve gives on the CI host
+  that owns these constants; Linux/clang 18 reads one ULP higher,
+  `...313b`, exactly as it does for the droop constant. The contract checks
+  the loop gain and prints the actual bits on a mismatch).
 - The FREQ solve carries the adjustment's shift of the loop gain the
   frequency-trim table is read at (`correctionRatio`) and reads the gradient's
   cutoff factor at the service reference; the voiced post-trim residual stays
