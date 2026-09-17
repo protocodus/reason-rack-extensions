@@ -9,10 +9,10 @@
 - Product ID: `cz.protocodus.YouKnow`
 - Candidate: `1.0.0f22`
   Rebuilt on the current source: shared DSP at upstream `f929eca`, the rear
-  routing symbols and the single-jack mono fold. The source-side gates are
-  recorded in the release evidence; the universal build, the matching f22 PDF
-  and Shop images, native wall-clock timing, host acceptance and the cloud
-  upload remain open.
+  routing symbols and the single-jack mono fold. DSP parity, engine/wrapper
+  contracts, fuzzing, bank, stress and automation gates and source CI pass;
+  the universal build, the matching f22 PDF and Shop images, host acceptance
+  and the cloud upload remain open.
 - Requirement: Reason 14 or later
 - Category: Instrument / Synth
 - Support URL: <https://protocodus.cz/product/youknow/>
