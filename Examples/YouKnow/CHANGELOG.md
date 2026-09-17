@@ -15,6 +15,16 @@ Notable customer-facing changes to YouKnow are recorded here.
   Unit Character, as upstream now does: fast resonance moves under a held note
   thump slightly and self-oscillation settles per voice. Unit Character 0 is
   unchanged.
+- Warm the resonance amplifier's headroom with the filter stages' (both sit in
+  one module at one temperature) and set each voice's resonance adjustment on
+  the service procedure's 4.8 Vp-p self-oscillation after warm-up: a cold voice
+  self-oscillates about 5 % lower and grows into the figure. Develop the card
+  temperature gradient on the warm-up clock instead of at power-on, and let the
+  output stage's resistor noise follow the jack board's temperature as the
+  voice cards' noise already does. Unit Character 0 is unchanged.
+- Give the sub oscillator's switch transistor its storage time, so the sub
+  carries a faint second harmonic that rises with pitch (−64 dBc at the top of
+  the 4′ range).
 - Synchronize the shared DSP to upstream `5d9390d`: circuit-accurate DCO clock,
   temperature, component and retained-charge behavior; firmware envelope,
   portamento and control-precision fixes; finite envelope-hold acquisition;

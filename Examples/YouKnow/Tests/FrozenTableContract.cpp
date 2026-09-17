@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <iomanip>
 #include <iostream>
 
 // Upstream-verbatim nominal converter network; the corrected voice-VCA
@@ -568,17 +569,25 @@ int main()
         || !validateVcf(frozenVcfTail, 5.0, 1.0 / 4.0, "VCF tail"))
         return 1;
 
-    // The service-trim reference droop the engine freezes as a hexadecimal
-    // constant is the same harmonic-balance solve at the p.19 anchor.
+    // The service-trim reference solve the engine freezes as hexadecimal
+    // constants -- its droop for FREQ and its loop gain for the RES
+    // adjustment -- is the same harmonic-balance solve at the p.19 anchor.
     {
         std::array<double, 4> gains { 1.0, 1.0, 1.0, 1.0 };
-        const double droop = limitCycleFor(
+        const auto cycle = limitCycleFor(
             2.4, static_cast<double>(otaHeadroomVolts),
             static_cast<double>(loopHeadroomVolts), gains,
-            buildDescribingTable()).droop;
-        if (!same(droop, 0x1.c8733c8e0dff6p-1))
+            buildDescribingTable());
+        if (!same(cycle.droop, 0x1.c8733c8e0dff6p-1))
         {
-            std::cerr << "nominal service droop mismatch\n";
+            std::cerr << "nominal service droop mismatch: "
+                      << std::hexfloat << cycle.droop << '\n';
+            return 1;
+        }
+        if (!same(cycle.loopGain, 0x1.1ff370af4313bp+2))
+        {
+            std::cerr << "nominal service loop gain mismatch: "
+                      << std::hexfloat << cycle.loopGain << '\n';
             return 1;
         }
     }
