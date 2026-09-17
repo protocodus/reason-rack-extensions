@@ -493,6 +493,17 @@ recalibrated: at Aging 50% the mechanism changes only resonance-dependent DC
 and per-voice self-oscillation settling, and the bank check above passes with
 the existing trims; a level pass belongs with the next release candidate.
 
+## 2026-09-17 chorus Mode I owner blend
+
+Ported from the same upstream working branch by the same anchored edit
+script. `ChorusTimingProfile::OwnerBlend` (`YouKnowChorus.h`/`.cpp`) is the
+1:2:1 mean of `Shipping`, `A11Spectral` and `A11ClickTiming` in Mode I — the
+owner's by-ear decision of 2026-09-17, recorded in upstream
+`Docs/decisions.md` — and `ProductFidelityProfile::applyTo()` selects it, so
+`RackProductConfiguration` carries it; the engine default stays `Shipping`,
+which `EngineRenderContract` still checks. `sanitise()` accepts the new
+enumerator and the fuzz contract draws it. Mode II is unchanged.
+
 ## 2026-09-17 converter hold droop and rail ripple
 
 Ported from the same upstream working branch `claude/admiring-allen-tgtxg2`

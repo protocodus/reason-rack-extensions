@@ -25,6 +25,9 @@ Notable customer-facing changes to YouKnow are recorded here.
 - Give the sub oscillator's switch transistor its storage time, so the sub
   carries a faint second harmonic that rises with pitch (−64 dBc at the top of
   the 4′ range).
+- Run chorus Mode I at the owner's by-ear blend of the three OQ-01 timing
+  candidates (3.49 ms centre, ±2.04 ms, 0.5248 Hz), as the source product now
+  does; Mode II is unchanged.
 - Let every converter hold leak between the scan's refreshes at its switch and
   follower sheets' typical currents (a hundredth of a step per 4.2 ms pass,
   more on a warm board), and put the rectifier ripple the ±15 V regulator's

@@ -6194,7 +6194,8 @@ EngineParameters YouKnowEngine::sanitise(const EngineParameters& parameters) noe
     if (result.chorusTimingProfile != ChorusTimingProfile::Shipping
         && result.chorusTimingProfile != ChorusTimingProfile::A11Spectral
         && result.chorusTimingProfile != ChorusTimingProfile::A11ClickTiming
-        && result.chorusTimingProfile != ChorusTimingProfile::DerivedNominal)
+        && result.chorusTimingProfile != ChorusTimingProfile::DerivedNominal
+        && result.chorusTimingProfile != ChorusTimingProfile::OwnerBlend)
         result.chorusTimingProfile = ChorusTimingProfile::Shipping;
     if (result.vcfTanhMode != VcfTanhMode::Exact
         && result.vcfTanhMode != VcfTanhMode::ZonedHermite
