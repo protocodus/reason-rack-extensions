@@ -1,4 +1,47 @@
-# YouKnow 1.0.0f21 candidate
+# YouKnow 1.0.0f22 candidate
+
+Cut on 2026-09-17 from the current source: the shared DSP verified against
+production upstream `main` `b5cd360` (no engine source changed since the
+`f929eca` verification in [DSP synchronization](../DSP/SYNC.md)), the rear
+routing symbols, the single-jack L/MONO fold, the resonance amplifier's input
+offset, the one-temperature resonance return with its RES adjustment, the sub's
+storage-time harmonic, the owner's chorus Mode I blend with its eight patch
+trims, and the converter-hold leakage and rail ripple. The never-uploaded f21
+U45 was assembled from `f834459` and does not carry this source. Fixed
+41-sample latency, saved control identities and MIDI/CV ownership are
+preserved; every stored patch carries the new device version and nothing else
+changed in the bank. The candidate source is `b481256` on `main`.
+
+## Final local results
+
+Run on Linux x86-64 with clang 18 (GCC 13 for the sanitized builds, because
+this host's clang carries no AddressSanitizer runtime) against the SDK API
+stub; the frozen-table contract is verified on macOS in CI.
+
+| Check | Result |
+| --- | --- |
+| SDK authority | `JukeboxSDK_500_028`, `TargetVersion=5.0` |
+| Upstream parity | PASS: `Tests/UpstreamParityDriver.cpp`, 43 scalar scenarios bit-identical through this port and through upstream `Source/DSP` at `main` `b5cd360`; both hash logs SHA-256 `d1e3803953fd5ff07cf8732b60ec94156b86cfb7ca313fd462f2043df9af1403` |
+| Engine and tables | PASS: engine port contract (70,584-byte engine, 71,960-byte native object under the 96 KiB growth guard) and behavioural render (peak 0.043230, 1x/2x/4x, latency 41); frozen tables PASS on macOS CI, with the documented BBD libm mismatch on Linux |
+| DSP regressions | PASS: 19 upstream-adapted groups and the verbatim envelope-firmware oracle |
+| Wrapper | PASS: optimized (clang) and ASan/UBSan (GCC, after completing the harness's global allocator override with the sized and nothrow forms GCC's library calls); frame-accurate automation, MIDI/CV ownership and retriggers, attack timing, gates/reset/restore, output cabling, five host rates, host fuzz 24 seeds x 400 batches (57,280 events, peak 0.751519) |
+| Fuzzing | PASS: engine 48 seeds x 600 blocks (57,388 events) and 200 seeds x 1,000 blocks (400,325 events, peak 1.342468), plus 36 sanitized seeds x 300 blocks (21,476 events); finite, bounded, deterministic, exact press counts, no stuck voices, recovered |
+| Factory bank | PASS: 100/100 at Aging 50% (maximum peak 0.183085, RMS 0.040950) and 0% (0.183103, 0.040952) with the committed trims; whole bank also under ASan/UBSan |
+| Six-note stress | PASS: all 100 low/high-register renders below full scale; maximum peaks 0.388572 (Hollow Fifths) / 0.418178 (8425 Str Wash) |
+| Automation | PASS: 40 parameters as steps/ramps, dry/chorused, on the product configuration; held notes survive every switch; worst continuous slew 1.15x reference (resonance) |
+| Metadata and panels | PASS: 100 patches, 184 text keys, 45 wrapper defaults equal to `motherboard_def.lua`, 76 widgets, 80 nodes, 20 asset paths, 16 GUI twins, prose agreeing with `info.lua`; panels regenerated on the macOS runner (Panels run `35276496140`) with only the rear version label changed |
+| Source CI | PASS: run `35279712541` (metadata, Linux ASan/UBSan including the engine fuzz, macOS DSP contracts) and Panels run `35279712480` on `b481256` in `main` |
+| Native timing | PASS on this host: 0/1,875 wall-clock misses against the 1.333333 ms deadline; block wall p50 0.339 ms, p95 0.373 ms, p99 0.431 ms, maximum 0.659 ms; median thread CPU 0.257803x realtime. Linux x86-64 is not the macOS reference host; Reason scheduling and target translation remain unqualified |
+| Universal45 | NOT BUILT: no SDK on this host |
+| Materials | NOT BUILT: the Shop images and manual need the release-materials build on a Mac; the Panels run's artifact holds a render of them |
+| Local45 Deployment | NOT RUN |
+| Cloud upload | NOT ATTEMPTED: the f20 submission the portal reported still has to be resolved |
+
+No f22 U45, cloud build, host creation test, Shop publication or acceptance is
+claimed. The universal build, the assembled `Release/1.0.0f22/` set, host
+acceptance and representative Reason-song timing remain open for the owner.
+
+# Retained YouKnow 1.0.0f21 candidate
 
 Synchronized on 2026-09-16 to production upstream
 `5d9390daaa518e91e64ad454736b011dfd05168c` (remote `main`, checked the same day)

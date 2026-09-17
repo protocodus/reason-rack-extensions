@@ -30,6 +30,24 @@ void* operator new(std::size_t size)
 void* operator new[](std::size_t size) { return ::operator new(size); }
 void operator delete(void* memory) noexcept { std::free(memory); }
 void operator delete[](void* memory) noexcept { std::free(memory); }
+// The override has to be complete: GCC's library calls the sized deletes
+// directly from C++14 on and std::stable_sort takes its scratch buffer from
+// the nothrow new, so a form left to the sanitizer's runtime pairs its
+// allocation with this free (or this malloc with its delete) and a sanitized
+// GCC build reports a mismatch.
+void operator delete(void* memory, std::size_t) noexcept { std::free(memory); }
+void operator delete[](void* memory, std::size_t) noexcept { std::free(memory); }
+void* operator new(std::size_t size, const std::nothrow_t&) noexcept
+{
+    assert(!allocationForbidden);
+    return std::malloc(size == 0 ? 1 : size);
+}
+void* operator new[](std::size_t size, const std::nothrow_t& tag) noexcept
+{
+    return ::operator new(size, tag);
+}
+void operator delete(void* memory, const std::nothrow_t&) noexcept { std::free(memory); }
+void operator delete[](void* memory, const std::nothrow_t&) noexcept { std::free(memory); }
 
 namespace youknow
 {
