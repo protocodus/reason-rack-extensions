@@ -2,7 +2,7 @@
 
 Notable customer-facing changes to YouKnow are recorded here.
 
-## 1.0.0f21 - Unreleased
+## 1.0.0f22 - Unreleased
 
 - Show Reason's routing symbols above the audio outputs, as the GUI design
   guidelines require of every back panel: the mono voice bus leaves as mono
@@ -39,6 +39,10 @@ Notable customer-facing changes to YouKnow are recorded here.
   typical 68 dB leaves onto the filter cutoff (0.003 cents at 120 Hz under
   Unit Character), as upstream now does. Both sit far below audibility; Unit
   Character 0 keeps the ripple out of the cutoff exactly.
+- Preserve Reason control identities, fixed latency, and MIDI/CV behavior.
+
+## 1.0.0f21 - Earlier candidate (not uploaded)
+
 - Synchronize the shared DSP to upstream `5d9390d`: circuit-accurate DCO clock,
   temperature, component and retained-charge behavior; firmware envelope,
   portamento and control-precision fixes; finite envelope-hold acquisition;

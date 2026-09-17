@@ -516,6 +516,14 @@ trademark-free comment wording without external links. `YouKnowPanel`,
 `YouKnowPresets` and `YouKnowSysEx` are plug-in files with no Rack
 counterpart.
 
+Re-verified for the 1.0.0f22 candidate against production `main` at
+`b5cd360` ("CI: refresh screenshot and audio demos"): `git log f929eca..b5cd360
+-- Source/DSP` is empty, so every shared engine source still matches the
+`f929eca` verification above (nine files differ only by the documented port
+deviations; the other twelve are byte-identical). Upstream pull request #11 of
+the same day changes `Source/DSP/YouKnowSysEx.cpp` and
+`Source/DSP/YouKnowPresets.cpp` only, plug-in files the Rack does not carry.
+
 ## 2026-09-17 chorus Mode I owner blend
 
 Ported from the same upstream working branch by the same anchored edit

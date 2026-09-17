@@ -1,10 +1,13 @@
 # YouKnow asset and SDK provenance inventory
 
-Current candidate: YouKnow `1.0.0f21`; it synchronizes upstream `5d9390d` and
-the source instrument's product circuit selections. These are intentional
-sound-model changes. The permanent product identity is retained; patch level
-trims are recalibrated and one patch volume (Storm Signal) is raised. Candidate validation and any level-trim
-changes are recorded in [release evidence](RELEASE_EVIDENCE.md).
+Current candidate: YouKnow `1.0.0f22`; it synchronizes the shared DSP with
+upstream `f929eca` and the source instrument's product circuit selections, and
+carries Reason's stock routing symbols on the rear. These are intentional
+sound-model and panel changes. The permanent product identity is retained;
+the patch level trims were recalibrated for f21, one patch volume (Storm
+Signal) raised, and eight patches attenuated for the chorus Mode I blend.
+Candidate validation and any level-trim changes are recorded in
+[release evidence](RELEASE_EVIDENCE.md).
 The dated `1.0.0f14` audits and hashes below retain their historical scope.
 This is an engineering traceability record, not a legal conclusion, ownership
 opinion, or grant of rights. Commercial permission and distribution scope stay
