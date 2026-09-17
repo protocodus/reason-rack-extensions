@@ -493,6 +493,29 @@ recalibrated: at Aging 50% the mechanism changes only resonance-dependent DC
 and per-voice self-oscillation settling, and the bank check above passes with
 the existing trims; a level pass belongs with the next release candidate.
 
+## 2026-09-17 verification against upstream f929eca
+
+After the three ports below merged (PR #6), the shared DSP was checked file by
+file against upstream `virtual-instrument-youknow` at `f929eca` ("Ship chorus
+Mode I at the owner's blend of the three OQ-01 candidates"), the head of its
+PR #10 and the last upstream commit touching `Source/DSP`. The four upstream
+DSP commits since the `5d9390d` synchronization -- `ef359c1`, `12b40c9`,
+`ef83117`, `f929eca` -- each have their section here. Every remaining
+difference in `YouKnowEngine.h`/`.cpp`, `YouKnowChorus.h`/`.cpp`,
+`YouKnowProductFidelity.h`, `YouKnowSubLevel.h`, `YouKnowOutputJack.h`,
+`YouKnowVcaControl.h` and `YouKnowFirmwareTrace.cpp` is one of the documented
+port deviations: the C++17 substitutions (`floatBits` for `std::bit_cast`, a
+spelled-out pi for `<numbers>`, tag dispatch for template lambdas, no
+`[[unlikely]]`, no NEON pair kernels, `std::array::fill` replaced), the frozen
+`.inc` tables and constants, the explicit `EngineParameters::operator==`, the
+Rack host hooks (`setInitialOversamplingFactor`, `retargetHeldNoteLegato`,
+`hasPendingVoiceAssignment`, the settled-silence return of
+`setOversamplingEnabled`, the +/-150-cent tuning span, the enumeration
+`sanitise()` hunk), the constructor-built firmware control tables, and the
+trademark-free comment wording without external links. `YouKnowPanel`,
+`YouKnowPresets` and `YouKnowSysEx` are plug-in files with no Rack
+counterpart.
+
 ## 2026-09-17 chorus Mode I owner blend
 
 Ported from the same upstream working branch by the same anchored edit
