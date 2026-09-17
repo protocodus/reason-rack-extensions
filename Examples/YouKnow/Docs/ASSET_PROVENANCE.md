@@ -279,3 +279,13 @@ recorded licensing and deployment evidence belongs to the support-site history.
 Any change to an input hash, renderer, font, SDK version, or panel composition
 requires regeneration and a fresh release-evidence/handoff hash set. This
 inventory must be updated before those new hashes are treated as final.
+
+`Design/render_panels.py` enforces the two font hashes above before it renders
+and refuses any other build of those files. Without an SDK checkout it reads
+the committed copies of the SDK furniture listed under "Direct SDK bitmap
+inputs" as its source and leaves them byte for byte as they are; against an
+SDK it still proves those copies pixel-identical to the SDK files. The Panels
+workflow (`.github/workflows/panels.yml`) renders on GitHub's `macos-14` image
+with Pillow `11.0.0`, checks pull requests against the committed panels pixel
+for pixel (`Design/panel_diff.py`), regenerates and commits them on a manual
+run, and publishes the Shop images and manual as a run artifact.

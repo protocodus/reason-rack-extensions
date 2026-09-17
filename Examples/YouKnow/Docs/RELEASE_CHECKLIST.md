@@ -31,8 +31,9 @@ unticked again below.
 - [x] Complete automation artifact contract on the product configuration.
 - [x] Record native default-quality timing without concurrent task load; retain its failure.
 - [ ] Qualify wall-clock deadlines and representative Reason playback performance.
-- [ ] Regenerate the panels and previews on macOS after the rear routing symbols
-  (`python3 Design/render_panels.py`, then `python3 Tests/validate_panel_geometry.py`).
+- [ ] Regenerate the panels and previews after the rear routing symbols: run the
+  Panels workflow by hand on the branch (it renders on a macOS runner and commits
+  the result), or `python3 Design/render_panels.py` on a Mac.
 - [ ] Build universal45 and verify ZIP, version, source bytes, four chips and SHA-256.
 - [ ] Generate and visually verify the manual and the front, back and 1:1 thumbnail Shop images.
 - [ ] Assemble every artifact in `Release/1.0.0f21/` with a build manifest and verified SHA256SUMS.

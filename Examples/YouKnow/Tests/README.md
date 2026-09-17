@@ -12,6 +12,14 @@ python3 Tests/validate_patches.py
 python3 Design/render_panels.py
 ```
 
+The renderer needs macOS's DIN fonts (it verifies their hashes) but no SDK:
+without one it reads the committed furniture. The Panels workflow runs it on a
+macOS runner for every pull request that touches the panels and fails when the
+committed panels differ from a fresh render by a pixel (`Design/panel_diff.py`
+ignores encoder-only byte churn); run the workflow by hand on a branch to have
+it regenerate and commit them, and download the Shop images and manual from
+the run's artifact.
+
 The metadata check covers localization, all 100 authored patches, ranges,
 versions, identity, level trims, permanent automation IDs, socket order, CV
 notifications, and that the wrapper's `kParameterDefaults` table (the value a

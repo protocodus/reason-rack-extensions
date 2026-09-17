@@ -2,9 +2,9 @@
 """Panel and GUI-definition sanity, without the SDK.
 
 `Design/render_panels.py` performs the authoritative layout checks, but it needs
-the Jukebox SDK and macOS fonts, so it cannot run on a hosted CI runner. Every
-check here reads only files that are committed to this repository plus Pillow,
-which means CI can run it on any machine and catch the class of mistake that
+macOS's DIN fonts, so it runs only in the macOS Panels workflow. Every check
+here reads only files that are committed to this repository plus Pillow, which
+means CI can run it on any machine and catch the class of mistake that
 otherwise surfaces as a cloud build failure.
 
 The check that motivates this file: a widget must fit the panel that declares

@@ -232,6 +232,9 @@ def sync_gui_lua(placed):
 
 
 def main():
+    # The positions come from text metrics, so they are only right with the
+    # pinned fonts.
+    R.verify_fonts()
     placed = positions()
     seen = sync_device_2d(placed) | sync_gui_lua(placed)
     missed = sorted(set(placed) - seen)
