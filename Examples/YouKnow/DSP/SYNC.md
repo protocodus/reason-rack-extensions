@@ -450,3 +450,41 @@ The parity driver and both hash logs, the contract, sanitizer, fuzz-campaign,
 bank, metadata, build and timing logs are retained with the candidate under
 `Release/1.0.0f21/validation/`; release results are in
 [release evidence](../Docs/RELEASE_EVIDENCE.md).
+
+## 2026-09-17 resonance BA662 input offset
+
+Ported from the upstream working branch `claude/admiring-allen-tgtxg2`
+(virtual-instrument-youknow, "feat(dsp): carry the resonance BA662 input
+offset into the loop"), applied to this C++17 port by hand rather than by
+copying files, so the port's `memcpy` bit-cast, frozen `.inc` tables and the
+2026-09-16 `sanitise()` hunk are untouched. The change is confined to
+`YouKnowEngine.h`/`.cpp`:
+
+- `EngineParameters::enableResonanceOtaOffset` (default true) beside the
+  stage-offset switch; `OtaCascade::resonanceOffsetVolts` in node volts;
+  `VoiceCard::resonanceOtaOffset`, a signed ±1.5 mV draw at the pair
+  (`hashBipolar(seed + 14u)`), inside the Rohm BA6110 sibling sheet's
+  "VIO = 3 mV max" (URL and SHA-256 beside the field).
+- `refreshVoiceCardStageTrims()` refers the draw to the node through
+  `VoicedResonanceCompatibilityProfile::loopDividerRatio` (100k/1.5k) and
+  scales it by Unit Character; the parameter-change test that triggers the
+  refresh includes the new switch.
+- The scalar, PolyZoned, both pair and the quad VCF kernels add the offset to
+  the resonance pair's differential input before its tanh, so the gm·V_os
+  feedthrough scales with the loop gain and is exactly zero with the loop
+  open. Adding 0.0 leaves the Character-0 and switch-off paths bit-identical.
+- A sibling reading of the JUNO-6 CPU-board DCO reset (TL082 integrator, TR5
+  with 2.2 Ω, 270 pF/10 kΩ drive) is recorded beside `rampResetSeconds`; no
+  value changes.
+
+**Contracts (Linux, clang 18).** The behavioural render, the upstream regression
+contract (19 groups), the envelope-firmware oracle, the engine fuzz
+(48 seeds × 600 blocks; the fuzzed switch set now includes
+`enableResonanceOtaOffset`) and all 100 public patches (audible, finite,
+bounded, deterministic) pass. The frozen-table contract reports its documented
+Linux libm mismatch in the BBD table (`BBD table mismatch at 50`); it compiles
+no engine source and is unaffected by this change, and CI runs it on macOS.
+The wrapper contract needs the SDK and did not run here. Patch trims were not
+recalibrated: at Aging 50% the mechanism changes only resonance-dependent DC
+and per-voice self-oscillation settling, and the bank check above passes with
+the existing trims; a level pass belongs with the next release candidate.
