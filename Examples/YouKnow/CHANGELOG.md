@@ -4,6 +4,10 @@ Notable customer-facing changes to YouKnow are recorded here.
 
 ## 1.0.0f21 - Unreleased
 
+- Carry the resonance amplifier's own input offset into the filter loop under
+  Unit Character, as upstream now does: fast resonance moves under a held note
+  thump slightly and self-oscillation settles per voice. Unit Character 0 is
+  unchanged.
 - Synchronize the shared DSP to upstream `5d9390d`: circuit-accurate DCO clock,
   temperature, component and retained-charge behavior; firmware envelope,
   portamento and control-precision fixes; finite envelope-hold acquisition;

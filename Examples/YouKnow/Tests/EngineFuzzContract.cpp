@@ -180,7 +180,8 @@ EngineParameters randomParameters(std::mt19937& rng, bool product)
     p.chorusTimingProfile = anyOf<ChorusTimingProfile>(rng, 3);
     p.resonanceCompensationShape = anyOf<ResonanceCompensationShape>(rng, 2);
     // Comparison switches: any combination must render, not only the shipped one.
-    for (bool* flag : { &p.enableVcfStageOffsets, &p.enableOpAmpSlewLimiting,
+    for (bool* flag : { &p.enableVcfStageOffsets, &p.enableResonanceOtaOffset,
+                        &p.enableOpAmpSlewLimiting,
                         &p.enableVcfEarlyEffect, &p.enableSpatialThermalGradient,
                         &p.enablePulseOffWaveNodeCoupling, &p.enableSubHalfWaveNodeCoupling,
                         &p.enableVoiceVcaSignalSaturation, &p.enableVoiceVcaServiceGain,
