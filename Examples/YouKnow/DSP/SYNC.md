@@ -492,3 +492,52 @@ The wrapper contract needs the SDK and did not run here. Patch trims were not
 recalibrated: at Aging 50% the mechanism changes only resonance-dependent DC
 and per-voice self-oscillation settling, and the bank check above passes with
 the existing trims; a level pass belongs with the next release candidate.
+
+## 2026-09-17 one-temperature resonance return, RES adjustment, gradient warm-up, jack-board floor, sub storage skew
+
+Ported from the same upstream working branch `claude/admiring-allen-tgtxg2`
+(virtual-instrument-youknow), again by hand into this C++17 port; the port's
+`memcpy` bit-cast, frozen `.inc` tables and the `sanitise()` hunk are
+untouched. Confined to `YouKnowEngine.h`/`.cpp`, `EngineParameters::operator==`
+and the fuzz contract's switch list:
+
+- `EngineParameters::enableResonanceHeadroomTemperature` (default true):
+  `YouKnowEngine::resonanceHeadroomFor()` gives the resonance return's headroom
+  as the stage headroom through the return's own 100k/1.5k divider (both are
+  2 Vt in one module), written as a ratio to the nominal so a 25 C card
+  reproduces `loopHeadroomVolts` bit for bit. All five VCF kernels (scalar,
+  PolyZoned, both SIMD pairs, the quad) take the return's headroom per node or
+  per lane from `OtaCascade::resonanceHeadroomFollowsStage`, set per voice from
+  the switch.
+- `EngineParameters::enableResonanceServiceTrim` (default true):
+  `VoiceCard::vcfServiceResonanceScale`, the p. 19 RES adjustment, is the
+  harmonic-balance loop gain that sustains 2.4 V peak on that card at its
+  settled temperature as a ratio to the nominal card's solve; `resonanceFeedbackFor()`
+  scales the whole return by it. The port freezes the nominal solve's loop
+  gain beside its droop (`nominalLoopGain = 0x1.1ff370af4313ap+2`, the
+  macOS value the frozen-table contract's own solve gives on the CI host
+  that owns these constants; Linux/clang 18 reads one ULP higher,
+  `...313b`, exactly as it does for the droop constant. The contract checks
+  the loop gain and prints the actual bits on a mismatch).
+- The FREQ solve carries the adjustment's shift of the loop gain the
+  frequency-trim table is read at (`correctionRatio`) and reads the gradient's
+  cutoff factor at the service reference; the voiced post-trim residual stays
+  out of it as before.
+- `voiceCardCelsius()` develops both rises on the warm-up clock;
+  `thermalFilterOmegaScaleFor()` gives the gradient's cutoff factor at a
+  warm-up fraction; `refreshVoiceCardThermalScales()` runs on the drift
+  cadence with the Johnson scales and on every settle path.
+- `refreshJackBoardTemperature()` resamples `jackBoardCelsius_` together with
+  `jackBoardJohnsonScale_`, applied to the summer and wiper floors.
+- `EngineParameters::enableSubStorageSkew` (default true) and
+  `subSwitchStorageSeconds` (0.2 us, a borrowed class value): the sub track's
+  rising edge is placed late by the storage time in `beginDcoDischarge()`.
+
+**Contracts (Linux, clang 18).** The behavioural render, the upstream
+regression contract, the engine port contract, the wrapper host contract
+(against the SDK API stub) and the engine fuzz (48 seeds x 600 blocks; the
+fuzzed switch set now includes the three new switches) pass. The frozen-table
+contract still reports its documented Linux libm mismatch in the BBD table and
+is verified on macOS in CI. Patch trims were not recalibrated: at Aging 50% the
+changes move the settled self-oscillation amplitude by under 2 % and the
+resistor floor by 0.2 dB, and the bank check passes with the existing trims.

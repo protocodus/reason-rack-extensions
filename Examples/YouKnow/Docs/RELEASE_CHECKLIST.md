@@ -5,7 +5,8 @@ SDK: `JukeboxSDK_500_028`, `TargetVersion=5.0`
 Product support: https://protocodus.cz/product/youknow/
 
 This candidate synchronizes shared DSP to production upstream `5d9390d` plus the
-nominated checkout's enum-sanitising hunk, and renders with the source
+nominated checkout's enum-sanitising hunk and the two 17 September hand-ported
+mechanism sets recorded in `DSP/SYNC.md`, and renders with the source
 instrument's complete product configuration. The circuit, firmware and product
 changes intentionally update audio, so every patch level trim is recalibrated;
 Storm Signal's volume rises from 0.62 to 0.72, and Broken Telemetry and Circuit
