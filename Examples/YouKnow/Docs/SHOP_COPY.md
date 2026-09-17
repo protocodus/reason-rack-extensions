@@ -7,16 +7,17 @@
 - Device name: YouKnow
 - Manufacturer: Protocodus
 - Product ID: `cz.protocodus.YouKnow`
-- Candidate: `1.0.0f21`
-  DSP parity, engine/wrapper contracts, fuzzing, bank and automation gates and the
-  universal build pass. Matching f21 PDF and Shop images are generated with the
-  U45 in `Release/1.0.0f21/`. Native wall-clock timing, host acceptance and the
-  cloud upload remain open.
+- Candidate: `1.0.0f22`
+  Rebuilt on the current source: shared DSP at upstream `f929eca`, the rear
+  routing symbols and the single-jack mono fold. The source-side gates are
+  recorded in the release evidence; the universal build, the matching f22 PDF
+  and Shop images, native wall-clock timing, host acceptance and the cloud
+  upload remain open.
 - Requirement: Reason 14 or later
 - Category: Instrument / Synth
 - Support URL: <https://protocodus.cz/product/youknow/>
 - Support email: [protocodus+support@proton.me](mailto:protocodus+support@proton.me)
-- Article: `PENDING` - select `1.0.0f21` after Reason Studios acceptance
+- Article: `PENDING` - select `1.0.0f22` after Reason Studios acceptance
 - Price category: `PENDING`
 - Upgrade price category: `0` - free updates, no special upgrade price
 - Tags: Type `Synth`; Character `Analog / Vintage` and `Hardware emulation`.
@@ -95,20 +96,20 @@ The later f15 upload consumed version `1.0.0f15`; cloud build
 reported “Unknown error” without a diagnostic. The later f16 header refinement
 did not demonstrate a fix for that cloud failure. Retain the
 version-neutral draft wording, update its bank count to 100, then attach the
-matching f21 images/PDF and accepted Article when ready. The local copy is
+matching f22 images/PDF and accepted Article when ready. The local copy is
 updated; the saved portal draft still reflects the earlier bank.
 
 ## Portal assets and submission
 
 All of a version's artifacts are in its single release directory:
 
-- U45 for upload: `Release/1.0.0f21/YouKnow-1.0.0f21.u45`
-- Front image: `Release/1.0.0f21/YouKnow_Front.png`
-- Back image: `Release/1.0.0f21/YouKnow_Back.png`
-- 800x800 thumbnail: `Release/1.0.0f21/YouKnow_Thumbnail_800.png` - the front
+- U45 for upload: `Release/1.0.0f22/YouKnow-1.0.0f22.u45`
+- Front image: `Release/1.0.0f22/YouKnow_Front.png`
+- Back image: `Release/1.0.0f22/YouKnow_Back.png`
+- 800x800 thumbnail: `Release/1.0.0f22/YouKnow_Thumbnail_800.png` - the front
   panel on the Protocodus site background, with the centred product name in a
   soft shadow
-- PDF manual: `Release/1.0.0f21/YouKnow_User_Manual.pdf`, including the source
+- PDF manual: `Release/1.0.0f22/YouKnow_User_Manual.pdf`, including the source
   license notice, privacy notice, and third-party provenance
 
 Before publication, complete Reason Studios acceptance and Article selection,

@@ -1,20 +1,24 @@
 # YouKnow Rack Extension
 
 YouKnow is a native circuit-modelled polysynth for Reason 14 and later.
-Production candidate `1.0.0f21` includes 100 original Protocodus patches, up to
+Production candidate `1.0.0f22` includes 100 original Protocodus patches, up to
 16 voices, stereo chorus, eight CV inputs, and 41 automatable custom controls
 alongside Reason's pitch wheel, modulation wheel, and sustain support. The
 rear carries Reason's routing symbols, and a single cabled output receives the
 mono fold of both channels as the original instrument's L/MONO jack does.
 
-This candidate synchronizes DSP from Protocodus YouKnow upstream `5d9390d` and
+This candidate synchronizes the shared DSP with Protocodus YouKnow upstream
+`f929eca` (production `main` `b5cd360` carries the same engine sources) and
 renders with the source instrument's product circuit selections. It includes
 circuit-level DCO clock, temperature and reset behavior, firmware envelope and
 control fixes, envelope-hold acquisition, DAC and VCA calibration, chorus
-loading, output-stage and input-coupling corrections. These intentionally update
-the sound model; every control also now resolves malformed values to defined
-settings. Reason-specific real-time safeguards, fixed 41-sample latency, saved
-control identities, and MIDI/CV ownership remain intact.
+loading, output-stage and input-coupling corrections, the resonance amplifier's
+input offset and one-temperature headroom with its per-voice RES adjustment,
+the sub's storage-time harmonic, the owner's chorus Mode I blend, and the
+converter-hold leakage and rail ripple. These intentionally update the sound
+model; every control also resolves malformed values to defined settings.
+Reason-specific real-time safeguards, fixed 41-sample latency, saved control
+identities, and MIDI/CV ownership remain intact.
 [DSP synchronization](DSP/SYNC.md) records the exact source and adaptations;
 [release evidence](Docs/RELEASE_EVIDENCE.md) records validation and the
 remaining release gates.

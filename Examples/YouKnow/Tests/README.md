@@ -193,9 +193,11 @@ analogue trims at once, so the wrapper glides it over 30 ms
 (`AdvanceCalibrationGlide` in YouKnow.cpp); the test reproduces that glide so it
 measures the path the instrument ships rather than the bare engine.
 [DSP/SYNC.md](../DSP/SYNC.md) identifies the exact upstream revision, source
-hashes, Rack adaptations, and the 42-program scalar parity evidence.
+hashes, Rack adaptations, and the scalar parity evidence.
 Recheck parity when shared DSP changes; retain labelled results when its bytes
-are unchanged.
+are unchanged. `Tests/UpstreamParityDriver.cpp` is the driver: its header
+gives the two builds (this port, and the upstream checkout's `Source/DSP` with
+its SIMD kernels undefined) whose 43 scenario hashes must match line for line.
 
 ## Public patches
 
