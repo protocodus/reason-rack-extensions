@@ -27,7 +27,12 @@ Notable customer-facing changes to YouKnow are recorded here.
   the 4′ range).
 - Run chorus Mode I at the owner's by-ear blend of the three OQ-01 timing
   candidates (3.49 ms centre, ±2.04 ms, 0.5248 Hz), as the source product now
-  does; Mode II is unchanged.
+  does; Mode II is unchanged. The shorter delay centre lifted eight patches'
+  calibration chords over the bank's level limits, so their stored preset
+  levels are attenuated by the minimum each needs (0.22–0.83 dB: Broken
+  Telemetry, Glass Pad, 8432 Lead, Neon Glide, Dark Motion Pad, 8417 Str
+  Vibrato, Shimmer String Ensemble, Short String Section); every other patch
+  and all musical parameters are unchanged.
 - Let every converter hold leak between the scan's refreshes at its switch and
   follower sheets' typical currents (a hundredth of a step per 4.2 ms pass,
   more on a warm board), and put the rectifier ripple the ±15 V regulator's

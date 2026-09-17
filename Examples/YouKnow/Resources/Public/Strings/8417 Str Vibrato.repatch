@@ -4,7 +4,7 @@
     <Properties deviceProductID="cz.protocodus.YouKnow" deviceVersion="1.0.0f21">
         <Object name="custom_properties">
             <Value property="volume" type="number">0.60</Value>
-            <Value property="presetGain" type="number">0.413581673</Value>
+            <Value property="presetGain" type="number">0.407606237</Value>
             <Value property="benderDco" type="number">0.24</Value>
             <Value property="benderVcf" type="number">0.12</Value>
             <Value property="benderLfo" type="number">0.30</Value>
