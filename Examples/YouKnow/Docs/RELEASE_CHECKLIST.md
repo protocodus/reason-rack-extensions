@@ -11,6 +11,12 @@ changes intentionally update audio, so every patch level trim is recalibrated;
 Storm Signal's volume rises from 0.62 to 0.72, and Broken Telemetry and Circuit
 Rain are attenuated at Aging 50%. All other musical settings are preserved.
 
+After the items below were ticked, the rear gained Reason's routing symbols
+and a single cabled output began carrying the L/MONO fold of both channels.
+The panels, previews, Shop images, universal build, assembled artifacts and
+source CI must therefore be redone on the current source; those items are
+unticked again below.
+
 ## Engineering
 
 - [x] Verify SDK 5 and the latest production upstream revision.
@@ -25,16 +31,24 @@ Rain are attenuated at Aging 50%. All other musical settings are preserved.
 - [x] Complete automation artifact contract on the product configuration.
 - [x] Record native default-quality timing without concurrent task load; retain its failure.
 - [ ] Qualify wall-clock deadlines and representative Reason playback performance.
-- [x] Build universal45 and verify ZIP, version, source bytes, four chips and SHA-256.
-- [x] Generate and visually verify the manual and the front, back and 1:1 thumbnail Shop images.
-- [x] Assemble every artifact in `Release/1.0.0f21/` with a build manifest and verified SHA256SUMS.
-- [ ] Build local45 Deployment and inspect the installed payload (not run for f21).
-- [x] Pass source CI on the committed candidate: run `35133083217` on `f834459` in `main`.
+- [ ] Regenerate the panels and previews on macOS after the rear routing symbols
+  (`python3 Design/render_panels.py`, then `python3 Tests/validate_panel_geometry.py`).
+- [ ] Build universal45 and verify ZIP, version, source bytes, four chips and SHA-256.
+- [ ] Generate and visually verify the manual and the front, back and 1:1 thumbnail Shop images.
+- [ ] Assemble every artifact in `Release/1.0.0f21/` with a build manifest and verified SHA256SUMS.
+- [ ] Build local45 Deployment and inspect the installed payload; this also confirms the
+  HD `gui.lua` static-decoration syntax for the routing symbols, which the cloud build
+  does not read.
+- [ ] Pass source CI on the committed candidate (last passed: run `35133083217` on
+  `f834459` in `main`, before the routing symbols and the output fold).
 
 ## Host and distribution
 
 - [ ] Complete interactive SDK acceptance: automation record/playback,
   Remote/Combinator, CV, reset, patches, routing, full/folded UI and multiple instances.
+- [ ] Confirm the output cabling in Reason: auto-route to a mono channel and hear the
+  whole chorus, pull one cable under a held note, and check the routing symbols read
+  against the chorus switch.
 - [ ] Measure the exact Deployment candidate in representative Reason songs.
 - [ ] Resolve the pending submission the portal reported for f20, upload f21
   and archive its cloud build result.

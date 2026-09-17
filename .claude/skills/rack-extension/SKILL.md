@@ -284,6 +284,77 @@ When a Lua parse-error popup offers **Retry**, don't — it's unstable. Fix the 
 In a `Debugging` build, Reason surfaces device problems in a **"Debug Info"** dialog — that dialog
 text is the actual diagnosis, so read it before guessing. Build `Deployment` to silence it.
 
+## GUI design guidelines — what the GUI is rejected on
+
+**<https://developer.reasonstudios.com/documentation/rack-extension-sdk/4.3.0/gui-design-guidelines>**
+(the 5.0.0 text is the same). The page is client-rendered; the document is embedded in the
+site's `static/bundle.js`, which is how it was read on 2026-09-17 from a box whose browser
+could not trust the proxy. It separates **requirements** — a device that misses one is
+rejected — from **guidelines**, which are strongly recommended, and reserves the right to
+reject any GUI regardless. It is Reason Studios' document: cite and link it, as with the
+distribution agreement, and keep its text out of the repo.
+
+Requirements, in our words:
+
+- Four panels: front, back, folded front, folded back. Every panel image is 3770 HD px wide
+  (754 logical at 5x); height is a whole number of 345 HD px rack units, at most 9U, the
+  same for front and back; both folded panels are 150 HD px tall.
+- PNG only. Film strips run vertically with the first frame on top, and a strip's height is a
+  multiple of its frame count.
+- Custom-display images and static decorations are never animated; a static decoration may
+  overlap nothing but a custom display.
+- Every functional text is readable in Reason on a 27-inch monitor (guideline: 43 HD px, so
+  8.6 logical, is safe for most fonts).
+- Effects carry an on/off/bypass button at the top left; Players an on/off button.
+- Patch devices show the patch name in a patch display next to the up/down/file/save group,
+  both from the Reason Studios-supplied resources.
+- The device-name tape, from the supplied resource, is on all four panels.
+- The back panel carries one supplied placeholder with no text or decoration beneath it;
+  supplied audio and CV socket art (sockets are back-panel only); supplied CV trim knobs; and
+  **routing symbols from the supplied `Routing_Icon_*` set that explain how the device routes
+  mono and stereo signals** (recolouring is allowed; meanings below).
+- The folded back has a hole where the cables originate (own design allowed).
+- Rack screws, if drawn, line up with the rack holes.
+- An empty 25 HD px (5 logical) margin along the left and right edges of every panel, clear
+  of anything that responds to input; every widget wholly inside its panel; nothing under
+  Reason's fold arrow.
+- Instruments: a Note On indicator on the front and the folded front.
+- No interference with Reason's own overlays (automation frames, warning lights, remote
+  arrows); no dominant logotype, banner or advertising.
+
+Guidelines worth following: a 25 HD px top and bottom margin, orthogonal projection, lighting
+like Reason's own devices (main light from above and slightly left), plausible part sizes and
+positions with nothing over the rails, as few rack units as the device needs, animation only
+when it follows the sound, and a display frame around any flat "software" GUI.
+
+**Routing icons.** The scripting specification's "Routing icons" section defines them, and
+the public stock pack ships them
+(`RE2D_Stock_Graphics_1_1.zip`, `Decorations/Routing_Icon_0N_1frames.png`, plus
+`Routing_Icon_White_0N` for dark panels; provenance hashes in `Docs/ASSET_PROVENANCE.md`):
+
+| Stock file | Meaning | Effect routing-hint `type` |
+| --- | --- | --- |
+| `Routing_Icon_01` | mono in, mono out | n/a |
+| `Routing_Icon_02` | mono in, stereo out | `"spreading"` |
+| `Routing_Icon_03` | stereo in, channels processed independently, stereo out | `"true_stereo"` |
+| `Routing_Icon_04` | stereo in summed before the effect, stereo out | `"mixing_stereo"` |
+| `Routing_Icon_05` | stereo in, both channels combined, stereo out | `"mixing_stereo"` |
+
+Effects must show at least one mono-input and one stereo-input icon, and every icon that
+applies when a control changes the behaviour. The specification words the icon rule for
+effects; the guidelines want the symbols on every back panel, so an instrument shows how its
+voice bus leaves the jacks. YouKnow shows 01 and 02: chorus Off and I+II leave as mono, I and
+II as stereo, and the captions under the icons say so.
+
+What enforces it here: `Tests/validate_panel_geometry.py` (panel sizes, frame divisibility,
+every widget inside its own panel, the 25 px side margin) runs on every CI push;
+`Design/render_panels.py`'s `validate()` (node sets, asset inventory, caption spacing, the
+routing symbols' placement) runs with each regeneration on macOS. The rest is in the sources:
+the note lamp on both fronts, the tape on all four panels, the placeholder at (347, 15) on a
+plain header plate, the stock jacks, and the folded-back cable hole at (377, 15). Read the
+guidelines again before any panel change — the acceptance checklist in the SDK repeats
+several of them as boxes to tick.
+
 ## The distribution agreement governs release
 
 **<https://developer.reasonstudios.com/agreements/distribution-agreement>** — *General

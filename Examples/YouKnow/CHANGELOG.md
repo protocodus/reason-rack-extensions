@@ -4,6 +4,13 @@ Notable customer-facing changes to YouKnow are recorded here.
 
 ## 1.0.0f21 - Unreleased
 
+- Show Reason's routing symbols above the audio outputs, as the GUI design
+  guidelines require of every back panel: the mono voice bus leaves as mono
+  with Chorus Off or I+II and as stereo with Chorus I or II.
+- Feed a single cabled output the mix of both channels, as the original
+  instrument's L/MONO jack does, instead of one channel alone; Reason's
+  auto-routing to a mono channel now hears the whole sound. Both outputs
+  cabled, or none, are unchanged.
 - Carry the resonance amplifier's own input offset into the filter loop under
   Unit Character, as upstream now does: fast resonance moves under a held note
   thump slightly and self-oscillation settles per voice. Unit Character 0 is

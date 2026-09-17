@@ -57,6 +57,21 @@ float NoteVelocity(const TJBox_PropertyDiff& diff)
     return static_cast<float>(std::clamp(
         FiniteOr(JBox_GetNumber(diff.fCurrentValue), 0.0), 0.0, 127.0));
 }
+
+// The instrument's L/MONO jack, as the source plug-in folds it
+// (PluginProcessor.cpp, monoJackFoldGain). Service Notes p. 15: each
+// output-selector wiper feeds its own jack through 2.2 kOhm (R64 into JA2,
+// R65 into JA1) and each jack's normally-closed contact returns to the other
+// jack's node. One inserted plug therefore ties the two nodes together and
+// carries both wipers, weighted R65 / (R64 + R65) and R64 / (R64 + R65); the
+// instrument never delivers one channel alone on a single jack, so neither
+// does a single connected Rack output. Equal resistors make that the mean.
+constexpr float kMonoJackR64Ohms = 2200.0f;
+constexpr float kMonoJackR65Ohms = 2200.0f;
+constexpr float kMonoJackFoldGain =
+    kMonoJackR65Ohms / (kMonoJackR64Ohms + kMonoJackR65Ohms);
+static_assert(kMonoJackFoldGain == 0.5f,
+              "R64 and R65 are equal, so the mono jack is the channel mean");
 }
 
 CYouKnow::CYouKnow(double sampleRate)
@@ -84,6 +99,8 @@ CYouKnow::CYouKnow(double sampleRate)
 {
     fAudioOutLeft = JBox_GetMotherboardObjectRef("/audio_outputs/left");
     fAudioOutRight = JBox_GetMotherboardObjectRef("/audio_outputs/right");
+    fAudioOutLeftConnected = JBox_MakePropertyRef(fAudioOutLeft, "connected");
+    fAudioOutRightConnected = JBox_MakePropertyRef(fAudioOutRight, "connected");
     fEnvironment = JBox_GetMotherboardObjectRef("/environment");
     fTransport = JBox_GetMotherboardObjectRef("/transport");
     fNoteStates = JBox_GetMotherboardObjectRef("/note_states");
@@ -193,6 +210,10 @@ void CYouKnow::SnapshotProperties()
         input.connected = JBox_GetBoolean(
             JBox_LoadMOMProperty(input.connectedProperty)) != 0;
     }
+    fLeftConnected = JBox_GetBoolean(
+        JBox_LoadMOMProperty(fAudioOutLeftConnected)) != 0;
+    fRightConnected = JBox_GetBoolean(
+        JBox_LoadMOMProperty(fAudioOutRightConnected)) != 0;
     fKeyModeReassertPressed = JBox_GetBoolean(
         JBox_LoadMOMProperty(fKeyModeReassert)) != 0;
 }
@@ -213,6 +234,14 @@ bool CYouKnow::ApplyPropertyDiff(const TJBox_PropertyDiff& diff, bool previous)
                 fValues[index] = ParameterValue(static_cast<EParameter>(index), value);
                 return true;
             }
+    }
+    if (diff.fObjectRef == fAudioOutLeft || diff.fObjectRef == fAudioOutRight)
+    {
+        if (diff.fPropertyRef == fAudioOutLeftConnected)
+            fLeftConnected = JBox_GetBoolean(value) != 0;
+        else if (diff.fPropertyRef == fAudioOutRightConnected)
+            fRightConnected = JBox_GetBoolean(value) != 0;
+        return false;
     }
     for (std::size_t index = 0; index < fCVInputs.size(); ++index)
     {
@@ -660,11 +689,21 @@ void CYouKnow::RenderBatch(const TJBox_PropertyDiff propertyDiffs[],
 
     SetNoteLamp(fEngine.getActiveVoiceCount() > 0);
 
+    // Reason reports each jack's cable through its connected property. Both
+    // cables carry the pair as rendered; one cable carries the L/MONO fold
+    // of both channels on whichever jack is plugged (kMonoJackFoldGain), and
+    // the unplugged jack is left unwritten. No cable at all changes nothing:
+    // the pair is still written, so a later connection hears a running tail.
+    const bool mono = fLeftConnected != fRightConnected;
+    if (mono)
+        for (std::size_t sample = 0; sample < kBatchSize; ++sample)
+            left[sample] = kMonoJackFoldGain * (left[sample] + right[sample]);
+
     bool audible = false;
     for (std::size_t sample = 0; sample < kBatchSize; ++sample)
     {
         if (std::abs(left[sample]) > kJBox_SilentThreshold
-            || std::abs(right[sample]) > kJBox_SilentThreshold)
+            || (!mono && std::abs(right[sample]) > kJBox_SilentThreshold))
         {
             audible = true;
             break;
@@ -673,6 +712,14 @@ void CYouKnow::RenderBatch(const TJBox_PropertyDiff propertyDiffs[],
     if (!audible)
         return;
 
+    if (mono)
+    {
+        const TJBox_Value output = JBox_LoadMOMPropertyByTag(
+            fLeftConnected ? fAudioOutLeft : fAudioOutRight,
+            kJBox_AudioOutputBuffer);
+        JBox_SetDSPBufferData(output, 0, static_cast<int>(kBatchSize), left);
+        return;
+    }
     const TJBox_Value leftOutput = JBox_LoadMOMPropertyByTag(
         fAudioOutLeft, kJBox_AudioOutputBuffer);
     const TJBox_Value rightOutput = JBox_LoadMOMPropertyByTag(

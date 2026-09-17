@@ -156,6 +156,11 @@ back = {
 		S_cv_input_vca_level = widget(167, 477, "CVJack", 3),
 		S_cv_input_sub = widget(239, 477, "CVJack", 3),
 		S_cv_input_noise = widget(311, 477, "CVJack", 3),
+		-- Reason Studios' routing symbols (GUI design guidelines, a
+		-- requirement on every back panel): the voice bus is mono, and it
+		-- leaves as mono with chorus Off or I+II and as stereo in I or II.
+		S_routing_mono = widget(486, 362, "Routing_Icon_White_01_1frames", 1),
+		S_routing_stereo = widget(580, 362, "Routing_Icon_White_02_1frames", 1),
 		S_audio_output_left = widget(485, 462, "AudioJack", 3),
 		S_audio_output_right = widget(575, 462, "AudioJack", 3),
 	},

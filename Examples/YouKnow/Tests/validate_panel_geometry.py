@@ -28,6 +28,9 @@ HD = PROJECT / "GUI" / "Output" / "HD"
 Q = 5  # authoring resolution: 1 logical unit is 5 device pixels
 WIDTH, HEIGHT = 754, 552
 FOLDED_HEIGHT = 30
+# The GUI design guidelines require an empty 25 HD-pixel margin along the left
+# and right edges of every panel, clear of anything that responds to input.
+SIDE_MARGIN = 25 / Q
 
 PANEL_SIZES = {
     "front": (WIDTH, HEIGHT),
@@ -106,6 +109,11 @@ def check_panel_bounds(device, failures):
                     f"{name}/{node}: {path} at ({x:g}, {y:g}) sized "
                     f"{frame_w:g}x{frame_h:g} falls outside the "
                     f"{width}x{height} {name} panel")
+            elif x < SIDE_MARGIN or x + frame_w > width - SIDE_MARGIN:
+                failures.append(
+                    f"{name}/{node}: {path} at ({x:g}, {y:g}) sized "
+                    f"{frame_w:g}x{frame_h:g} enters the {SIDE_MARGIN:g}-unit "
+                    f"side margin the GUI design guidelines keep clear")
             checked += 1
     return checked
 

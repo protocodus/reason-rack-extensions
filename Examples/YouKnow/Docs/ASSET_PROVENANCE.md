@@ -53,6 +53,19 @@ a pathless 204-by-16 logical-pixel surface, following the SDK SimplePlayer
 example. Reason supplies its native Arial medium patch and status text; the
 folded patch field retains the native Bold LCD style.
 
+### Reason Studios stock decorations
+
+The rear routing symbols are the stock white icons from Reason Studios'
+public 2D graphics pack, committed as downloaded. `Design/render_panels.py`
+(`routing_icon()`) only composites them into the previews and never re-encodes
+them, so the committed bytes are the input bytes.
+
+| Stock pack input | SHA-256 | YouKnow file (byte-identical in `GUI2D/` and `GUI/Output/HD/`) |
+| --- | --- | --- |
+| `RE2D_Stock_Graphics_1_1.zip` from `https://cdn.reasonstudios.com/developers/RackExtensionSDK/Graphics/RE2D_Stock_Graphics_1_1.zip` | `3985d1aa9ccf3ff3752598146e9bb519510d0dd15dfc09b52110fc4a033f22c4` | - |
+| `Decorations/Routing_Icon_White_01_1frames.png` (mono in, mono out) | `638b4b491632d4c3df9293943feb3f0faa2c61f840ae15f30e847cf80cdddc38` | `Routing_Icon_White_01_1frames.png` |
+| `Decorations/Routing_Icon_White_02_1frames.png` (mono in, stereo out) | `4bb34ecc958ac44c30f95298b2229a20800355f839f67c0012e96c00c8fe5f8a` | `Routing_Icon_White_02_1frames.png` |
+
 ## Adapted SDK sample scaffolding
 
 The following YouKnow files are adapted, non-byte-identical descendants of the
@@ -247,6 +260,10 @@ recorded licensing and deployment evidence belongs to the support-site history.
   SDK CV jack input; this change introduces no new external artwork or fonts.
   CV behavior and control metadata are defined in the Rack adapter and
   `motherboard_def.lua`.
+- The rear routing symbols (GUI design guidelines requirement) are the two
+  stock decorations listed above, placed as static decorations above the
+  audio jacks with code-rendered captions naming the chorus positions they
+  describe; this change introduces no new fonts and no drawn artwork.
 - `Docs/build_release_materials.py` derives the Shop front and back views, the
   1:1 thumbnail and the PDF manual in `Release/<version>/` from the assembled
   panels and maintained Markdown notices. The thumbnail composites the front

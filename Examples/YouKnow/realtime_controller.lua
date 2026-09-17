@@ -38,6 +38,10 @@ rt_input_setup = {
         "/cv_inputs/sub_cv/connected",
         "/cv_inputs/noise_cv/value",
         "/cv_inputs/noise_cv/connected",
+        -- One plugged jack carries the L/MONO fold of both channels
+        -- (YouKnow.cpp, kMonoJackFoldGain), so the wrapper follows cabling.
+        "/audio_outputs/left/connected",
+        "/audio_outputs/right/connected",
     },
 }
 
