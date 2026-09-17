@@ -1,23 +1,43 @@
 {
   "adjustments": {
     "Effects/Broken Telemetry.repatch": {
-      "gain_change_db": -0.23971617002354215,
+      "gain_change_db": -0.38954950140701394,
       "method": "Retain the Aging 0% calibration and all musical parameters; attenuate only a confirmed over-limit stored presetGain after the upstream DSP update and Rack product configuration. Measure the calibrated trim at Aging 0% and 50%, use their maximum calibration-chord peak/RMS with a 0.0000005 measurement-rounding allowance, and floor the corrected trim to nine decimals.",
       "observed_before": {
         "0": {
-          "peak": 0.18,
-          "rms": 0.025492
+          "peak": 0.182926,
+          "rms": 0.024901
         },
         "50": {
-          "peak": 0.185034,
-          "rms": 0.026058
+          "peak": 0.188256,
+          "rms": 0.025453
         }
       },
-      "preset_gain_after": 0.900735245,
-      "preset_gain_before": 0.907371244,
+      "preset_gain_after": 0.889951449,
+      "preset_gain_before": 0.900735245,
+      "prior_adjustment": {
+        "gain_change_db": -0.23971617002354215,
+        "method": "Retain the Aging 0% calibration and all musical parameters; attenuate only a confirmed over-limit stored presetGain after the upstream DSP update and Rack product configuration. Measure the calibrated trim at Aging 0% and 50%, use their maximum calibration-chord peak/RMS with a 0.0000005 measurement-rounding allowance, and floor the corrected trim to nine decimals.",
+        "observed_before": {
+          "0": {
+            "peak": 0.18,
+            "rms": 0.025492
+          },
+          "50": {
+            "peak": 0.185034,
+            "rms": 0.026058
+          }
+        },
+        "preset_gain_after": 0.900735245,
+        "preset_gain_before": 0.907371244,
+        "target_peak": 0.18,
+        "target_rms": 0.04,
+        "upstream_revision": "5d9390daaa518e91e64ad454736b011dfd05168c"
+      },
+      "reason": "chorus Mode I moved to the owner's blend (upstream Docs/decisions.md, 2026-09-17); the shorter delay centre lifted this chorus I patch's calibration-chord peak at Aging 50% above the ceiling",
       "target_peak": 0.18,
       "target_rms": 0.04,
-      "upstream_revision": "5d9390daaa518e91e64ad454736b011dfd05168c"
+      "upstream_revision": "f929eca"
     },
     "Effects/Circuit Rain.repatch": {
       "gain_change_db": -1.7672057528984686,
@@ -68,6 +88,146 @@
       "target_peak": 0.18,
       "target_rms": 0.04,
       "upstream_revision": "5d9390daaa518e91e64ad454736b011dfd05168c"
+    },
+    "Glass Pad.repatch": {
+      "gain_change_db": -0.25916861528765,
+      "method": "Retain the Aging 0% calibration and all musical parameters; attenuate only a confirmed over-limit stored presetGain after the upstream DSP update and Rack product configuration. Measure the calibrated trim at Aging 0% and 50%, use their maximum calibration-chord peak/RMS with a 0.0000005 measurement-rounding allowance, and floor the corrected trim to nine decimals.",
+      "observed_before": {
+        "0": {
+          "peak": 0.175823,
+          "rms": 0.041211
+        },
+        "50": {
+          "peak": 0.175815,
+          "rms": 0.04121
+        }
+      },
+      "preset_gain_after": 0.508170677,
+      "preset_gain_before": 0.515345173,
+      "reason": "chorus Mode I moved to the owner's blend (upstream Docs/decisions.md, 2026-09-17); the shorter delay centre lifted this patch's calibration chord over the bank's level limits",
+      "target_peak": 0.18,
+      "target_rms": 0.04,
+      "upstream_revision": "f929eca"
+    },
+    "Leads/8432 Lead.repatch": {
+      "gain_change_db": -0.7655463888398775,
+      "method": "Retain the Aging 0% calibration and all musical parameters; attenuate only a confirmed over-limit stored presetGain after the upstream DSP update and Rack product configuration. Measure the calibrated trim at Aging 0% and 50%, use their maximum calibration-chord peak/RMS with a 0.0000005 measurement-rounding allowance, and floor the corrected trim to nine decimals.",
+      "observed_before": {
+        "0": {
+          "peak": 0.150953,
+          "rms": 0.043685
+        },
+        "50": {
+          "peak": 0.150961,
+          "rms": 0.043684
+        }
+      },
+      "preset_gain_after": 0.257682074,
+      "preset_gain_before": 0.278874492,
+      "reason": "chorus Mode I moved to the owner's blend (upstream Docs/decisions.md, 2026-09-17); the shorter delay centre lifted this patch's calibration chord over the bank's level limits",
+      "target_peak": 0.18,
+      "target_rms": 0.04,
+      "upstream_revision": "f929eca"
+    },
+    "Leads/Neon Glide.repatch": {
+      "gain_change_db": -0.8299262250029726,
+      "method": "Retain the Aging 0% calibration and all musical parameters; attenuate only a confirmed over-limit stored presetGain after the upstream DSP update and Rack product configuration. Measure the calibrated trim at Aging 0% and 50%, use their maximum calibration-chord peak/RMS with a 0.0000005 measurement-rounding allowance, and floor the corrected trim to nine decimals.",
+      "observed_before": {
+        "0": {
+          "peak": 0.156187,
+          "rms": 0.04401
+        },
+        "50": {
+          "peak": 0.156217,
+          "rms": 0.044007
+        }
+      },
+      "preset_gain_after": 0.233234371,
+      "preset_gain_before": 0.256208999,
+      "reason": "chorus Mode I moved to the owner's blend (upstream Docs/decisions.md, 2026-09-17); the shorter delay centre lifted this patch's calibration chord over the bank's level limits",
+      "target_peak": 0.18,
+      "target_rms": 0.04,
+      "upstream_revision": "f929eca"
+    },
+    "Pads/Dark Motion Pad.repatch": {
+      "gain_change_db": -0.23341730456178475,
+      "method": "Retain the Aging 0% calibration and all musical parameters; attenuate only a confirmed over-limit stored presetGain after the upstream DSP update and Rack product configuration. Measure the calibrated trim at Aging 0% and 50%, use their maximum calibration-chord peak/RMS with a 0.0000005 measurement-rounding allowance, and floor the corrected trim to nine decimals.",
+      "observed_before": {
+        "0": {
+          "peak": 0.146025,
+          "rms": 0.041089
+        },
+        "50": {
+          "peak": 0.145974,
+          "rms": 0.041085
+        }
+      },
+      "preset_gain_after": 0.489402354,
+      "preset_gain_before": 0.495863984,
+      "reason": "chorus Mode I moved to the owner's blend (upstream Docs/decisions.md, 2026-09-17); the shorter delay centre lifted this patch's calibration chord over the bank's level limits",
+      "target_peak": 0.18,
+      "target_rms": 0.04,
+      "upstream_revision": "f929eca"
+    },
+    "Strings/8417 Str Vibrato.repatch": {
+      "gain_change_db": -0.21585422997616183,
+      "method": "Retain the Aging 0% calibration and all musical parameters; attenuate only a confirmed over-limit stored presetGain after the upstream DSP update and Rack product configuration. Measure the calibrated trim at Aging 0% and 50%, use their maximum calibration-chord peak/RMS with a 0.0000005 measurement-rounding allowance, and floor the corrected trim to nine decimals.",
+      "observed_before": {
+        "0": {
+          "peak": 0.157447,
+          "rms": 0.041006
+        },
+        "50": {
+          "peak": 0.157429,
+          "rms": 0.041006
+        }
+      },
+      "preset_gain_after": 0.407606237,
+      "preset_gain_before": 0.413581673,
+      "reason": "chorus Mode I moved to the owner's blend (upstream Docs/decisions.md, 2026-09-17); the shorter delay centre lifted this patch's calibration chord over the bank's level limits",
+      "target_peak": 0.18,
+      "target_rms": 0.04,
+      "upstream_revision": "f929eca"
+    },
+    "Strings/Shimmer String Ensemble.repatch": {
+      "gain_change_db": -0.7468253738716017,
+      "method": "Retain the Aging 0% calibration and all musical parameters; attenuate only a confirmed over-limit stored presetGain after the upstream DSP update and Rack product configuration. Measure the calibrated trim at Aging 0% and 50%, use their maximum calibration-chord peak/RMS with a 0.0000005 measurement-rounding allowance, and floor the corrected trim to nine decimals.",
+      "observed_before": {
+        "0": {
+          "peak": 0.196161,
+          "rms": 0.040759
+        },
+        "50": {
+          "peak": 0.196155,
+          "rms": 0.040758
+        }
+      },
+      "preset_gain_after": 0.591033317,
+      "preset_gain_before": 0.611707486,
+      "reason": "chorus Mode I moved to the owner's blend (upstream Docs/decisions.md, 2026-09-17); the shorter delay centre lifted this patch's calibration chord over the bank's level limits",
+      "target_peak": 0.18,
+      "target_rms": 0.04,
+      "upstream_revision": "f929eca"
+    },
+    "Strings/Short String Section.repatch": {
+      "gain_change_db": -0.45733870236916363,
+      "method": "Retain the Aging 0% calibration and all musical parameters; attenuate only a confirmed over-limit stored presetGain after the upstream DSP update and Rack product configuration. Measure the calibrated trim at Aging 0% and 50%, use their maximum calibration-chord peak/RMS with a 0.0000005 measurement-rounding allowance, and floor the corrected trim to nine decimals.",
+      "observed_before": {
+        "0": {
+          "peak": 0.189731,
+          "rms": 0.035849
+        },
+        "50": {
+          "peak": 0.189704,
+          "rms": 0.035848
+        }
+      },
+      "preset_gain_after": 0.425378034,
+      "preset_gain_before": 0.43803842,
+      "reason": "chorus Mode I moved to the owner's blend (upstream Docs/decisions.md, 2026-09-17); the shorter delay centre lifted this patch's calibration chord over the bank's level limits",
+      "target_peak": 0.18,
+      "target_rms": 0.04,
+      "upstream_revision": "f929eca"
     }
   },
   "format": 1,
@@ -615,13 +775,13 @@
     "Effects - Rising Voltage.repatch": 0.394629721,
     "Effects - Storm Signal.repatch": 1.0,
     "Effects/8474 Sweep.repatch": 0.546814932,
-    "Effects/Broken Telemetry.repatch": 0.900735245,
+    "Effects/Broken Telemetry.repatch": 0.889951449,
     "Effects/Circuit Rain.repatch": 0.902417211,
     "Effects/Falling Star.repatch": 0.581844056,
     "Effects/Gravity Well.repatch": 0.75263505,
     "Effects/Resonant Woodblock.repatch": 1.0,
     "Effects/Steam Hat.repatch": 1.0,
-    "Glass Pad.repatch": 0.515345173,
+    "Glass Pad.repatch": 0.508170677,
     "Hollow Fifths.repatch": 0.797742618,
     "Init.repatch": 0.560692127,
     "Keys - Plucked Keys.repatch": 0.617741067,
@@ -633,11 +793,11 @@
     "Keys/Percussive Mallet.repatch": 0.667324794,
     "Keys/Reverse Clav.repatch": 0.739366983,
     "Keys/Warm Poly.repatch": 0.396995472,
-    "Leads/8432 Lead.repatch": 0.278874492,
+    "Leads/8432 Lead.repatch": 0.257682074,
     "Leads/Amber Ribbon.repatch": 0.85383582,
     "Leads/Copper Reed.repatch": 0.40051081,
     "Leads/Laser Thread.repatch": 0.695526108,
-    "Leads/Neon Glide.repatch": 0.256208999,
+    "Leads/Neon Glide.repatch": 0.233234371,
     "Leads/Pulse Whistle.repatch": 0.84977667,
     "Organ.repatch": 0.284386754,
     "Pads - Lunar Drift.repatch": 0.724642955,
@@ -645,7 +805,7 @@
     "Pads/Afterimage.repatch": 0.85561424,
     "Pads/Aurora Veil.repatch": 0.587903301,
     "Pads/Bright Air Pad.repatch": 0.635402537,
-    "Pads/Dark Motion Pad.repatch": 0.495863984,
+    "Pads/Dark Motion Pad.repatch": 0.489402354,
     "Pads/Drifting Organ.repatch": 0.430391664,
     "Pads/Moon Choir.repatch": 0.615841286,
     "Pads/Simple Saw Pad.repatch": 0.575935589,
@@ -662,7 +822,7 @@
     "Strings/8414 Str Brass.repatch": 0.371895171,
     "Strings/8415 Str Octave.repatch": 0.419031131,
     "Strings/8416 Strings.repatch": 0.453885242,
-    "Strings/8417 Str Vibrato.repatch": 0.413581673,
+    "Strings/8417 Str Vibrato.repatch": 0.407606237,
     "Strings/8418 Str Marcato.repatch": 0.485700243,
     "Strings/8425 Str Wash.repatch": 0.722458123,
     "Strings/8426 Str Tremolo.repatch": 0.428299171,
@@ -671,9 +831,9 @@
     "Strings/Dark String Ensemble.repatch": 0.44425769,
     "Strings/Frozen Harmonics.repatch": 0.690916489,
     "Strings/Glass Loom.repatch": 0.602867275,
-    "Strings/Shimmer String Ensemble.repatch": 0.611707486,
+    "Strings/Shimmer String Ensemble.repatch": 0.591033317,
     "Strings/Short Bow.repatch": 0.448296038,
-    "Strings/Short String Section.repatch": 0.43803842,
+    "Strings/Short String Section.repatch": 0.425378034,
     "Strings/Silk Section.repatch": 0.380077677,
     "Strings/Slow String Section.repatch": 0.418383823,
     "Strings/Soft String Section.repatch": 0.516385413,

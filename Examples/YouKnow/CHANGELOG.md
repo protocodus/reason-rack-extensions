@@ -25,6 +25,20 @@ Notable customer-facing changes to YouKnow are recorded here.
 - Give the sub oscillator's switch transistor its storage time, so the sub
   carries a faint second harmonic that rises with pitch (−64 dBc at the top of
   the 4′ range).
+- Run chorus Mode I at the owner's by-ear blend of the three OQ-01 timing
+  candidates (3.49 ms centre, ±2.04 ms, 0.5248 Hz), as the source product now
+  does; Mode II is unchanged. The shorter delay centre lifted eight patches'
+  calibration chords over the bank's level limits, so their stored preset
+  levels are attenuated by the minimum each needs (0.22–0.83 dB: Broken
+  Telemetry, Glass Pad, 8432 Lead, Neon Glide, Dark Motion Pad, 8417 Str
+  Vibrato, Shimmer String Ensemble, Short String Section); every other patch
+  and all musical parameters are unchanged.
+- Let every converter hold leak between the scan's refreshes at its switch and
+  follower sheets' typical currents (a hundredth of a step per 4.2 ms pass,
+  more on a warm board), and put the rectifier ripple the ±15 V regulator's
+  typical 68 dB leaves onto the filter cutoff (0.003 cents at 120 Hz under
+  Unit Character), as upstream now does. Both sit far below audibility; Unit
+  Character 0 keeps the ripple out of the cutoff exactly.
 - Synchronize the shared DSP to upstream `5d9390d`: circuit-accurate DCO clock,
   temperature, component and retained-charge behavior; firmware envelope,
   portamento and control-precision fixes; finite envelope-hold acquisition;

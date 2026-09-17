@@ -177,7 +177,7 @@ EngineParameters randomParameters(std::mt19937& rng, bool product)
     p.vcfTanhMode = anyOf<VcfTanhMode>(rng, 2);
     p.vcfFastEarlyMode = anyOf<VcfFastEarlyMode>(rng, 1);
     p.vcfSolverMode = anyOf<VcfSolverMode>(rng, 2);
-    p.chorusTimingProfile = anyOf<ChorusTimingProfile>(rng, 3);
+    p.chorusTimingProfile = anyOf<ChorusTimingProfile>(rng, 4);
     p.resonanceCompensationShape = anyOf<ResonanceCompensationShape>(rng, 2);
     // Comparison switches: any combination must render, not only the shipped one.
     for (bool* flag : { &p.enableVcfStageOffsets, &p.enableResonanceOtaOffset,
@@ -189,6 +189,7 @@ EngineParameters randomParameters(std::mt19937& rng, bool product)
                         &p.enableSubDiodeControl, &p.enableSubStorageSkew,
                         &p.enableResonanceHeadroomTemperature,
                         &p.enableResonanceServiceTrim,
+                        &p.enableConverterHoldDroop, &p.enableRailRipple,
                         &p.enableNoiseLevelBeforeC41,
                         &p.useCircuitDerivedNoiseLevelShape, &p.enableNarrowOneTwoChorus,
                         &p.enableChorusMuteDrive, &p.enableChorusClockMuteCircuit,

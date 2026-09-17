@@ -493,6 +493,53 @@ recalibrated: at Aging 50% the mechanism changes only resonance-dependent DC
 and per-voice self-oscillation settling, and the bank check above passes with
 the existing trims; a level pass belongs with the next release candidate.
 
+## 2026-09-17 chorus Mode I owner blend
+
+Ported from the same upstream working branch by the same anchored edit
+script. `ChorusTimingProfile::OwnerBlend` (`YouKnowChorus.h`/`.cpp`) is the
+1:2:1 mean of `Shipping`, `A11Spectral` and `A11ClickTiming` in Mode I — the
+owner's by-ear decision of 2026-09-17, recorded in upstream
+`Docs/decisions.md` — and `ProductFidelityProfile::applyTo()` selects it, so
+`RackProductConfiguration` carries it; the engine default stays `Shipping`,
+which `EngineRenderContract` still checks. `sanitise()` accepts the new
+enumerator and the fuzz contract draws it. Mode II is unchanged.
+
+## 2026-09-17 converter hold droop and rail ripple
+
+Ported from the same upstream working branch `claude/admiring-allen-tgtxg2`
+(virtual-instrument-youknow) by the same anchored edit script that produced the
+upstream change, so the engine hunks are identical; the port's `memcpy`
+bit-cast, frozen `.inc` tables and the `sanitise()` hunk are untouched.
+Confined to `YouKnowEngine.h`/`.cpp`, `EngineParameters::operator==` and the
+fuzz contract's switch list:
+
+- `EngineParameters::enableConverterHoldDroop` (default false;
+  `ProductFidelityProfile::applyTo()` sets it for the product, as it does the
+  serviced VCF calibration, so `RackProductConfiguration` carries it and the
+  engine's reference fingerprints keep ideal holds):
+  `applyConverterHoldDroop()` runs on the drift cadence and lowers every
+  converter hold's written value (and the RES hold's state, which has no
+  post-hold network) by `converterHoldDroopVoltsPerSecond()` times the tick --
+  the HD14051B's 10 pA typical off-leakage plus the follower's typical input
+  bias (65 pA TL08xC behind IC24's DCO and SUB holds, 30 pA TL064C behind
+  IC23's and IC26's), the follower's share doubling every 10 C of the
+  modelled board temperature -- converted to each hold's units
+  (`invertingBranchLsbVolts` for IC28a's branch, `ControlDac`'s positive span
+  for IC26's). The direction is a stated convention.
+- `EngineParameters::enableRailRipple` (default true): `advanceRailRipple()`
+  runs a 120 Hz phasor on the wall clock beside the warm-up timer;
+  `railRipplePeakVolts()` is the p. 16 reservoirs' rated-load sawtooth
+  fundamental through the M5230L's typical 68 dB (80 uV peak), and both
+  `cutoffAnalogCounts()` call sites read the rail as the load droop less the
+  ripple, so it enters the cutoff through the same voiced, Unit
+  Character-scaled transfer: bit-exact at Character 0.
+
+**Contracts (Linux, clang 18).** The behavioural render, the upstream
+regression contract, the engine port contract, the wrapper host contract
+(against the SDK API stub) and the engine fuzz (the fuzzed switch set now
+includes both new switches) pass; the frozen-table contract compiles and still
+reports only its documented Linux libm mismatch.
+
 ## 2026-09-17 one-temperature resonance return, RES adjustment, gradient warm-up, jack-board floor, sub storage skew
 
 Ported from the same upstream working branch `claude/admiring-allen-tgtxg2`
