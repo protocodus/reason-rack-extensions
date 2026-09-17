@@ -189,6 +189,7 @@ EngineParameters randomParameters(std::mt19937& rng, bool product)
                         &p.enableSubDiodeControl, &p.enableSubStorageSkew,
                         &p.enableResonanceHeadroomTemperature,
                         &p.enableResonanceServiceTrim,
+                        &p.enableConverterHoldDroop, &p.enableRailRipple,
                         &p.enableNoiseLevelBeforeC41,
                         &p.useCircuitDerivedNoiseLevelShape, &p.enableNarrowOneTwoChorus,
                         &p.enableChorusMuteDrive, &p.enableChorusClockMuteCircuit,
