@@ -10,7 +10,9 @@ trims, and the converter-hold leakage and rail ripple. The never-uploaded f21
 U45 was assembled from `f834459` and does not carry this source. Fixed
 41-sample latency, saved control identities and MIDI/CV ownership are
 preserved; every stored patch carries the new device version and nothing else
-changed in the bank. The candidate source is `b481256` on `main`.
+changed in the bank. The candidate source is `b481256` on `main`; `d34a385`,
+which adds this record and a test-harness fix, archives the same bytes (no
+source the U45 carries changed), so the handoff may be assembled from either.
 
 ## Final local results
 
