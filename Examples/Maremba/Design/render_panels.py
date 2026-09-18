@@ -897,9 +897,8 @@ def render_front_panel():
         (39, 228, "SYMPATHETIC", True),
         (122, 228, "BODY BLOOM",  True),
         (205, 228, "PITCH GLIDE", True),
-        (39, 310, "MALLET ROLL", True),
-        (122, 310, "MIRLITON BUZZ", False),
-        (205, 310, "ARTIFACTS",   False),
+        (80, 310, "MIRLITON BUZZ", False),
+        (164, 310, "ARTIFACTS",   False),
     ]
     for kx, ky, name, is_gold in s1_knobs:
         cx = (kx + 26) * Q
@@ -1248,9 +1247,8 @@ def composite_front(panel=None):
         (39, 228, 32),   # sympathetic
         (122, 228, 26),  # bodyBloom
         (205, 228, 0),   # pitchGlide
-        (39, 310, 22),   # rollSpeed
-        (122, 310, 15),  # buzzAmount
-        (205, 310, 18),  # artifacts
+        (80, 310, 15),   # buzzAmount
+        (164, 310, 18),  # artifacts
         # Section 2
         (286, 86, 12),   # malletType
         (338, 86, 35),   # malletHardness

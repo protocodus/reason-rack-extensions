@@ -49,9 +49,8 @@ front = {
         S_knob_bodyBloom = knob(122, 228),
         S_knob_pitchGlide = knob(205, 228),
 
-        S_knob_rollSpeed = knob(39, 310),
-        S_knob_buzz = knob(122, 310),
-        S_knob_artifacts = knob(205, 310),
+        S_knob_buzz = knob(80, 310),
+        S_knob_artifacts = knob(164, 310),
 
         -- Section 2 Knobs
         S_knob_malletType = knob(286, 86),

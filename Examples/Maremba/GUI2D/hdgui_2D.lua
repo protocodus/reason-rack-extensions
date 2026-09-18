@@ -73,7 +73,6 @@ front = jbox.panel{
         knob("S_knob_bodyBloom", "bodyBloom"),
         knob("S_knob_pitchGlide", "pitchGlide"),
 
-        knob("S_knob_rollSpeed", "rollSpeed"),
         knob("S_knob_buzz", "buzzAmount"),
         knob("S_knob_artifacts", "artifacts"),
 

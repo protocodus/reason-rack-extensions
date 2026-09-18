@@ -70,10 +70,9 @@ front = jbox.panel{
         knob(122, 228, "bodyBloom"),
         knob(205, 228, "pitchGlide"),
 
-        -- Section 1 Row 2: Mallet Roll, Mirliton Buzz, Artifacts
-        knob(39, 310, "rollSpeed"),
-        knob(122, 310, "buzzAmount"),
-        knob(205, 310, "artifacts"),
+        -- Section 1 Row 2: Mirliton Buzz, Artifacts
+        knob(80, 310, "buzzAmount"),
+        knob(164, 310, "artifacts"),
 
         -- Section 2: Exciter & Resonator Core
         -- Row 1: Striker, Hardness, Position, Variance

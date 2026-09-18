@@ -114,7 +114,8 @@ void CMaremba::HandleNoteEvents(const TJBox_PropertyDiff propertyDiffs[], TJBox_
             if (note <= 127) {
                 double vel = JBox_GetNumber(propertyDiffs[i].fCurrentValue);
                 if (vel > 0.0) {
-                    fEngine.NoteOn(static_cast<int>(note), static_cast<float>(vel));
+                    float normVel = static_cast<float>(std::clamp(vel / 127.0, 0.0, 1.0));
+                    fEngine.NoteOn(static_cast<int>(note), normVel);
                     fLampSecondsRemaining = 0.25f;
                     if (!fLampOn) {
                         JBox_StoreMOMProperty(fNoteOnLampRef, JBox_MakeBoolean(true));
@@ -141,7 +142,7 @@ void CMaremba::HandleCVEvents() {
     }
 
     if (fCVInputs[kGateCV].connected) {
-        double gateVal = fCVInputs[kGateCV].value;
+        double gateVal = std::clamp(fCVInputs[kGateCV].value, 0.0, 1.0);
         bool gateActive = (gateVal > 0.1);
         int note = static_cast<int>(std::clamp(fCVInputs[kNoteCV].value * 127.0 + 0.5, 0.0, 127.0));
 
@@ -214,15 +215,7 @@ void CMaremba::UpdateParameters() {
     ep.pitchGlide = static_cast<float>(fValues[kPitchGlide]);
     ep.bodyBloom = static_cast<float>(fValues[kBodyBloom]);
 
-    float rollMod = static_cast<float>(fValues[kRollSpeed]) * 20.0f;
-    if (fCVInputs[kRollCV].connected) {
-        rollMod += static_cast<float>(fCVInputs[kRollCV].value) * 20.0f;
-    }
-    // If roll speed is dialed up, mod wheel speeds up the roll
-    if (rollMod > 1.0f) {
-        rollMod += static_cast<float>(fValues[kModWheel]) * 6.0f;
-    }
-    ep.rollSpeed = std::clamp(rollMod, 0.0f, 20.0f);
+    ep.rollSpeed = 0.0f;
 
     ep.closeLevel = static_cast<float>(fValues[kCloseLevel]);
     ep.farLevel = static_cast<float>(fValues[kFarLevel]);
