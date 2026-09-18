@@ -29,9 +29,6 @@
             <Value property="velocityCurve" type="number">2</Value>
             <Value property="polyphony" type="number">1</Value>
             <Value property="masterTune" type="number">0.5000</Value>
-            <Value property="modWheel" type="number">0.0000</Value>
-            <Value property="pitchBend" type="number">0.5000</Value>
-            <Value property="sustainPedal" type="boolean">false</Value>
         </Object>
     </Properties>
 </JukeboxPatch>

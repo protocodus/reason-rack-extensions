@@ -18,6 +18,14 @@ STEPPED_MAX = {
     "polyphony": 2,
 }
 
+FORBIDDEN_PROPERTIES = {
+    "modWheel",
+    "pitchBend",
+    "sustainPedal",
+    "noteon",
+    "instance",
+}
+
 def get_info_version():
     with open(os.path.join(PROJECT_DIR, "info.lua"), "r", encoding="utf-8") as f:
         match = re.search(r'version_number\s*=\s*"([^"]+)"', f.read())
@@ -57,6 +65,11 @@ def validate_all_patches():
             name = val.attrib.get("property")
             kind = val.attrib.get("type")
             text = (val.text or "").strip()
+
+            assert name not in FORBIDDEN_PROPERTIES, (
+                f"{basename}: property '{name}' is a performance controller or unpersisted property and must never be saved in a patch!"
+            )
+
             if kind == "boolean":
                 assert text in {"true", "false"}, f"{basename}: invalid boolean for {name}"
             elif kind == "number":
