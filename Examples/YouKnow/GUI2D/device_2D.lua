@@ -39,24 +39,24 @@ front = {
 	S_backdrop = { { path = "Reason_GUI_front_root_Panel" } },
 	{
 		S_patch_name = {
-			offset = { 284 * Q, 16 * Q },
+			offset = { 284 * Q, 14 * Q },
 			{ size = { 204 * Q, 16 * Q } },
 		},
 		S_patch_browse_group = {
-			offset = { 502 * Q, 13 * Q },
+			offset = { 502 * Q, 11 * Q },
 			{ path = "PatchBrowseGroup" },
 		},
 		S_device_name = {
-			offset = { 580 * Q, 17 * Q },
+			offset = { 580 * Q, 16 * Q },
 			{ path = "TapeHorz" },
 		},
-		S_note_on = lamp(724, 51),
-		S_status_quality = widget(70, 48, "EngineDisplay", 1),
-		S_status_vcfTanhMode = widget(171, 48, "EngineDisplay", 1),
-		S_status_vcfFastEarlyMode = widget(276, 48, "EngineDisplay", 1),
-		S_status_vcfSolverMode = widget(388, 48, "EngineDisplay", 1),
-		S_status_calibration = widget(520, 48, "EngineDisplay", 1),
-		S_status_aging = widget(624, 48, "EngineDisplay", 1),
+		S_note_on = lamp(724, 52),
+		S_status_quality = widget(70, 49, "EngineDisplay", 1),
+		S_status_vcfTanhMode = widget(171, 49, "EngineDisplay", 1),
+		S_status_vcfFastEarlyMode = widget(276, 49, "EngineDisplay", 1),
+		S_status_vcfSolverMode = widget(388, 49, "EngineDisplay", 1),
+		S_status_calibration = widget(520, 49, "EngineDisplay", 1),
+		S_status_aging = widget(624, 49, "EngineDisplay", 1),
 
 		-- Row 1: LFO, oscillator, high-pass filter
 		S_fader_lfoRate = fader(31, 126, "FaderSource"),

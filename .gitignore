@@ -21,6 +21,7 @@ Examples/*/Output/
 /version.txt
 Examples/*
 !Examples/YouKnow/
+!Examples/Maremba/
 
 # GUI2D/, GUI/Output/ and Resources/Public/ are deliberately NOT ignored. The
 # Design/ scripts refine them in place — they read the existing files back and

@@ -168,10 +168,14 @@ VERSION_SIZE = 9.5
 # lets it use the full width of the panel, and gives every field the room its
 # own caption needs. Positions are derived, exactly like the control rows.
 STATUS_STRIP_TOP = 44
-WORDMARK_Y = STATUS_STRIP_TOP / 2
+# Everything in a header band shares that band's vertical centre: the brand,
+# patch window, browse buttons and name tape above the separator, and the
+# readout captions, value windows and Note lamp in the strip below it.
+HEADER_CENTRE_Y = STATUS_STRIP_TOP // 2
+WORDMARK_Y = HEADER_CENTRE_Y
 STATUS_RIGHT_MARGIN = 20
 STATUS_CAPTION_GAP = 5
-STATUS_CENTRE_Y = 56
+STATUS_CENTRE_Y = (STATUS_STRIP_TOP + FRONT_HEADER_BOTTOM) // 2
 
 # Type sizes are logical (1x) pixels. Control captions stay at a uniform size;
 # spacing checks reject crowded text instead of shrinking labels. Section
@@ -278,11 +282,16 @@ def wordmark(draw, version=None, x=WORDMARK_X):
               MUTED, anchor="lm", track=TRACK_SCALE)
 
 
+def ink_bounds(paint):
+    """Logical ink bounds of whatever `paint(draw)` sets on an empty header."""
+    mask = Image.new("RGB", px((WIDTH, FRONT_HEADER_BOTTOM)))
+    paint(ImageDraw.Draw(mask))
+    return tuple(coordinate / Q for coordinate in mask.getbbox())
+
+
 def wordmark_ink_bounds(x=WORDMARK_X):
     """Measure the exact inline signature for grouping, including tracked glyph ink."""
-    mask = Image.new("RGB", px((WIDTH, FRONT_HEADER_BOTTOM)))
-    wordmark(ImageDraw.Draw(mask), x=x)
-    return tuple(coordinate / Q for coordinate in mask.getbbox())
+    return ink_bounds(lambda draw: wordmark(draw, x=x))
 
 
 def contrast_ratio(foreground, background):
@@ -637,7 +646,7 @@ REAR_CONTROLS = (
      "remote": True, "automation": True},
 )
 ENGINE_STATUS_SIZE = (56, 16)
-ENGINE_STATUS_Y = STATUS_CENTRE_Y - 8
+ENGINE_STATUS_Y = STATUS_CENTRE_Y - ENGINE_STATUS_SIZE[1] // 2
 # One shared baseline for every caption in the header's readout strip.
 STATUS_CAPTION_Y = STATUS_CENTRE_Y
 # Remote-controlled rear properties still need a read-only front representation
@@ -691,6 +700,9 @@ PLACEHOLDER_POS = (347, 15)
 # Band one carries identity and the patch; band two is the readout strip that
 # place_status_strip() spreads across the full width beneath it.
 PATCH_BOX_WIDTH = 211
+PATCH_BOX_HEIGHT = 24
+# gui.lua's patch_name height and device_2D.lua's S_patch_name size repeat this.
+PATCH_NAME_HEIGHT = 16
 PATCH_BROWSE_GAP = 10
 PATCH_BROWSE_SIZE = (58, 22)
 HEADER_GROUP_GAP = 26
@@ -698,6 +710,10 @@ DEVICE_NAME_GAP = 20
 DEVICE_NAME_SIZE = (80, 13)
 with Image.open(OUT / "TapeHorz.png") as tape_image:
     DEVICE_NAME_INK_BOUNDS = tuple(value / Q for value in tape_image.getchannel("A").getbbox())
+    # The tape's feathered edge and drop shadow are nearly transparent, so its
+    # visual middle is the middle of the opaque paper, not of every inked row.
+    _tape_body = tape_image.getchannel("A").point(lambda alpha: 255 if alpha >= 128 else 0).getbbox()
+    DEVICE_NAME_BODY_CENTRE = (_tape_body[1] + _tape_body[3]) / 2 / Q
 WORDMARK_INK_BOUNDS = wordmark_ink_bounds()
 WORDMARK_INK_WIDTH = WORDMARK_INK_BOUNDS[2] - WORDMARK_INK_BOUNDS[0]
 PRESET_WIDTH = PATCH_BOX_WIDTH + PATCH_BROWSE_GAP + PATCH_BROWSE_SIZE[0]
@@ -711,11 +727,15 @@ PRESET_RIGHT = PATCH_X + PRESET_WIDTH
 DEVICE_NAME_X = PRESET_RIGHT + DEVICE_NAME_GAP
 HEADER_GROUP_RIGHT = DEVICE_NAME_X + DEVICE_NAME_INK_BOUNDS[2]
 FRONT_WORDMARK_X = px(WORDMARK_X + WIDTH - HEADER_GROUP_RIGHT - WORDMARK_INK_BOUNDS[0]) / Q
-PATCH_BOX = (PATCH_X, 12, PATCH_X + PATCH_BOX_WIDTH, 36)
+PATCH_BOX = (PATCH_X, HEADER_CENTRE_Y - PATCH_BOX_HEIGHT // 2,
+             PATCH_X + PATCH_BOX_WIDTH, HEADER_CENTRE_Y + PATCH_BOX_HEIGHT // 2)
+# Native widgets sit on whole logical pixels, so the tape rounds its opaque
+# body to the nearest one; everything else centres exactly.
 HEADER_NODES = {
-    "S_patch_name": (PATCH_X + 3, 16),
-    "S_patch_browse_group": (PATCH_X + PATCH_BOX_WIDTH + PATCH_BROWSE_GAP, 13),
-    "S_device_name": (DEVICE_NAME_X, 17),
+    "S_patch_name": (PATCH_X + 3, HEADER_CENTRE_Y - PATCH_NAME_HEIGHT // 2),
+    "S_patch_browse_group": (PATCH_X + PATCH_BOX_WIDTH + PATCH_BROWSE_GAP,
+                             HEADER_CENTRE_Y - PATCH_BROWSE_SIZE[1] // 2),
+    "S_device_name": (DEVICE_NAME_X, round(HEADER_CENTRE_Y - DEVICE_NAME_BODY_CENTRE)),
     "S_note_on": (NOTE_LAMP_X, STATUS_CENTRE_Y - LAMP_SIZE // 2),
 }
 
@@ -1655,6 +1675,13 @@ def check_layout():
     status_helper = gui[gui.index("local function status"):gui.index("front = jbox.panel")]
     assert f"width = {ENGINE_STATUS_SIZE[0]}" in status_helper
     assert f"height = {ENGINE_STATUS_SIZE[1]}" in status_helper
+    patch_name_x, patch_name_y = HEADER_NODES["S_patch_name"]
+    assert f"patch_name({patch_name_x}, {patch_name_y}, {PATCH_NAME_HEIGHT}," in gui_front, (
+        "gui.lua: front patch name height differs from the centred layout")
+    device_front = device[device.index("front = {"):device.index("folded_front = {")]
+    assert re.search(r"S_patch_name = \{\s*offset = \{[^}]*\},\s*\{ size = \{ \d+ \* Q, "
+                     rf"{PATCH_NAME_HEIGHT} \* Q \}} \}}", device_front), (
+        "device_2D.lua: front patch name height differs from the centred layout")
     for item in ENGINE_STATUS:
         name = item["name"]
         node = f'S_status_{name}'
@@ -1870,6 +1897,48 @@ def check_spacing():
         "inline branding must retain equal vertical padding")
     assert PATCH_BOX[3] < STATUS_CENTRE_Y - ENGINE_STATUS_SIZE[1] / 2, (
         "the patch window overlaps the readout strip")
+    # Vertical centring: every item in a header band shares that band's middle.
+    # Text is measured by its drawn ink, widgets by their boxes, the tape by its
+    # opaque paper (rounded to the whole pixel native widgets require) and the
+    # lamp by its frames.
+    assert 2 * HEADER_CENTRE_Y == STATUS_STRIP_TOP
+    assert 2 * STATUS_CENTRE_Y == STATUS_STRIP_TOP + FRONT_HEADER_BOTTOM
+    band_texts = [
+        (HEADER_CENTRE_Y, "YOUKNOW", lambda draw: label(
+            draw, (0, WORDMARK_Y), "YOUKNOW", WORDMARK_SIZE, INK,
+            display=True, anchor="lm", track=TRACK_CAPTION)),
+        (HEADER_CENTRE_Y, "by Protocodus", lambda draw: label(
+            draw, (0, WORDMARK_Y), "by Protocodus", BYLINE_SIZE, ICE,
+            anchor="lm", track=TRACK_CAPTION)),
+        *((STATUS_CENTRE_Y, caption, lambda draw, caption=caption: label(
+            draw, (WIDTH / 2, STATUS_CAPTION_Y), caption, STATUS_SIZE, MUTED,
+            anchor="rm", track=TRACK_SCALE))
+          for caption in (*(item["caption"] for item in ENGINE_STATUS), "NOTE")),
+    ]
+    for centre, text, paint in band_texts:
+        bounds = ink_bounds(paint)
+        assert abs((bounds[1] + bounds[3]) / 2 - centre) <= 1 / Q, (
+            f"{text}: ink is not centred in its header band")
+    patch_name_y = HEADER_NODES["S_patch_name"][1]
+    _, tape_y = HEADER_NODES["S_device_name"]
+    _, lamp_y = HEADER_NODES["S_note_on"]
+    with Image.open(OUT / "Lamp.png") as lamp:
+        lamp_alpha = lamp.getchannel("A")
+        frame_h = lamp.height // 2
+        lamp_frames = [lamp_alpha.crop((0, frame * frame_h, lamp.width, (frame + 1) * frame_h))
+                       .getbbox() for frame in range(2)]
+    centres = {
+        "patch window": ((PATCH_BOX[1] + PATCH_BOX[3]) / 2, HEADER_CENTRE_Y, 0),
+        "patch name": (patch_name_y + PATCH_NAME_HEIGHT / 2, HEADER_CENTRE_Y, 0),
+        "browse buttons": (browse_y + browse_size[1] / Q / 2, HEADER_CENTRE_Y, 0),
+        "device-name tape": (tape_y + DEVICE_NAME_BODY_CENTRE, HEADER_CENTRE_Y, 0.5),
+        "readout windows": (ENGINE_STATUS_Y + ENGINE_STATUS_SIZE[1] / 2, STATUS_CENTRE_Y, 0),
+        **{f"note lamp frame {frame}": (lamp_y + (box[1] + box[3]) / 2 / Q, STATUS_CENTRE_Y, 1 / Q)
+           for frame, box in enumerate(lamp_frames)},
+    }
+    for name, (actual, centre, tolerance) in centres.items():
+        assert abs(actual - centre) <= tolerance, (
+            f"{name}: centred at {actual}, its header band's middle is {centre}")
     assert WORDMARK_X >= 40 and FOLDED_WORDMARK_X >= 40, "branding overlaps collapse-button area"
     first_caption_left = caption_centre(FIRST_CONTROL) - text_width(
         FIRST_CONTROL["caption"], CAPTION_SIZE, track=TRACK_CAPTION) / 2

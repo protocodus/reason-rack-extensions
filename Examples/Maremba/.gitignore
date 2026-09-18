@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.DS_Store
+/Intermediate-*/
+/Output/
+/Release/
+/ReconLogs/
+*.log
+*.plist
+/Demos/Audio/
+/Demos/*.wav
+/Demos/maremba_renderer
+/Tests/test_dsp
