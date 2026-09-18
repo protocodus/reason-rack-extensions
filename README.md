@@ -18,8 +18,12 @@ distributables come from local builds against the SDK:
 | Local development install for Reason | `python3 build45.py local45 Deployment` | `~/Library/Application Support/Propellerhead Software/RackExtensions_Dev/YouKnow` |
 | Assembled release set: versioned `.u45`, Shop images, PDF manual, changelog, release evidence, build manifest and `SHA256SUMS` | `python3 Docs/assemble_release.py` after the universal build | `Examples/YouKnow/Release/<version>/` |
 
-`Output/` and `Release/` are ignored by Git, so a fresh checkout contains no
-binaries. The published product comes from the Reason Studios build service
+`Output/` and `Release/` are ignored by Git. [`dist/`](dist/) at the repository
+root is the one tracked handoff location: the Panels workflow commits the Shop
+front and back views, the thumbnail and the manual there on every `main` push
+that changes them, and `assemble_release.py` copies the versioned `.u45` and
+its `.sha256` there after a local universal build, to be committed by hand.
+The published product comes from the Reason Studios build service
 and Shop after the `.u45` is uploaded there; each candidate's validation and
 upload state is recorded in
 [release evidence](Examples/YouKnow/Docs/RELEASE_EVIDENCE.md) and the

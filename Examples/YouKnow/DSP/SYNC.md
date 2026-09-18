@@ -523,6 +523,11 @@ Re-verified for the 1.0.0f22 candidate against production `main` at
 deviations; the other twelve are byte-identical). Upstream pull request #11 of
 the same day changes `Source/DSP/YouKnowSysEx.cpp` and
 `Source/DSP/YouKnowPresets.cpp` only, plug-in files the Rack does not carry.
+With that pull request merged (`main` `1f74129`), the shared sources are
+unchanged and `Tests/UpstreamParityDriver.cpp` renders all 43 scenarios
+identically through both trees (log SHA-256
+`d1e3803953fd5ff07cf8732b60ec94156b86cfb7ca313fd462f2043df9af1403`, the same
+as for `b5cd360`).
 
 ## 2026-09-17 chorus Mode I owner blend
 

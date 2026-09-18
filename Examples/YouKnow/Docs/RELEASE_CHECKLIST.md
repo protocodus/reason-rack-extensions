@@ -31,7 +31,8 @@ list.
   `35276496140` on the macOS runner).
 - [ ] Build universal45 and verify ZIP, version, source bytes, four chips and SHA-256.
 - [ ] Generate and visually verify the manual and the front, back and 1:1 thumbnail Shop images.
-- [ ] Assemble every artifact in `Release/1.0.0f22/` with a build manifest and verified SHA256SUMS.
+- [ ] Assemble every artifact in `Release/1.0.0f22/` with a build manifest and verified SHA256SUMS,
+  and commit the `.u45` and its `.sha256` the script copies to `dist/` at the repository root.
 - [ ] Build local45 Deployment and inspect the installed payload; this also confirms the
   HD `gui.lua` static-decoration syntax for the routing symbols, which the cloud build
   does not read.

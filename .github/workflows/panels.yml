@@ -7,7 +7,8 @@ name: Panels
 # requests and main it checks that the committed panels equal a fresh render,
 # pixel for pixel. Run it by hand (Actions > Panels > Run workflow) on a branch
 # and it regenerates them and commits the result to that branch. Either way it
-# publishes the Shop images and the manual as a run artifact.
+# publishes the Shop images and the manual as a run artifact. On every main
+# push it also commits them to dist/ at the repository root when they changed.
 #
 # A commit pushed with the workflow token starts no further workflow runs, so
 # a regenerated branch carries the checks of the run that rendered it, not new
@@ -27,16 +28,6 @@ on:
       - ".github/workflows/panels.yml"
   push:
     branches: [main]
-    paths:
-      - "Examples/YouKnow/Design/**"
-      - "Examples/YouKnow/GUI2D/**"
-      - "Examples/YouKnow/GUI/Output/**"
-      - "Examples/YouKnow/info.lua"
-      - "Examples/YouKnow/motherboard_def.lua"
-      - "Examples/YouKnow/Docs/build_release_materials.py"
-      - "Examples/YouKnow/Docs/SHOP_COPY.md"
-      - "Examples/YouKnow/Docs/USER_GUIDE.md"
-      - ".github/workflows/panels.yml"
   workflow_dispatch:
 
 permissions:
@@ -52,12 +43,12 @@ jobs:
     runs-on: macos-14
     timeout-minutes: 30
     permissions:
-      # Only the manual run pushes; the token is not persisted otherwise.
+      # The manual run and the main push commit; pull requests only check.
       contents: write
     steps:
       - uses: actions/checkout@v4
         with:
-          persist-credentials: ${{ github.event_name == 'workflow_dispatch' }}
+          persist-credentials: ${{ github.event_name != 'pull_request' }}
 
       - uses: actions/setup-python@v5
         with:
@@ -111,3 +102,35 @@ jobs:
           git commit -m "Regenerate the YouKnow panels on macOS CI" \
             -m "Rendered by the Panels workflow, run ${{ github.run_id }}, with Pillow 11.0.0 and the DIN faces Docs/ASSET_PROVENANCE.md pins."
           git push
+
+      # The rendered materials are deterministic (invariant PDF, one
+      # rasterizer), so this commits only when a main push changed them.
+      - name: Publish the Shop images and the manual to dist/
+        if: github.event_name == 'push'
+        working-directory: Examples/YouKnow
+        run: |
+          set -euo pipefail
+          version="$(sed -n 's/^version_number = "\(.*\)"$/\1/p' info.lua)"
+          release="Release/${version}"
+          mkdir -p ../../dist
+          for name in YouKnow_Front.png YouKnow_Back.png YouKnow_Thumbnail_800.png YouKnow_User_Manual.pdf; do
+            test -s "${release}/${name}"
+            cp "${release}/${name}" ../../dist/
+          done
+          cd ../..
+          git add dist
+          if git diff --cached --quiet; then
+            echo "dist/ already carries this render of the Shop images and manual"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "CI: refresh the Shop images and manual in dist/" \
+            -m "Rendered by the Panels workflow, run ${{ github.run_id }}, from ${{ github.sha }}."
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            git pull --rebase origin main
+          done
+          exit 1
