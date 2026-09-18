@@ -30,6 +30,9 @@ PROJECT = DOCS.parent
 PRODUCT = "YouKnow"
 PRODUCT_ID = "cz.protocodus.YouKnow"
 UNIVERSAL = PROJECT / "Output" / "Universal45" / f"{PRODUCT}.u45"
+# Repository-root dist/ holds the latest handoff U45 beside the Shop images
+# and manual the Panels workflow commits there; it is tracked, so commit it.
+DIST = PROJECT.parent.parent / "dist"
 IMAGES = (f"{PRODUCT}_Front.png", f"{PRODUCT}_Back.png", f"{PRODUCT}_Thumbnail_800.png")
 MANUAL = f"{PRODUCT}_User_Manual.pdf"
 COPIED = {"CHANGELOG.md": PROJECT / "CHANGELOG.md",
@@ -166,7 +169,15 @@ def main():
                               capture_output=True, text=True)
     assert verified.returncode == 0, verified.stdout + verified.stderr
 
+    DIST.mkdir(exist_ok=True)
+    for stale in DIST.glob(f"{PRODUCT}-*.u45*"):
+        stale.unlink()
+    shutil.copyfile(target / u45_name, DIST / u45_name)
+    (DIST / f"{u45_name}.sha256").write_text(
+        f"{manifest['universal45']['sha256']}  {u45_name}\n", encoding="utf-8")
+
     print(f"{PRODUCT} {version}: {len(listed) + 1} checksummed files in {target}")
+    print(f"  {u45_name} and its .sha256 also copied to {DIST}; commit them")
     for name in listed:
         print(f"  {name}")
     if extra:
