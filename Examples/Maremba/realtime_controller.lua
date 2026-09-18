@@ -12,6 +12,11 @@ global_rtc = {
         jbox.store_property("/custom_properties/instance", instance)
         jbox.store_property("/audio_outputs/left/dsp_latency", 0)
         jbox.store_property("/audio_outputs/right/dsp_latency", 0)
+        jbox.store_property("/audio_outputs/close_left/dsp_latency", 0)
+        jbox.store_property("/audio_outputs/close_right/dsp_latency", 0)
+        jbox.store_property("/audio_outputs/far_left/dsp_latency", 0)
+        jbox.store_property("/audio_outputs/far_right/dsp_latency", 0)
+        jbox.store_property("/audio_outputs/piezo/dsp_latency", 0)
     end,
 }
 
@@ -31,6 +36,10 @@ rt_input_setup = {
         "/cv_inputs/coupling_cv/connected",
         "/cv_inputs/volume_cv/value",
         "/cv_inputs/volume_cv/connected",
+        "/cv_inputs/sympathetic_cv/value",
+        "/cv_inputs/sympathetic_cv/connected",
+        "/cv_inputs/roll_cv/value",
+        "/cv_inputs/roll_cv/connected",
     },
 }
 

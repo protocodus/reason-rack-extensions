@@ -117,6 +117,16 @@ texts = {
     ["rem_os"] = "OS",
     ["rem_detune"] = "Detune",
     ["rem_dtn"] = "Dtn",
+    ["rem_attack"] = "Attack",
+    ["rem_atk"] = "Atk",
+    ["rem_release"] = "Release",
+    ["rem_rel"] = "Rel",
+    ["rem_velcurve"] = "VelCurve",
+    ["rem_vel"] = "Vel",
+    ["rem_poly"] = "Poly",
+    ["rem_ply"] = "Ply",
+    ["rem_mtune"] = "MasTune",
+    ["rem_mtn"] = "MTun",
 
     -- CV Inputs
     ["cv_note"] = "Sequencer Note CV Input",

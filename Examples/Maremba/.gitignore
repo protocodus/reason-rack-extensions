@@ -11,3 +11,4 @@ __pycache__/
 /Demos/*.wav
 /Demos/maremba_renderer
 /Tests/test_dsp
+/Tests/all_patch_render_test

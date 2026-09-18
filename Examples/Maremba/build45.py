@@ -23,6 +23,14 @@ buildconfig.JUKEBOX_SDK_DIR = os.path.normpath(JUKEBOX_SDK_DIR)
 buildconfig.INCLUDE_DIRS = INCLUDE_DIRS
 buildconfig.OTHER_COMPILER_FLAGS = OTHER_COMPILER_FLAGS
 
+import subprocess
+test_runner = os.path.join(PROJECT_DIR, "Tests", "run_all_tests.sh")
+if os.path.exists(test_runner):
+    print(">>> Running pre-build verification test suite <<<")
+    res = subprocess.run([test_runner], cwd=PROJECT_DIR)
+    if res.returncode != 0:
+        raise RuntimeError(f"Pre-build verification failed with exit code {res.returncode}")
+
 import build
 build.doBuild(sys.argv)
 

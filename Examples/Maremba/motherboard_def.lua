@@ -246,6 +246,11 @@ midi_implementation_chart = {
         [276] = "/custom_properties/pitchGlide",
         [277] = "/custom_properties/detune",
         [278] = "/custom_properties/strikeJitter",
+        [279] = "/custom_properties/compAttack",
+        [280] = "/custom_properties/compRelease",
+        [281] = "/custom_properties/velocityCurve",
+        [282] = "/custom_properties/polyphony",
+        [283] = "/custom_properties/masterTune",
     }
 }
 
@@ -271,8 +276,13 @@ remote_implementation_chart = {
     ["/custom_properties/preampDrive"] = { internal_name = "Preamp Drive", short_ui_name = jbox.ui_text("rem_drive"), shortest_ui_name = jbox.ui_text("rem_drv") },
     ["/custom_properties/warmth"] = { internal_name = "Warmth", short_ui_name = jbox.ui_text("rem_warm"), shortest_ui_name = jbox.ui_text("rem_wrm") },
     ["/custom_properties/compAmount"] = { internal_name = "Comp Amount", short_ui_name = jbox.ui_text("rem_comp"), shortest_ui_name = jbox.ui_text("rem_cmp") },
+    ["/custom_properties/compAttack"] = { internal_name = "Comp Attack", short_ui_name = jbox.ui_text("rem_attack"), shortest_ui_name = jbox.ui_text("rem_atk") },
+    ["/custom_properties/compRelease"] = { internal_name = "Comp Release", short_ui_name = jbox.ui_text("rem_release"), shortest_ui_name = jbox.ui_text("rem_rel") },
     ["/custom_properties/volume"] = { internal_name = "Master Volume", short_ui_name = jbox.ui_text("rem_vol"), shortest_ui_name = jbox.ui_text("rem_vlm") },
     ["/custom_properties/oversampling"] = { internal_name = "Oversampling", short_ui_name = jbox.ui_text("rem_osamp"), shortest_ui_name = jbox.ui_text("rem_os") },
+    ["/custom_properties/velocityCurve"] = { internal_name = "Velocity Curve", short_ui_name = jbox.ui_text("rem_velcurve"), shortest_ui_name = jbox.ui_text("rem_vel") },
+    ["/custom_properties/polyphony"] = { internal_name = "Polyphony", short_ui_name = jbox.ui_text("rem_poly"), shortest_ui_name = jbox.ui_text("rem_ply") },
+    ["/custom_properties/masterTune"] = { internal_name = "Master Tune", short_ui_name = jbox.ui_text("rem_mtune"), shortest_ui_name = jbox.ui_text("rem_mtn") },
     ["/custom_properties/detune"] = { internal_name = "Detune Drift", short_ui_name = jbox.ui_text("rem_detune"), shortest_ui_name = jbox.ui_text("rem_dtn") },
 }
 
