@@ -104,61 +104,61 @@ int main(int argc, char* argv[]) {
         // Imperial Rosewood 5.0 (Concert Grand Hall)
         params.closeLevel = 0.85f;
         params.farLevel = 0.50f;
-        params.piezoLevel = 0.20f;
-        params.stereoWidth = 1.10f;
-        params.sympathetic = 0.45f;
-        params.bodyBloom = 0.55f;
-        params.pitchGlide = 0.25f;
-        params.decay = 1.15f;
-        params.malletHardness = 0.42f;
-        params.preampDrive = 0.12f;
-        params.warmth = 0.10f;
+        params.piezoLevel = 0.15f;
+        params.stereoWidth = 1.05f;
+        params.sympathetic = 0.20f;
+        params.bodyBloom = 0.25f;
+        params.pitchGlide = 0.15f;
+        params.decay = 1.00f;
+        params.malletHardness = 0.45f;
+        params.preampDrive = 0.0f; // Pristine acoustic concert recording
+        params.warmth = 0.05f;
     } else if (model == 1) {
         // Mayan Padauk 4.3 (Artisan Wood Bark)
-        params.closeLevel = 0.90f;
-        params.farLevel = 0.35f;
-        params.piezoLevel = 0.30f;
+        params.closeLevel = 0.85f;
+        params.farLevel = 0.40f;
+        params.piezoLevel = 0.20f;
         params.stereoWidth = 1.00f;
-        params.sympathetic = 0.40f;
-        params.bodyBloom = 0.60f;
-        params.pitchGlide = 0.35f;
+        params.sympathetic = 0.20f;
+        params.bodyBloom = 0.25f;
+        params.pitchGlide = 0.20f;
         params.decay = 1.00f;
         params.malletHardness = 0.50f;
-        params.preampDrive = 0.16f;
-        params.warmth = 0.15f;
+        params.preampDrive = 0.0f;
+        params.warmth = 0.05f;
     } else if (model == 2) {
         // Balafon Ancestral (Calabash & Vibrating Mirliton Buzz)
-        params.closeLevel = 0.80f;
+        params.closeLevel = 0.85f;
         params.farLevel = 0.40f;
-        params.piezoLevel = 0.35f;
-        params.stereoWidth = 1.05f;
-        params.buzzAmount = 0.35f;
-        params.artifacts = 0.45f;
-        params.sympathetic = 0.55f;
-        params.bodyBloom = 0.75f;
-        params.pitchGlide = 0.30f;
+        params.piezoLevel = 0.25f;
+        params.stereoWidth = 1.00f;
+        params.buzzAmount = 0.25f;
+        params.artifacts = 0.30f;
+        params.sympathetic = 0.20f;
+        params.bodyBloom = 0.25f;
+        params.pitchGlide = 0.20f;
         params.decay = 0.95f;
-        params.malletHardness = 0.58f;
-        params.preampDrive = 0.20f;
-        params.warmth = 0.20f;
+        params.malletHardness = 0.55f;
+        params.preampDrive = 0.0f;
+        params.warmth = 0.05f;
     } else {
         // Kalimba Artisan 17-Key (African Thumb Piano - Cantilever Chime)
         params.closeLevel = 0.85f;
         params.farLevel = 0.35f;
-        params.piezoLevel = 0.30f;
+        params.piezoLevel = 0.20f;
         params.stereoWidth = 1.00f;
         params.buzzAmount = 0.0f;
         params.artifacts = 0.15f;
-        params.sympathetic = 0.35f;
-        params.bodyBloom = 0.65f;
+        params.sympathetic = 0.20f;
+        params.bodyBloom = 0.20f;
         params.pitchGlide = 0.05f;
-        params.decay = 1.25f;
-        params.malletHardness = 0.70f;
-        params.preampDrive = 0.08f;
-        params.warmth = 0.12f;
+        params.decay = 1.10f;
+        params.malletHardness = 0.65f;
+        params.preampDrive = 0.0f;
+        params.warmth = 0.0f;
     }
 
-    params.compAmount = 0.22f;
+    params.compAmount = 0.0f; // Pure uncompressed natural acoustic dynamics
     params.compAttack = 10.0f;
     params.compRelease = 120.0f;
     params.volume = 0.85f;
@@ -221,12 +221,10 @@ int main(int argc, char* argv[]) {
         sumSq += sL * sL + sR * sR;
     }
 
-    // Safe normalization with 0.5 dB headroom if signal peaks
+    // Preserve true acoustic dynamics; only attenuate if signal exceeds -0.5 dBFS to prevent clipping
     float normGain = 1.0f;
     if (maxAbs > 0.95f) {
         normGain = 0.94f / maxAbs;
-    } else if (maxAbs < 0.50f && maxAbs > 0.01f) {
-        normGain = 0.90f / maxAbs;
     }
 
     float peakDb = (maxAbs > 1e-5f) ? 20.0f * std::log10(maxAbs * normGain) : -96.0f;
