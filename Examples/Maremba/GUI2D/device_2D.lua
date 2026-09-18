@@ -24,61 +24,63 @@ front = {
     S_backdrop = { { path = "Reason_GUI_front_root_Panel" } },
     {
         S_patch_name = {
-            offset = { 380 * Q, 14 * Q },
-            { size = { 190 * Q, 20 * Q } },
+            offset = { 235 * Q, 14 * Q },
+            { size = { 190 * Q, 22 * Q } },
         },
         S_patch_browse_group = {
-            offset = { 580 * Q, 12 * Q },
+            offset = { 435 * Q, 14 * Q },
             { path = "PatchBrowseGroup" },
         },
         S_device_name = {
-            offset = { 605 * Q, 16 * Q },
+            offset = { 505 * Q, 18 * Q },
             { path = "TapeHorz" },
         },
-        S_note_on = lamp(692, 16),
+        S_note_on = lamp(595, 20),
 
         -- Model Artwork Switch
-        S_model_art = widget(30, 84, "ModelArt", 4),
-        S_radio_model_0 = toggle(34, 192),
-        S_radio_model_1 = toggle(94, 192),
-        S_radio_model_2 = toggle(154, 192),
-        S_radio_model_3 = toggle(214, 192),
+        S_model_art = widget(28, 84, "ModelArt", 4),
+        S_radio_model_0 = toggle(32, 190),
+        S_radio_model_1 = toggle(92, 190),
+        S_radio_model_2 = toggle(152, 190),
+        S_radio_model_3 = toggle(212, 190),
 
         -- Section 1 Knobs
-        S_knob_sympathetic = knob(42, 230),
-        S_knob_bodyBloom = knob(124, 230),
-        S_knob_pitchGlide = knob(206, 230),
+        S_knob_sympathetic = knob(39, 228),
+        S_knob_bodyBloom = knob(122, 228),
+        S_knob_pitchGlide = knob(205, 228),
 
-        S_knob_rollSpeed = knob(42, 310),
-        S_knob_buzz = knob(124, 310),
-        S_knob_artifacts = knob(206, 310),
+        S_knob_rollSpeed = knob(39, 310),
+        S_knob_buzz = knob(122, 310),
+        S_knob_artifacts = knob(205, 310),
 
-        S_knob_malletType = knob(290, 86),
-        S_knob_malletHardness = knob(345, 86),
-        S_knob_strikePosition = knob(400, 86),
-        S_knob_strikeJitter = knob(455, 86),
+        -- Section 2 Knobs
+        S_knob_malletType = knob(286, 86),
+        S_knob_malletHardness = knob(338, 86),
+        S_knob_strikePosition = knob(390, 86),
+        S_knob_strikeJitter = knob(442, 86),
 
-        S_knob_resonatorTune = knob(296, 194),
-        S_knob_resonatorCoupling = knob(370, 194),
-        S_knob_decay = knob(444, 194),
+        S_knob_resonatorTune = knob(300, 194),
+        S_knob_resonatorCoupling = knob(364, 194),
+        S_knob_decay = knob(428, 194),
 
-        S_knob_polyphony = knob(296, 298),
-        S_knob_oversampling = knob(370, 298),
-        S_knob_velocityCurve = knob(444, 298),
+        S_knob_polyphony = knob(300, 298),
+        S_knob_oversampling = knob(364, 298),
+        S_knob_velocityCurve = knob(428, 298),
 
-        S_knob_closeLevel = knob(522, 86),
-        S_knob_farLevel = knob(574, 86),
-        S_knob_piezoLevel = knob(626, 86),
-        S_knob_stereoWidth = knob(678, 86),
+        -- Section 3 Knobs
+        S_knob_closeLevel = knob(515, 86),
+        S_knob_farLevel = knob(567, 86),
+        S_knob_piezoLevel = knob(619, 86),
+        S_knob_stereoWidth = knob(671, 86),
 
-        S_knob_preampDrive = knob(522, 194),
-        S_knob_warmth = knob(574, 194),
-        S_knob_compAmount = knob(626, 194),
-        S_knob_compRelease = knob(678, 194),
+        S_knob_preampDrive = knob(515, 194),
+        S_knob_warmth = knob(567, 194),
+        S_knob_compAmount = knob(619, 194),
+        S_knob_compRelease = knob(671, 194),
 
-        S_knob_detune = knob(522, 298),
-        S_knob_masterTune = knob(574, 298),
-        S_knob_volume = knob(636, 298),
+        S_knob_detune = knob(515, 298),
+        S_knob_masterTune = knob(567, 298),
+        S_knob_volume = knob(626, 298),
     },
 }
 
@@ -86,14 +88,14 @@ folded_front = {
     S_backdrop = { { path = "Reason_GUI_folded_front_root_Panel" } },
     {
         S_patch_name = {
-            offset = { 380 * Q, 6 * Q },
+            offset = { 235 * Q, 6 * Q },
             { size = { 190 * Q, 18 * Q } },
         },
         S_device_name = {
-            offset = { 605 * Q, 8 * Q },
+            offset = { 505 * Q, 8 * Q },
             { path = "TapeHorz" },
         },
-        S_note_on = lamp(692, 9),
+        S_note_on = lamp(595, 9),
     },
 }
 
@@ -109,22 +111,22 @@ back = {
             { path = "TapeVert" },
         },
 
-        S_out_left = { offset = { 60 * Q, 150 * Q }, { path = "AudioJack", frames = 3 } },
-        S_out_right = { offset = { 115 * Q, 150 * Q }, { path = "AudioJack", frames = 3 } },
-        S_out_close_l = { offset = { 185 * Q, 150 * Q }, { path = "AudioJack", frames = 3 } },
-        S_out_close_r = { offset = { 240 * Q, 150 * Q }, { path = "AudioJack", frames = 3 } },
-        S_out_far_l = { offset = { 305 * Q, 150 * Q }, { path = "AudioJack", frames = 3 } },
-        S_out_far_r = { offset = { 355 * Q, 150 * Q }, { path = "AudioJack", frames = 3 } },
-        S_out_piezo = { offset = { 385 * Q, 250 * Q }, { path = "AudioJack", frames = 3 } },
+        S_out_left = { offset = { 58 * Q, 150 * Q }, { path = "AudioJack", frames = 3 } },
+        S_out_right = { offset = { 114 * Q, 150 * Q }, { path = "AudioJack", frames = 3 } },
+        S_out_close_l = { offset = { 180 * Q, 150 * Q }, { path = "AudioJack", frames = 3 } },
+        S_out_close_r = { offset = { 236 * Q, 150 * Q }, { path = "AudioJack", frames = 3 } },
+        S_out_far_l = { offset = { 300 * Q, 150 * Q }, { path = "AudioJack", frames = 3 } },
+        S_out_far_r = { offset = { 352 * Q, 150 * Q }, { path = "AudioJack", frames = 3 } },
+        S_out_piezo = { offset = { 382 * Q, 250 * Q }, { path = "AudioJack", frames = 3 } },
 
-        S_cv_note = { offset = { 465 * Q, 150 * Q }, { path = "CVJack", frames = 3 } },
-        S_cv_gate = { offset = { 515 * Q, 150 * Q }, { path = "CVJack", frames = 3 } },
-        S_cv_mallet = { offset = { 565 * Q, 150 * Q }, { path = "CVJack", frames = 3 } },
-        S_cv_pos = { offset = { 615 * Q, 150 * Q }, { path = "CVJack", frames = 3 } },
-        S_cv_coup = { offset = { 665 * Q, 150 * Q }, { path = "CVJack", frames = 3 } },
-        S_cv_symp = { offset = { 465 * Q, 250 * Q }, { path = "CVJack", frames = 3 } },
-        S_cv_roll = { offset = { 565 * Q, 250 * Q }, { path = "CVJack", frames = 3 } },
-        S_cv_vol = { offset = { 665 * Q, 250 * Q }, { path = "CVJack", frames = 3 } },
+        S_cv_note = { offset = { 460 * Q, 150 * Q }, { path = "CVJack", frames = 3 } },
+        S_cv_gate = { offset = { 512 * Q, 150 * Q }, { path = "CVJack", frames = 3 } },
+        S_cv_mallet = { offset = { 564 * Q, 150 * Q }, { path = "CVJack", frames = 3 } },
+        S_cv_pos = { offset = { 616 * Q, 150 * Q }, { path = "CVJack", frames = 3 } },
+        S_cv_coup = { offset = { 668 * Q, 150 * Q }, { path = "CVJack", frames = 3 } },
+        S_cv_symp = { offset = { 460 * Q, 250 * Q }, { path = "CVJack", frames = 3 } },
+        S_cv_roll = { offset = { 564 * Q, 250 * Q }, { path = "CVJack", frames = 3 } },
+        S_cv_vol = { offset = { 668 * Q, 250 * Q }, { path = "CVJack", frames = 3 } },
     },
 }
 

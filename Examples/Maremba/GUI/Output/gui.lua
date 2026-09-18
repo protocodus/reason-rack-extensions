@@ -32,83 +32,83 @@ front = jbox.panel{
     widgets = {
         -- Header: Patch name and browsing
         jbox.patch_name{
-            transform = { 380, 14 },
+            transform = { 235, 14 },
             width = 190,
-            height = 20,
+            height = 22,
             center = true,
             text_style = "Arial medium font",
             fg_color = { 245, 235, 215 },
             loader_alt_color = { 200, 160, 90 },
         },
         jbox.patch_browse_group{
-            transform = { 580, 12 },
+            transform = { 435, 14 },
         },
         jbox.device_name{
-            transform = { 605, 16 },
+            transform = { 505, 18 },
         },
         -- Header: Note On Lamp
         jbox.sequence_meter{
-            transform = { 692, 16 },
+            transform = { 595, 20 },
             animation = jbox.image_sequence{ path = "Lamp", frames = 2 },
             value = property("noteon"),
         },
 
         -- Section 1: Model Art Display (4 frames representing the 4 models)
         jbox.sequence_meter{
-            transform = { 30, 84 },
+            transform = { 28, 84 },
             animation = jbox.image_sequence{ path = "ModelArt", frames = 4 },
             value = property("model"),
         },
         -- Model Selection Radio Buttons
-        radio(34, 192, "model", 0),
-        radio(94, 192, "model", 1),
-        radio(154, 192, "model", 2),
-        radio(214, 192, "model", 3),
+        radio(32, 190, "model", 0),
+        radio(92, 190, "model", 1),
+        radio(152, 190, "model", 2),
+        radio(212, 190, "model", 3),
 
         -- Section 1 Row 1: Sympathetic, Body Bloom, Pitch Glide
-        knob(42, 230, "sympathetic"),
-        knob(124, 230, "bodyBloom"),
-        knob(206, 230, "pitchGlide"),
+        knob(39, 228, "sympathetic"),
+        knob(122, 228, "bodyBloom"),
+        knob(205, 228, "pitchGlide"),
 
         -- Section 1 Row 2: Mallet Roll, Mirliton Buzz, Artifacts
-        knob(42, 310, "rollSpeed"),
-        knob(124, 310, "buzzAmount"),
-        knob(206, 310, "artifacts"),
+        knob(39, 310, "rollSpeed"),
+        knob(122, 310, "buzzAmount"),
+        knob(205, 310, "artifacts"),
 
-        -- Section 2: Excitation & Resonator Core
+        -- Section 2: Exciter & Resonator Core
         -- Row 1: Striker, Hardness, Position, Variance
-        knob(290, 86, "malletType"),
-        knob(345, 86, "malletHardness"),
-        knob(400, 86, "strikePosition"),
-        knob(455, 86, "strikeJitter"),
+        knob(286, 86, "malletType"),
+        knob(338, 86, "malletHardness"),
+        knob(390, 86, "strikePosition"),
+        knob(442, 86, "strikeJitter"),
 
         -- Row 2: Resonator Tune, Resonator Coupling, Bar Decay
-        knob(296, 194, "resonatorTune"),
-        knob(370, 194, "resonatorCoupling"),
-        knob(444, 194, "decay"),
+        knob(300, 194, "resonatorTune"),
+        knob(364, 194, "resonatorCoupling"),
+        knob(428, 194, "decay"),
 
         -- Row 3: Polyphony, Oversampling, Velocity Curve
-        knob(296, 298, "polyphony"),
-        knob(370, 298, "oversampling"),
-        knob(444, 298, "velocityCurve"),
+        knob(300, 298, "polyphony"),
+        knob(364, 298, "oversampling"),
+        knob(428, 298, "velocityCurve"),
 
         -- Section 3: Microphones & Dynamics
         -- Row 1: Close, Far, Piezo, Width
-        knob(522, 86, "closeLevel"),
-        knob(574, 86, "farLevel"),
-        knob(626, 86, "piezoLevel"),
-        knob(678, 86, "stereoWidth"),
+        knob(515, 86, "closeLevel"),
+        knob(567, 86, "farLevel"),
+        knob(619, 86, "piezoLevel"),
+        knob(671, 86, "stereoWidth"),
 
         -- Row 2: Preamp Drive, Warmth, Comp Amount, Release
-        knob(522, 194, "preampDrive"),
-        knob(574, 194, "warmth"),
-        knob(626, 194, "compAmount"),
-        knob(678, 194, "compRelease"),
+        knob(515, 194, "preampDrive"),
+        knob(567, 194, "warmth"),
+        knob(619, 194, "compAmount"),
+        knob(671, 194, "compRelease"),
 
         -- Row 3: Detune Drift, Master Tune, Master Volume
-        knob(522, 298, "detune"),
-        knob(574, 298, "masterTune"),
-        knob(636, 298, "volume"),
+        knob(515, 298, "detune"),
+        knob(567, 298, "masterTune"),
+        knob(626, 298, "volume"),
     }
 }
 
@@ -116,7 +116,7 @@ folded_front = jbox.panel{
     backdrop = jbox.image{ path = "Reason_GUI_folded_front_root_Panel" },
     widgets = {
         jbox.patch_name{
-            transform = { 380, 6 },
+            transform = { 235, 6 },
             width = 190,
             height = 18,
             text_style = "Bold LCD font",
@@ -124,10 +124,10 @@ folded_front = jbox.panel{
             loader_alt_color = { 200, 160, 90 },
         },
         jbox.device_name{
-            transform = { 605, 8 },
+            transform = { 505, 8 },
         },
         jbox.sequence_meter{
-            transform = { 692, 9 },
+            transform = { 595, 9 },
             animation = jbox.image_sequence{ path = "Lamp", frames = 2 },
             value = property("noteon"),
         },
@@ -147,65 +147,65 @@ back = jbox.panel{
 
         -- Audio Outputs
         jbox.audio_output_socket{
-            transform = { 60, 150 },
+            transform = { 58, 150 },
             socket = "/audio_outputs/left",
         },
         jbox.audio_output_socket{
-            transform = { 115, 150 },
+            transform = { 114, 150 },
             socket = "/audio_outputs/right",
         },
         jbox.audio_output_socket{
-            transform = { 185, 150 },
+            transform = { 180, 150 },
             socket = "/audio_outputs/close_left",
         },
         jbox.audio_output_socket{
-            transform = { 240, 150 },
+            transform = { 236, 150 },
             socket = "/audio_outputs/close_right",
         },
         jbox.audio_output_socket{
-            transform = { 305, 150 },
+            transform = { 300, 150 },
             socket = "/audio_outputs/far_left",
         },
         jbox.audio_output_socket{
-            transform = { 355, 150 },
+            transform = { 352, 150 },
             socket = "/audio_outputs/far_right",
         },
         jbox.audio_output_socket{
-            transform = { 385, 250 },
+            transform = { 382, 250 },
             socket = "/audio_outputs/piezo",
         },
 
         -- CV Inputs
         jbox.cv_input_socket{
-            transform = { 465, 150 },
+            transform = { 460, 150 },
             socket = "/cv_inputs/note_cv",
         },
         jbox.cv_input_socket{
-            transform = { 515, 150 },
+            transform = { 512, 150 },
             socket = "/cv_inputs/gate_cv",
         },
         jbox.cv_input_socket{
-            transform = { 565, 150 },
+            transform = { 564, 150 },
             socket = "/cv_inputs/mallet_cv",
         },
         jbox.cv_input_socket{
-            transform = { 615, 150 },
+            transform = { 616, 150 },
             socket = "/cv_inputs/position_cv",
         },
         jbox.cv_input_socket{
-            transform = { 665, 150 },
+            transform = { 668, 150 },
             socket = "/cv_inputs/coupling_cv",
         },
         jbox.cv_input_socket{
-            transform = { 465, 250 },
+            transform = { 460, 250 },
             socket = "/cv_inputs/sympathetic_cv",
         },
         jbox.cv_input_socket{
-            transform = { 565, 250 },
+            transform = { 564, 250 },
             socket = "/cv_inputs/roll_cv",
         },
         jbox.cv_input_socket{
-            transform = { 665, 250 },
+            transform = { 668, 250 },
             socket = "/cv_inputs/volume_cv",
         },
     }
