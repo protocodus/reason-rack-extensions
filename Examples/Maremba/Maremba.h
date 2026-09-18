@@ -122,7 +122,6 @@ private:
     TJBox_ObjectRef fCustomProperties = kJBox_InvalidObjectRef;
 
     TJBox_PropertyRef fNoteOnLampRef = kJBox_InvalidPropertyRef;
-    TJBox_PropertyRef fActiveVoicesRef = kJBox_InvalidPropertyRef;
 
     std::array<TJBox_PropertyRef, kParameterCount> fProperties;
     std::array<double, kParameterCount> fValues;

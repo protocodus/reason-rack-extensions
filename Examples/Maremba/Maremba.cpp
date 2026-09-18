@@ -76,7 +76,6 @@ CMaremba::CMaremba(double sampleRate)
     fProperties[kSustainPedal] = JBox_MakePropertyRef(fCustomProperties, "sustainPedal");
 
     fNoteOnLampRef = JBox_MakePropertyRef(fCustomProperties, "noteon");
-    fActiveVoicesRef = JBox_MakePropertyRef(fCustomProperties, "active_voices");
 
     // CV inputs
     auto InitCV = [this](ECVInput idx, const char* path) {
@@ -302,6 +301,4 @@ void CMaremba::RenderBatch(const TJBox_PropertyDiff propertyDiffs[], TJBox_UInt3
         TJBox_Value v = JBox_LoadMOMPropertyByTag(fAudioOutPiezo, kJBox_AudioOutputBuffer);
         JBox_SetDSPBufferData(v, 0, kFrames, piezo);
     }
-
-    JBox_StoreMOMProperty(fActiveVoicesRef, JBox_MakeNumber(fEngine.GetActiveVoiceCount()));
 }

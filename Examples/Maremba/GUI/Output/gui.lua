@@ -34,7 +34,7 @@ front = jbox.panel{
         jbox.patch_name{
             transform = { 380, 14 },
             width = 190,
-            height = 18,
+            height = 20,
             center = true,
             text_style = "Arial medium font",
             fg_color = { 245, 235, 215 },
@@ -55,60 +55,60 @@ front = jbox.panel{
 
         -- Section 1: Model Art Display (4 frames representing the 4 models)
         jbox.sequence_meter{
-            transform = { 30, 76 },
+            transform = { 30, 84 },
             animation = jbox.image_sequence{ path = "ModelArt", frames = 4 },
             value = property("model"),
         },
         -- Model Selection Radio Buttons
-        radio(34, 178, "model", 0),
-        radio(94, 178, "model", 1),
-        radio(154, 178, "model", 2),
-        radio(214, 178, "model", 3),
+        radio(34, 192, "model", 0),
+        radio(94, 192, "model", 1),
+        radio(154, 192, "model", 2),
+        radio(214, 192, "model", 3),
 
         -- Section 1 Row 1: Sympathetic, Body Bloom, Pitch Glide
-        knob(42, 200, "sympathetic"),
-        knob(124, 200, "bodyBloom"),
-        knob(206, 200, "pitchGlide"),
+        knob(42, 230, "sympathetic"),
+        knob(124, 230, "bodyBloom"),
+        knob(206, 230, "pitchGlide"),
 
         -- Section 1 Row 2: Mallet Roll, Mirliton Buzz, Artifacts
-        knob(42, 262, "rollSpeed"),
-        knob(124, 262, "buzzAmount"),
-        knob(206, 262, "artifacts"),
+        knob(42, 310, "rollSpeed"),
+        knob(124, 310, "buzzAmount"),
+        knob(206, 310, "artifacts"),
 
         -- Section 2: Excitation & Resonator Core
         -- Row 1: Striker, Hardness, Position, Variance
-        knob(294, 80, "malletType"),
-        knob(347, 80, "malletHardness"),
-        knob(400, 80, "strikePosition"),
-        knob(453, 80, "strikeJitter"),
+        knob(290, 86, "malletType"),
+        knob(345, 86, "malletHardness"),
+        knob(400, 86, "strikePosition"),
+        knob(455, 86, "strikeJitter"),
 
         -- Row 2: Resonator Tune, Resonator Coupling, Bar Decay
-        knob(298, 160, "resonatorTune"),
-        knob(369, 160, "resonatorCoupling"),
-        knob(440, 160, "decay"),
+        knob(296, 194, "resonatorTune"),
+        knob(370, 194, "resonatorCoupling"),
+        knob(444, 194, "decay"),
 
         -- Row 3: Polyphony, Oversampling, Velocity Curve
-        knob(298, 246, "polyphony"),
-        knob(369, 246, "oversampling"),
-        knob(440, 246, "velocityCurve"),
+        knob(296, 298, "polyphony"),
+        knob(370, 298, "oversampling"),
+        knob(444, 298, "velocityCurve"),
 
         -- Section 3: Microphones & Dynamics
         -- Row 1: Close, Far, Piezo, Width
-        knob(522, 80, "closeLevel"),
-        knob(576, 80, "farLevel"),
-        knob(630, 80, "piezoLevel"),
-        knob(682, 80, "stereoWidth"),
+        knob(522, 86, "closeLevel"),
+        knob(574, 86, "farLevel"),
+        knob(626, 86, "piezoLevel"),
+        knob(678, 86, "stereoWidth"),
 
         -- Row 2: Preamp Drive, Warmth, Comp Amount, Release
-        knob(522, 160, "preampDrive"),
-        knob(576, 160, "warmth"),
-        knob(630, 160, "compAmount"),
-        knob(682, 160, "compRelease"),
+        knob(522, 194, "preampDrive"),
+        knob(574, 194, "warmth"),
+        knob(626, 194, "compAmount"),
+        knob(678, 194, "compRelease"),
 
         -- Row 3: Detune Drift, Master Tune, Master Volume
-        knob(522, 246, "detune"),
-        knob(576, 246, "masterTune"),
-        knob(642, 246, "volume"),
+        knob(522, 298, "detune"),
+        knob(574, 298, "masterTune"),
+        knob(636, 298, "volume"),
     }
 }
 
@@ -138,74 +138,74 @@ back = jbox.panel{
     backdrop = jbox.image{ path = "Reason_GUI_back_root_Panel" },
     widgets = {
         jbox.placeholder{
-            transform = { 55, 225 },
+            transform = { 55, 245 },
         },
         jbox.device_name{
-            transform = { 20, 130 },
+            transform = { 20, 150 },
             orientation = "vertical",
         },
 
         -- Audio Outputs
         jbox.audio_output_socket{
-            transform = { 60, 140 },
+            transform = { 60, 150 },
             socket = "/audio_outputs/left",
         },
         jbox.audio_output_socket{
-            transform = { 115, 140 },
+            transform = { 115, 150 },
             socket = "/audio_outputs/right",
         },
         jbox.audio_output_socket{
-            transform = { 185, 140 },
+            transform = { 185, 150 },
             socket = "/audio_outputs/close_left",
         },
         jbox.audio_output_socket{
-            transform = { 240, 140 },
+            transform = { 240, 150 },
             socket = "/audio_outputs/close_right",
         },
         jbox.audio_output_socket{
-            transform = { 305, 140 },
+            transform = { 305, 150 },
             socket = "/audio_outputs/far_left",
         },
         jbox.audio_output_socket{
-            transform = { 355, 140 },
+            transform = { 355, 150 },
             socket = "/audio_outputs/far_right",
         },
         jbox.audio_output_socket{
-            transform = { 385, 220 },
+            transform = { 385, 250 },
             socket = "/audio_outputs/piezo",
         },
 
         -- CV Inputs
         jbox.cv_input_socket{
-            transform = { 465, 140 },
+            transform = { 465, 150 },
             socket = "/cv_inputs/note_cv",
         },
         jbox.cv_input_socket{
-            transform = { 515, 140 },
+            transform = { 515, 150 },
             socket = "/cv_inputs/gate_cv",
         },
         jbox.cv_input_socket{
-            transform = { 565, 140 },
+            transform = { 565, 150 },
             socket = "/cv_inputs/mallet_cv",
         },
         jbox.cv_input_socket{
-            transform = { 615, 140 },
+            transform = { 615, 150 },
             socket = "/cv_inputs/position_cv",
         },
         jbox.cv_input_socket{
-            transform = { 665, 140 },
+            transform = { 665, 150 },
             socket = "/cv_inputs/coupling_cv",
         },
         jbox.cv_input_socket{
-            transform = { 465, 220 },
+            transform = { 465, 250 },
             socket = "/cv_inputs/sympathetic_cv",
         },
         jbox.cv_input_socket{
-            transform = { 565, 220 },
+            transform = { 565, 250 },
             socket = "/cv_inputs/roll_cv",
         },
         jbox.cv_input_socket{
-            transform = { 665, 220 },
+            transform = { 665, 250 },
             socket = "/cv_inputs/volume_cv",
         },
     }

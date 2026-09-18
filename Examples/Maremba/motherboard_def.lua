@@ -210,11 +210,6 @@ custom_properties = jbox.property_set{
                 ui_name = jbox.ui_text("propertyname NoteOn Lamp"),
                 ui_type = jbox.ui_linear{ min = 0, max = 1, units = { { decimals = 0 } } },
             },
-            active_voices = jbox.number{
-                default = 0,
-                ui_name = jbox.ui_text("propertyname Active Voices"),
-                ui_type = jbox.ui_linear{ min = 0, max = 24, units = { { decimals = 0 } } },
-            }
         }
     }
 }

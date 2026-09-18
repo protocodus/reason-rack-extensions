@@ -66,8 +66,7 @@ texts = {
     ["propertyname Detune"] = "Key Detune Drift",
     ["detune template"] = "^0",
     ["propertyname Sustain Pedal"] = "Sustain Pedal",
-    ["propertyname NoteOn Lamp"] = "Note On Indicator",
-    ["propertyname Active Voices"] = "Active Voices Indicator",
+    ["propertyname NoteOn Lamp"] = "Note-On Lamp",
 
     -- Remote Control UI Names
     ["rem_model"] = "Model",

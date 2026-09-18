@@ -33,11 +33,11 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 Q = 5  # Reason HD 5x scale factor
-WIDTH, HEIGHT = 754, 345  # 5U rack unit dimensions
+WIDTH, HEIGHT = 754, 414  # 6U rack unit dimensions (6 * 69 px = 414 px)
 FOLDED_HEIGHT = 30        # 1U folded height
 
 HD_WIDTH = WIDTH * Q       # 3770
-HD_HEIGHT = HEIGHT * Q     # 1725
+HD_HEIGHT = HEIGHT * Q     # 2070
 HD_FOLDED_H = FOLDED_HEIGHT * Q  # 150
 
 PROJECT = Path(__file__).resolve().parent.parent
@@ -192,25 +192,27 @@ def draw_african_crest(draw, cx, cy, radius, gold=(225, 180, 65), dark_fill=(26,
     Concentric rings, radiating geometric sunburst rays, and sacred diamond core.
     """
     draw.ellipse([cx - radius - 2, cy - radius - 2, cx + radius + 2, cy + radius + 2], fill=(10, 8, 6))
-    draw.ellipse([cx - radius, cy - radius, cx + radius, cy + radius], fill=dark_fill, outline=gold, width=3)
+    draw.ellipse([cx - radius, cy - radius, cx + radius, cy + radius], fill=dark_fill, outline=gold, width=max(1, int(radius * 0.05)))
     
-    r_inner = radius - 6 * Q
+    r_inner = max(2, int(radius * 0.65))
     draw.ellipse([cx - r_inner, cy - r_inner, cx + r_inner, cy + r_inner], outline=gold, width=1)
     
     # 16 Radiating geometric sunburst teeth / petals
     num_rays = 16
+    r_tip = radius * 0.92
+    r_base = r_inner * 1.05
     for i in range(num_rays):
         ang = i * (360.0 / num_rays)
         rad = math.radians(ang)
         rad_w = math.radians(ang + 8.0)
         rad_w2 = math.radians(ang - 8.0)
         
-        p0_x = cx + math.cos(rad) * (radius - 2 * Q)
-        p0_y = cy + math.sin(rad) * (radius - 2 * Q)
-        p1_x = cx + math.cos(rad_w) * (r_inner + 2 * Q)
-        p1_y = cy + math.sin(rad_w) * (r_inner + 2 * Q)
-        p2_x = cx + math.cos(rad_w2) * (r_inner + 2 * Q)
-        p2_y = cy + math.sin(rad_w2) * (r_inner + 2 * Q)
+        p0_x = cx + math.cos(rad) * r_tip
+        p0_y = cy + math.sin(rad) * r_tip
+        p1_x = cx + math.cos(rad_w) * r_base
+        p1_y = cy + math.sin(rad_w) * r_base
+        p2_x = cx + math.cos(rad_w2) * r_base
+        p2_y = cy + math.sin(rad_w2) * r_base
         draw.polygon([(p0_x, p0_y), (p1_x, p1_y), (p2_x, p2_y)], fill=gold)
         
     # Central sacred geometric diamond
@@ -221,7 +223,7 @@ def draw_african_crest(draw, cx, cy, radius, gold=(225, 180, 65), dark_fill=(26,
         (cx, cy + r_core),
         (cx - r_core, cy)
     ]
-    draw.polygon(pts_diamond, fill=(45, 32, 16), outline=gold, width=2)
+    draw.polygon(pts_diamond, fill=(45, 32, 16), outline=gold, width=max(1, int(radius * 0.04)))
     
     r_in = r_core * 0.50
     pts_in = [
@@ -231,7 +233,8 @@ def draw_african_crest(draw, cx, cy, radius, gold=(225, 180, 65), dark_fill=(26,
         (cx - r_in, cy)
     ]
     draw.polygon(pts_in, fill=gold)
-    draw.ellipse([cx - 2 * Q, cy - 2 * Q, cx + 2 * Q, cy + 2 * Q], fill=dark_fill)
+    dot_r = max(1, int(radius * 0.08))
+    draw.ellipse([cx - dot_r, cy - dot_r, cx + dot_r, cy + dot_r], fill=dark_fill)
 
 
 def draw_african_corner_bracket(draw, bx, by, size, sx, sy, gold=(218, 175, 55), bronze=(145, 105, 40)):
@@ -444,8 +447,8 @@ def draw_art_frame_rosewood(draw, x0, y0, w, h):
                    (x0 + 19 * Q, y0 + h - 8 * Q), (x0 + w - 19 * Q, y0 + h - 8 * Q)]:
         draw.ellipse([px - 2 * Q, py - 2 * Q, px + 2 * Q, py + 2 * Q], fill=gold)
         
-    font_p = get_font(FONT_DIN_COND, 11)
-    font_sub = get_font(FONT_DIN_ALT, 6.0)
+    font_p = get_font(FONT_DIN_COND, 13)
+    font_sub = get_font(FONT_DIN_ALT, 7.5)
     draw.text((x0 + w // 2, plaque_y + 6 * Q), "IMPERIAL ROSEWOOD 5.0", fill=gold, font=font_p, anchor="mm")
     draw.text((x0 + w // 2, plaque_y + 13 * Q), "HONDURAS PALISANDER TONE BARS & ENGRAVED 24K BRASS RESONATORS",
               fill=(205, 185, 145), font=font_sub, anchor="mm")
@@ -517,8 +520,8 @@ def draw_art_frame_padauk(draw, x0, y0, w, h):
     plaque_y = y0 + h - 22 * Q
     draw.rectangle([x0 + 15 * Q, plaque_y, x0 + w - 15 * Q, y0 + h - 4 * Q], fill=(36, 18, 10), outline=gold, width=2)
     draw.rectangle([x0 + 17 * Q, plaque_y + 2 * Q, x0 + w - 17 * Q, y0 + h - 6 * Q], outline=bronze, width=1)
-    font_p = get_font(FONT_DIN_COND, 11)
-    font_sub = get_font(FONT_DIN_ALT, 6.0)
+    font_p = get_font(FONT_DIN_COND, 13)
+    font_sub = get_font(FONT_DIN_ALT, 7.5)
     draw.text((x0 + w // 2, plaque_y + 6 * Q), "PADAUK VIRTUOSO 4.3", fill=gold, font=font_p, anchor="mm")
     draw.text((x0 + w // 2, plaque_y + 13 * Q), "QUARTER-SAWN AFRICAN PADAUK & CEDAR ACOUSTIC SOUNDBOX",
               fill=(220, 195, 160), font=font_sub, anchor="mm")
@@ -591,8 +594,8 @@ def draw_art_frame_balafon(draw, x0, y0, w, h):
     plaque_y = y0 + h - 22 * Q
     draw.rectangle([x0 + 15 * Q, plaque_y, x0 + w - 15 * Q, y0 + h - 4 * Q], fill=(24, 18, 14), outline=cream, width=2)
     draw.rectangle([x0 + 17 * Q, plaque_y + 2 * Q, x0 + w - 17 * Q, y0 + h - 6 * Q], outline=cream_dim, width=1)
-    font_p = get_font(FONT_DIN_COND, 11)
-    font_sub = get_font(FONT_DIN_ALT, 6.0)
+    font_p = get_font(FONT_DIN_COND, 13)
+    font_sub = get_font(FONT_DIN_ALT, 7.5)
     draw.text((x0 + w // 2, plaque_y + 6 * Q), "BALAFON ANCESTRAL", fill=cream, font=font_p, anchor="mm")
     draw.text((x0 + w // 2, plaque_y + 13 * Q), "FIRE-CHARRED KENE IRONWOOD & NATURAL CALABASH MIRLITONS",
               fill=(200, 185, 160), font=font_sub, anchor="mm")
@@ -711,8 +714,8 @@ def draw_art_frame_kalimba(draw, x0, y0, w, h):
     plaque_y = y0 + h - 22 * Q
     draw.rectangle([x0 + 15 * Q, plaque_y, x0 + w - 15 * Q, y0 + h - 4 * Q], fill=(28, 16, 10), outline=gold, width=2)
     draw.rectangle([x0 + 17 * Q, plaque_y + 2 * Q, x0 + w - 17 * Q, y0 + h - 6 * Q], outline=pyro_color, width=1)
-    font_p = get_font(FONT_DIN_COND, 11)
-    font_sub = get_font(FONT_DIN_ALT, 6.0)
+    font_p = get_font(FONT_DIN_COND, 13)
+    font_sub = get_font(FONT_DIN_ALT, 7.5)
     draw.text((x0 + w // 2, plaque_y + 6 * Q), "KALIMBA ARTISAN 17", fill=gold, font=font_p, anchor="mm")
     draw.text((x0 + w // 2, plaque_y + 13 * Q), "SOLID SCULPTED ACACIA SOUNDBOX & POLISHED SPRING-STEEL TINES",
               fill=(230, 205, 165), font=font_sub, anchor="mm")
@@ -755,7 +758,7 @@ def draw_bar_schematic(draw, x_u, y_u, w_u, h_u):
     dim_gold = (140, 110, 45)
     
     draw.rectangle([x, y, x + w, y + h], fill=(16, 18, 20), outline=(42, 46, 50), width=1)
-    font_tiny = get_font(FONT_DIN_ALT, 5.0)
+    font_tiny = get_font(FONT_DIN_ALT, 7.0)
     
     bar_y = y + int(h * 0.44)
     bar_w = int(w * 0.70)
@@ -901,7 +904,7 @@ def draw_stereo_meter_tower(draw, x0, y0, w, h):
 
 def render_front_panel():
     """
-    Render 5U Rack Extension Front Panel at 3770x1725 (5x HD) and 754x345 (1x GUI2D).
+    Render 6U Rack Extension Front Panel at 3770x2070 (5x HD) and 754x414 (1x GUI2D).
     Features:
     - African Wenge rack ear cheeks with vertical laser-inlaid gold Kuba diamond ribbons.
     - Continuous gold & bronze Kuba geometric frieze borders running across top and bottom.
@@ -932,7 +935,7 @@ def render_front_panel():
     draw.line([(HD_WIDTH - ear_w - 2, 0), (HD_WIDTH - ear_w - 2, HD_HEIGHT)], fill=gold, width=2)
     draw.line([(HD_WIDTH - ear_w, 0), (HD_WIDTH - ear_w, HD_HEIGHT)], fill=(12, 13, 14), width=3)
     
-    screw_ys = [18 * Q, 80 * Q, 172 * Q, 264 * Q, 326 * Q]
+    screw_ys = [18 * Q, 90 * Q, 162 * Q, 252 * Q, 324 * Q, 396 * Q]
     for sy in screw_ys:
         draw_screw(draw, ear_w // 2, sy, 8 * Q, is_brass=True)
         draw_screw(draw, HD_WIDTH - ear_w // 2, sy, 8 * Q, is_brass=True)
@@ -945,34 +948,34 @@ def render_front_panel():
     
     draw.rectangle([ear_w + 3, 3, HD_WIDTH - ear_w - 4, HD_HEIGHT - 4], outline=(55, 60, 65), width=2)
     
-    header_h = 46 * Q
+    header_h = 50 * Q
     header_x0 = ear_w + 6
     header_w = HD_WIDTH - 2 * ear_w - 12
     draw.rectangle([header_x0, 8 * Q, header_x0 + header_w, header_h], fill=(22, 24, 26), outline=(42, 45, 48), width=2)
     draw.line([(header_x0, header_h), (header_x0 + header_w, header_h)], fill=gold, width=2)
     
-    font_brand = get_font(FONT_DIN_COND, 13)
-    font_logo = get_font(FONT_DIN_COND, 28)
-    font_sub = get_font(FONT_DIN_ALT, 7.5)
+    font_brand = get_font(FONT_DIN_COND, 15)
+    font_logo = get_font(FONT_DIN_COND, 32)
+    font_sub = get_font(FONT_DIN_ALT, 8.5)
     
     bp_x = header_x0 + 10 * Q
-    bp_y = 13 * Q
-    bp_w = 82 * Q
-    bp_h = 24 * Q
+    bp_y = 12 * Q
+    bp_w = 90 * Q
+    bp_h = 28 * Q
     draw.rectangle([bp_x, bp_y, bp_x + bp_w, bp_y + bp_h], fill=(36, 28, 18), outline=gold, width=2)
     draw.rectangle([bp_x + 2 * Q, bp_y + 2 * Q, bp_x + bp_w - 2 * Q, bp_y + bp_h - 2 * Q], outline=bronze, width=1)
     
-    draw_african_crest(draw, bp_x + 12 * Q, bp_y + bp_h // 2, 8 * Q, gold=gold_bright, dark_fill=(28, 20, 12))
-    draw.text((bp_x + 48 * Q, bp_y + bp_h // 2), "PROTOCODUS", fill=gold_bright, font=font_brand, anchor="mm")
+    draw_african_crest(draw, bp_x + 14 * Q, bp_y + bp_h // 2, 9 * Q, gold=gold_bright, dark_fill=(28, 20, 12))
+    draw.text((bp_x + 52 * Q, bp_y + bp_h // 2), "PROTOCODUS", fill=gold_bright, font=font_brand, anchor="mm")
     
-    draw.text((header_x0 + 104 * Q + 2, 25 * Q + 2), "MAREMBA", fill=(10, 11, 12), font=font_logo, anchor="lm")
-    draw.text((header_x0 + 104 * Q, 25 * Q), "MAREMBA", fill=gold_bright, font=font_logo, anchor="lm")
-    draw.text((header_x0 + 208 * Q, 25 * Q), "ACOUSTIC MODAL SYNTHESIS INSTRUMENT", fill=dim_ink, font=font_sub, anchor="lm")
+    draw.text((header_x0 + 112 * Q + 2, 27 * Q + 2), "MAREMBA", fill=(10, 11, 12), font=font_logo, anchor="lm")
+    draw.text((header_x0 + 112 * Q, 27 * Q), "MAREMBA", fill=gold_bright, font=font_logo, anchor="lm")
+    draw.text((header_x0 + 220 * Q, 27 * Q), "ACOUSTIC MODAL SYNTHESIS INSTRUMENT", fill=dim_ink, font=font_sub, anchor="lm")
     
     px = 380 * Q
     py = 14 * Q
     pw = 190 * Q
-    ph = 18 * Q
+    ph = 20 * Q
     draw.rectangle([px - 4, py - 4, px + pw + 4, py + ph + 4], fill=(12, 13, 14), outline=gold, width=2)
     draw.rectangle([px, py, px + pw, py + ph], fill=(8, 9, 10))
     for cx, cy in [(px - 2, py - 2), (px + pw + 2, py - 2), (px - 2, py + ph + 2), (px + pw + 2, py + ph + 2)]:
@@ -989,24 +992,24 @@ def render_front_panel():
         w = w_u * Q
         h = h_u * Q
         draw_recessed_bay(draw, x, y, w, h, fill_color=(18, 20, 22), outline_color=(45, 48, 52), bevel_width=3, gold_accent=True)
-        draw.rectangle([x, y, x + w, y + 20 * Q], fill=(28, 30, 34), outline=(48, 52, 56), width=1)
+        draw.rectangle([x, y, x + w, y + 22 * Q], fill=(28, 30, 34), outline=(48, 52, 56), width=1)
         draw.line([(x + 2, y + 1), (x + w - 2, y + 1)], fill=accent_color, width=2)
-        font_sec = get_font(FONT_DIN_COND, 11.5)
-        draw.text((x + w // 2, y + 10 * Q), title_text, fill=accent_color, font=font_sec, anchor="mm")
+        font_sec = get_font(FONT_DIN_COND, 14)
+        draw.text((x + w // 2, y + 11 * Q), title_text, fill=accent_color, font=font_sec, anchor="mm")
         
-        bs = 18 * Q
+        bs = 20 * Q
         draw_african_corner_bracket(draw, x + 2 * Q, y + 2 * Q, bs, 1, 1, accent_color, bronze)
         draw_african_corner_bracket(draw, x + w - 2 * Q, y + 2 * Q, bs, -1, 1, accent_color, bronze)
         draw_african_corner_bracket(draw, x + 2 * Q, y + h - 2 * Q, bs, 1, -1, accent_color, bronze)
         draw_african_corner_bracket(draw, x + w - 2 * Q, y + h - 2 * Q, bs, -1, -1, accent_color, bronze)
         
-    draw_section_bay(24, 52, 252, 284, "ACOUSTIC MODEL & SYMPATHETIC MASS", gold)
-    draw_section_bay(282, 52, 228, 284, "PHYSICAL RESONATOR CORE", (225, 160, 50))
-    draw_section_bay(516, 52, 214, 284, "STUDIO CAPTURE & MASTER DYNAMICS", (80, 190, 220))
+    draw_section_bay(24, 56, 252, 346, "ACOUSTIC MODEL & SYMPATHETIC MASS", gold)
+    draw_section_bay(282, 56, 228, 346, "PHYSICAL RESONATOR CORE", (225, 160, 50))
+    draw_section_bay(516, 56, 214, 346, "STUDIO CAPTURE & MASTER DYNAMICS", (80, 190, 220))
     
     # Section 1
     art_x = 30 * Q
-    art_y = 76 * Q
+    art_y = 84 * Q
     art_w = 240 * Q
     art_h = 96 * Q
     draw.rectangle([art_x - 4, art_y - 4, art_x + art_w + 4, art_y + art_h + 4], fill=(32, 24, 16), outline=gold, width=2)
@@ -1015,8 +1018,8 @@ def render_front_panel():
                    (art_x - 2, art_y + art_h + 2), (art_x + art_w + 2, art_y + art_h + 2)]:
         draw.ellipse([bx - 3, by - 3, bx + 3, by + 3], fill=gold)
         
-    font_lbl = get_font(FONT_DIN_ALT, 8)
-    font_lbl_sm = get_font(FONT_DIN_ALT, 6.5)
+    font_lbl = get_font(FONT_DIN_ALT, 10.5)
+    font_lbl_sm = get_font(FONT_DIN_ALT, 8.5)
     
     models_info = [
         (34, "ROSEWOOD", (48, 22, 16), (245, 175, 45)),
@@ -1026,42 +1029,40 @@ def render_front_panel():
     ]
     for rx, label, btn_fill, led_glow in models_info:
         rpx = rx * Q
-        rpy = 178 * Q
+        rpy = 192 * Q
         draw.rounded_rectangle([rpx - 2 * Q, rpy - 2 * Q, rpx + 16 * Q, rpy + 18 * Q], radius=2 * Q,
                                fill=btn_fill, outline=(55, 58, 62), width=1)
         draw.ellipse([rpx + 18 * Q, rpy + 4 * Q, rpx + 22 * Q, rpy + 8 * Q], fill=led_glow, outline=(15, 16, 18), width=1)
         draw.text((rpx + 25 * Q, rpy + 8 * Q), label, fill=white_ink, font=font_lbl_sm, anchor="lm")
         
-    draw_recessed_bay(draw, 28 * Q, 196 * Q, 244 * Q, 124 * Q, fill_color=(17, 18, 20), outline_color=(40, 44, 48), bevel_width=2)
+    draw_recessed_bay(draw, 28 * Q, 222 * Q, 244 * Q, 162 * Q, fill_color=(17, 18, 20), outline_color=(40, 44, 48), bevel_width=2)
     
     s1_knobs = [
-        (42, 200, "SYMPATHETIC", True, "0", "10"),
-        (124, 200, "BODY BLOOM", True, "0", "10"),
-        (206, 200, "PITCH GLIDE", True, "0", "50c"),
-        (42, 262, "MALLET ROLL", True, "5Hz", "25Hz"),
-        (124, 262, "MIRLITON BUZZ", False, "0%", "100%"),
-        (206, 262, "ARTIFACTS", False, "CLEAN", "RAW"),
+        (42, 230, "SYMPATHETIC", True, "0", "10"),
+        (124, 230, "BODY BLOOM", True, "0", "10"),
+        (206, 230, "PITCH GLIDE", True, "0", "50c"),
+        (42, 310, "MALLET ROLL", True, "5Hz", "25Hz"),
+        (124, 310, "MIRLITON BUZZ", False, "0%", "100%"),
+        (206, 310, "ARTIFACTS", False, "CLEAN", "RAW"),
     ]
     for kx, ky, name, is_gold, mi, mx in s1_knobs:
         cx = (kx + 26) * Q
         cy = (ky + 26) * Q
         draw_knob_ticks_labeled(draw, cx, cy, radius=132, active_color=gold_bright if is_gold else white_ink,
                                 min_lbl=mi, mid_lbl=None, max_lbl=mx)
-        draw.text((cx, (ky + 54) * Q), name, fill=gold_bright if is_gold else white_ink, font=font_lbl, anchor="mm")
+        draw.text((cx, (ky + 56) * Q), name, fill=gold_bright if is_gold else white_ink, font=font_lbl, anchor="mm")
         
     pl_x = 30 * Q
-    pl_y = 323 * Q
+    pl_y = 388 * Q
     pl_w = 240 * Q
-    pl_h = 10 * Q
+    pl_h = 11 * Q
     draw.rectangle([pl_x, pl_y, pl_x + pl_w, pl_y + pl_h], fill=(28, 22, 16), outline=gold, width=1)
     draw.text((pl_x + pl_w // 2, pl_y + pl_h // 2), "PROTOCODUS ACOUSTICS - 8 PITCHED MODES & ANISOTROPIC SPLIT",
-              fill=gold_bright, font=get_font(FONT_DIN_ALT, 5.5), anchor="mm")
+              fill=gold_bright, font=get_font(FONT_DIN_ALT, 6.5), anchor="mm")
               
     # Section 2
-    draw_recessed_bay(draw, 286 * Q, 74 * Q, 220 * Q, 66 * Q, fill_color=(17, 18, 20), outline_color=(40, 44, 48), bevel_width=2)
-    
-    st_cx = (294 + 26) * Q
-    st_cy = (80 + 26) * Q
+    st_cx = (290 + 26) * Q
+    st_cy = (86 + 26) * Q
     draw_knob_dial_ticks(draw, st_cx, st_cy, radius=126, start_angle_deg=225, sweep_deg=270, num_ticks=4,
                          active_color=gold_bright, dim_color=gold_bright)
     striker_steps = [
@@ -1070,113 +1071,116 @@ def render_front_panel():
         (45, "3"),
         (-45, "4")
     ]
-    font_step_num = get_font(FONT_DIN_COND, 8.5)
+    font_step_num = get_font(FONT_DIN_COND, 10.5)
     for ang, num_str in striker_steps:
         rad = math.radians(ang)
         tx = st_cx + math.cos(rad) * 144
         ty = st_cy - math.sin(rad) * 144
         draw.text((tx, ty), num_str, fill=gold_bright, font=font_step_num, anchor="mm")
         
-    draw.text((st_cx, (80 + 53) * Q), "STRIKER", fill=gold_bright, font=font_lbl, anchor="mm")
-    draw.text((st_cx, (80 + 58) * Q), "MALLET (1-4)", fill=(200, 165, 85), font=get_font(FONT_DIN_ALT, 4.8), anchor="mm")
+    draw.text((st_cx, (86 + 55) * Q), "STRIKER", fill=gold_bright, font=font_lbl, anchor="mm")
+    draw.text((st_cx, (86 + 60) * Q), "MALLET (1-4)", fill=(200, 165, 85), font=get_font(FONT_DIN_ALT, 6.5), anchor="mm")
 
     s2_row1 = [
-        (347, 80, "HARDNESS", "SOFT", "HARD"),
-        (400, 80, "POSITION", "CTR", "EDGE"),
-        (453, 80, "VARIANCE", "0%", "100%")
+        (345, 86, "HARDNESS", "SOFT", "HARD"),
+        (400, 86, "POSITION", "CTR", "EDGE"),
+        (455, 86, "VARIANCE", "0%", "100%")
     ]
     for kx, ky, name, mi, mx in s2_row1:
         cx = (kx + 26) * Q
         cy = (ky + 26) * Q
         draw_knob_ticks_labeled(draw, cx, cy, radius=126, active_color=gold_bright, min_lbl=mi, mid_lbl=None, max_lbl=mx)
-        draw.text((cx, (ky + 54) * Q), name, fill=white_ink, font=font_lbl, anchor="mm")
+        draw.text((cx, (ky + 56) * Q), name, fill=white_ink, font=font_lbl, anchor="mm")
 
-    draw_bar_schematic(draw, 288, 145, 216, 12)
+    draw_bar_schematic(draw, 288, 160, 216, 24)
     
     s2_row2 = [
-        (298, 160, "RESONATOR", "-50c", "+50c"),
-        (369, 160, "COUPLING", "0%", "100%"),
-        (440, 160, "BAR DECAY", "0.1s", "5.0s")
+        (296, 194, "RESONATOR", "-50c", "+50c"),
+        (370, 194, "COUPLING", "0%", "100%"),
+        (444, 194, "BAR DECAY", "0.1s", "5.0s")
     ]
     for kx, ky, name, mi, mx in s2_row2:
         cx = (kx + 26) * Q
         cy = (ky + 26) * Q
         draw_knob_ticks_labeled(draw, cx, cy, radius=132, active_color=gold_bright, min_lbl=mi, mid_lbl=None, max_lbl=mx)
-        draw.text((cx, (ky + 54) * Q), name, fill=white_ink, font=font_lbl, anchor="mm")
+        draw.text((cx, (ky + 56) * Q), name, fill=white_ink, font=font_lbl, anchor="mm")
 
-    draw.rectangle([288 * Q, 222 * Q, 504 * Q, 240 * Q], fill=(16, 17, 19), outline=gold, width=1)
-    draw.text((396 * Q, 231 * Q), "1: SOFT YARN/FLESH   |   2: MEDIUM CORD/THUMB   |   3: HARD RUBBER/NAIL   |   4: WOOD/PICK",
-              fill=(190, 195, 200), font=get_font(FONT_DIN_ALT, 4.8), anchor="mm")
+    draw.rectangle([288 * Q, 268 * Q, 504 * Q, 282 * Q], fill=(16, 17, 19), outline=gold, width=1)
+    draw.text((396 * Q, 275 * Q), "1: SOFT YARN   |   2: MEDIUM CORD   |   3: HARD RUBBER   |   4: WOOD / PICK",
+              fill=(190, 195, 200), font=get_font(FONT_DIN_ALT, 6.5), anchor="mm")
 
     s2_row3 = [
-        (298, 246, "POLYPHONY", "8", "32"),
-        (369, 246, "OVERSAMPLE", "2x", "8x"),
-        (440, 246, "VELOCITY", "SOFT", "EXP")
+        (296, 298, "POLYPHONY", "8", "32"),
+        (370, 298, "OVERSAMPLE", "2x", "8x"),
+        (444, 298, "VELOCITY", "SOFT", "EXP")
     ]
     for kx, ky, name, mi, mx in s2_row3:
         cx = (kx + 26) * Q
         cy = (ky + 26) * Q
         draw_knob_ticks_labeled(draw, cx, cy, radius=132, active_color=white_ink, min_lbl=mi, mid_lbl=None, max_lbl=mx)
-        draw.text((cx, (ky + 54) * Q), name, fill=white_ink, font=font_lbl, anchor="mm")
+        draw.text((cx, (ky + 56) * Q), name, fill=white_ink, font=font_lbl, anchor="mm")
         
-    draw.text((396 * Q, 323 * Q), "QUARTER-WAVE RESONATOR COUPLING - ASYMMETRIC HERTZIAN CONTACT",
-              fill=(135, 140, 145), font=get_font(FONT_DIN_ALT, 5.5), anchor="mm")
+    draw.text((396 * Q, 390 * Q), "QUARTER-WAVE RESONATOR COUPLING - ASYMMETRIC HERTZIAN CONTACT",
+              fill=(135, 140, 145), font=get_font(FONT_DIN_ALT, 6.5), anchor="mm")
 
     # Section 3
     s3_row1 = [
-        (522, 80, "CLOSE"),
-        (576, 80, "FAR ROOM"),
-        (630, 80, "PIEZO"),
-        (682, 80, "STEREO WIDTH")
+        (522, 86, "CLOSE"),
+        (574, 86, "FAR ROOM"),
+        (626, 86, "PIEZO"),
+        (678, 86, "STEREO WIDTH")
     ]
     for kx, ky, name in s3_row1:
         cx = (kx + 26) * Q
         cy = (ky + 26) * Q
         draw_knob_dial_ticks(draw, cx, cy, radius=125, active_color=(90, 190, 220))
-        draw.text((cx, (ky + 54) * Q), name, fill=(180, 220, 240), font=font_lbl_sm, anchor="mm")
+        draw.text((cx, (ky + 56) * Q), name, fill=(180, 220, 240), font=font_lbl, anchor="mm")
 
-    draw_tube_grill(draw, 524 * Q, 142 * Q, 58 * Q, 14 * Q)
-    draw_led_ladder(draw, 626 * Q, 142 * Q, 96 * Q, 14 * Q)
+    draw_tube_grill(draw, 524 * Q, 162 * Q, 58 * Q, 18 * Q)
+    draw_led_ladder(draw, 626 * Q, 162 * Q, 96 * Q, 18 * Q)
     
     s3_row2 = [
-        (522, 160, "DRIVE"),
-        (576, 160, "WARMTH"),
-        (630, 160, "COMPRESSOR"),
-        (682, 160, "RELEASE")
+        (522, 194, "DRIVE"),
+        (574, 194, "WARMTH"),
+        (626, 194, "COMPRESS"),
+        (678, 194, "RELEASE")
     ]
     for kx, ky, name in s3_row2:
         cx = (kx + 26) * Q
         cy = (ky + 26) * Q
         draw_knob_dial_ticks(draw, cx, cy, radius=125, active_color=(235, 155, 50))
-        draw.text((cx, (ky + 54) * Q), name, fill=(245, 215, 175), font=font_lbl_sm, anchor="mm")
+        draw.text((cx, (ky + 56) * Q), name, fill=(245, 215, 175), font=font_lbl, anchor="mm")
 
-    draw.rectangle([520 * Q, 222 * Q, 690 * Q, 238 * Q], fill=(16, 17, 19), outline=gold, width=1)
-    draw.text((605 * Q, 230 * Q), "STEREO MASTER BUS - ANALOG SATURATION & VCA", fill=gold_bright,
-              font=get_font(FONT_DIN_COND, 8.5), anchor="mm")
+    draw.rectangle([520 * Q, 268 * Q, 726 * Q, 282 * Q], fill=(16, 17, 19), outline=gold, width=1)
+    draw.text((623 * Q, 275 * Q), "STEREO MASTER BUS - ANALOG SATURATION & VCA", fill=gold_bright,
+              font=get_font(FONT_DIN_COND, 10.5), anchor="mm")
 
     s3_row3 = [
-        (522, 246, "KEY DETUNE"),
-        (576, 246, "MASTER TUNE")
+        (522, 298, "KEY DETUNE"),
+        (574, 298, "MASTER TUNE")
     ]
     for kx, ky, name in s3_row3:
         cx = (kx + 26) * Q
         cy = (ky + 26) * Q
         draw_knob_dial_ticks(draw, cx, cy, radius=125, num_ticks=11, active_color=gold_bright, dim_color=(120, 125, 130))
-        draw.text((cx, (ky + 54) * Q), name, fill=gold_bright, font=font_lbl_sm, anchor="mm")
+        draw.text((cx, (ky + 56) * Q), name, fill=gold_bright, font=font_lbl, anchor="mm")
         
-    vcx = (642 + 26) * Q
-    vcy = (246 + 26) * Q
+    vcx = (636 + 26) * Q
+    vcy = (298 + 26) * Q
     draw_knob_ticks_labeled(draw, vcx, vcy, radius=142, num_ticks=15, active_color=gold_bright,
                             min_lbl="-inf", mid_lbl=None, max_lbl="+6dB")
-    font_vol = get_font(FONT_DIN_COND, 10.5)
-    draw.text((vcx, (246 + 55) * Q), "MASTER LEVEL", fill=gold_bright, font=font_vol, anchor="mm")
+    font_vol = get_font(FONT_DIN_COND, 13)
+    draw.text((vcx, (298 + 57) * Q), "MASTER LEVEL", fill=gold_bright, font=font_vol, anchor="mm")
     
-    draw_stereo_meter_tower(draw, 696 * Q, 242 * Q, 30 * Q, 88 * Q)
+    draw_stereo_meter_tower(draw, 696 * Q, 294 * Q, 30 * Q, 94 * Q)
+    
+    draw.text((623 * Q, 390 * Q), "24-BIT / 192 kHz FLOATING POINT MASTER BUS",
+              fill=(135, 140, 145), font=get_font(FONT_DIN_ALT, 6.5), anchor="mm")
     
     panel.save(HD / "Reason_GUI_front_root_Panel.png")
     panel_1x = panel.resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
     panel_1x.save(GUI2D / "Reason_GUI_front_root_Panel.png")
-    print("Rendered Reason_GUI_front_root_Panel.png (3770x1725 & 754x345) successfully!")
+    print("Rendered Reason_GUI_front_root_Panel.png (3770x2070 & 754x414) successfully!")
 
 # -------------------------------------------------------------------------
 # Back Panel Main Renderer
@@ -1184,7 +1188,7 @@ def render_front_panel():
 
 def render_back_panel():
     """
-    Render 5U Rear Panel with dark steel texture, gold African geometric border,
+    Render 6U Rear Panel with dark steel texture, gold African geometric border,
     and gold-plated balanced output & CV modulation socket bezels.
     """
     panel = create_steel_back_texture(HD_WIDTH, HD_HEIGHT)
@@ -1194,7 +1198,7 @@ def render_back_panel():
     white = (240, 240, 240)
     
     ear_w = 22 * Q
-    screw_ys = [18 * Q, 80 * Q, 172 * Q, 264 * Q, 326 * Q]
+    screw_ys = [18 * Q, 90 * Q, 162 * Q, 252 * Q, 324 * Q, 396 * Q]
     for sy in screw_ys:
         draw_screw(draw, ear_w // 2, sy, 8 * Q, is_brass=True)
         draw_screw(draw, HD_WIDTH - ear_w // 2, sy, 8 * Q, is_brass=True)
@@ -1203,82 +1207,83 @@ def render_back_panel():
     draw_kuba_band(draw, ear_w + 4 * Q, HD_HEIGHT - 9 * Q, HD_WIDTH - 2 * ear_w - 8 * Q, 6 * Q, gold=gold, bronze=bronze)
     
     draw_screw(draw, ear_w + 20 * Q, 32 * Q, 10 * Q, angle_deg=60, is_brass=True)
-    draw.text((ear_w + 35 * Q, 32 * Q), "CHASSIS GROUND", fill=(130, 135, 140), font=get_font(FONT_DIN_ALT, 7), anchor="lm")
+    draw.text((ear_w + 35 * Q, 32 * Q), "CHASSIS GROUND", fill=(130, 135, 140), font=get_font(FONT_DIN_ALT, 8.5), anchor="lm")
     
-    font_title = get_font(FONT_DIN_COND, 20)
-    font_lbl = get_font(FONT_DIN_ALT, 9)
-    font_sm = get_font(FONT_DIN_ALT, 7.5)
+    font_title = get_font(FONT_DIN_COND, 22)
+    font_sec = get_font(FONT_DIN_COND, 14)
+    font_lbl = get_font(FONT_DIN_ALT, 11)
+    font_sm = get_font(FONT_DIN_ALT, 8.5)
     
-    draw.text((HD_WIDTH // 2, 30 * Q), "PROTOCODUS - MAREMBA PHYSICAL MODELING REAR INTERFACE", fill=gold, font=font_title, anchor="mm")
+    draw.text((HD_WIDTH // 2, 32 * Q), "PROTOCODUS - MAREMBA PHYSICAL MODELING REAR INTERFACE", fill=gold, font=font_title, anchor="mm")
     
-    draw_recessed_bay(draw, 30 * Q, 60 * Q, 395 * Q, 270 * Q, fill_color=(16, 18, 20), outline_color=(50, 54, 58), bevel_width=3, gold_accent=True)
-    draw.rectangle([30 * Q, 60 * Q, 425 * Q, 85 * Q], fill=(28, 31, 34), outline=(48, 52, 56), width=1)
-    draw.text((227 * Q, 72 * Q), "MULTI-CHANNEL BALANCED AUDIO OUTPUTS", fill=gold, font=get_font(FONT_DIN_COND, 12), anchor="mm")
+    draw_recessed_bay(draw, 30 * Q, 60 * Q, 395 * Q, 335 * Q, fill_color=(16, 18, 20), outline_color=(50, 54, 58), bevel_width=3, gold_accent=True)
+    draw.rectangle([30 * Q, 60 * Q, 425 * Q, 88 * Q], fill=(28, 31, 34), outline=(48, 52, 56), width=1)
+    draw.text((227 * Q, 74 * Q), "MULTI-CHANNEL BALANCED AUDIO OUTPUTS", fill=gold, font=font_sec, anchor="mm")
     
-    draw_recessed_bay(draw, 435 * Q, 60 * Q, 289 * Q, 270 * Q, fill_color=(16, 18, 20), outline_color=(50, 54, 58), bevel_width=3, gold_accent=True)
-    draw.rectangle([435 * Q, 60 * Q, 724 * Q, 85 * Q], fill=(28, 31, 34), outline=(48, 52, 56), width=1)
-    draw.text((579 * Q, 72 * Q), "CONTROL VOLTAGE (CV) MODULATION INPUTS", fill=gold, font=get_font(FONT_DIN_COND, 12), anchor="mm")
+    draw_recessed_bay(draw, 435 * Q, 60 * Q, 289 * Q, 335 * Q, fill_color=(16, 18, 20), outline_color=(50, 54, 58), bevel_width=3, gold_accent=True)
+    draw.rectangle([435 * Q, 60 * Q, 724 * Q, 88 * Q], fill=(28, 31, 34), outline=(48, 52, 56), width=1)
+    draw.text((579 * Q, 74 * Q), "CONTROL VOLTAGE (CV) MODULATION INPUTS", fill=gold, font=font_sec, anchor="mm")
     
     audio_sockets = [
-        (60, 140, "MAIN L", "MASTER L"),
-        (115, 140, "MAIN R", "MASTER R"),
-        (185, 140, "CLOSE L", "DIRECT L"),
-        (240, 140, "CLOSE R", "DIRECT R"),
-        (305, 140, "FAR L", "DIFFUSE L"),
-        (355, 140, "FAR R", "DIFFUSE R"),
-        (385, 220, "PIEZO", "CONTACT"),
+        (60, 150, "MAIN L", "MASTER L"),
+        (115, 150, "MAIN R", "MASTER R"),
+        (185, 150, "CLOSE L", "DIRECT L"),
+        (240, 150, "CLOSE R", "DIRECT R"),
+        (305, 150, "FAR L", "DIFFUSE L"),
+        (355, 150, "FAR R", "DIFFUSE R"),
+        (385, 250, "PIEZO", "CONTACT"),
     ]
     for sx, sy, name, desc in audio_sockets:
-        cx = sx * Q + 56
-        cy = sy * Q + 60
+        cx = sx * Q + 48
+        cy = sy * Q + 52
         draw_socket_bezel(draw, cx, cy, is_audio=True)
-        draw.text((cx, (sy + 26) * Q), name, fill=white, font=font_lbl, anchor="mm")
-        draw.text((cx, (sy + 33) * Q), desc, fill=(130, 135, 140), font=font_sm, anchor="mm")
+        draw.text((cx, (sy + 28) * Q), name, fill=white, font=font_lbl, anchor="mm")
+        draw.text((cx, (sy + 36) * Q), desc, fill=(140, 145, 150), font=font_sm, anchor="mm")
         
-    draw.line([(60 * Q + 56, 115 * Q), (115 * Q + 56, 115 * Q)], fill=gold, width=2)
-    draw.text(((60 + 115) // 2 * Q + 56, 108 * Q), "BALANCED STEREO", fill=gold, font=font_sm, anchor="mm")
+    draw.line([(60 * Q + 48, 120 * Q), (115 * Q + 48, 120 * Q)], fill=gold, width=2)
+    draw.text(((60 + 115) // 2 * Q + 48, 112 * Q), "BALANCED STEREO", fill=gold, font=font_sm, anchor="mm")
     
-    draw.line([(185 * Q + 56, 115 * Q), (240 * Q + 56, 115 * Q)], fill=(160, 165, 170), width=2)
-    draw.text(((185 + 240) // 2 * Q + 56, 108 * Q), "STEREO PAIR", fill=(160, 165, 170), font=font_sm, anchor="mm")
+    draw.line([(185 * Q + 48, 120 * Q), (240 * Q + 48, 120 * Q)], fill=(160, 165, 170), width=2)
+    draw.text(((185 + 240) // 2 * Q + 48, 112 * Q), "STEREO PAIR", fill=(160, 165, 170), font=font_sm, anchor="mm")
     
-    draw.line([(305 * Q + 56, 115 * Q), (355 * Q + 56, 115 * Q)], fill=(160, 165, 170), width=2)
-    draw.text(((305 + 355) // 2 * Q + 56, 108 * Q), "STEREO PAIR", fill=(160, 165, 170), font=font_sm, anchor="mm")
+    draw.line([(305 * Q + 48, 120 * Q), (355 * Q + 48, 120 * Q)], fill=(160, 165, 170), width=2)
+    draw.text(((305 + 355) // 2 * Q + 48, 112 * Q), "STEREO PAIR", fill=(160, 165, 170), font=font_sm, anchor="mm")
     
     cv_sockets = [
-        (465, 140, "NOTE CV", "1V / OCT"),
-        (515, 140, "GATE CV", "TRIGGER"),
-        (565, 140, "MALLET", "HARDNESS"),
-        (615, 140, "POSITION", "STRIKE"),
-        (665, 140, "COUPLING", "RESONATOR"),
-        (465, 220, "SYMPATHETIC", "BODY MESH"),
-        (565, 220, "ROLL CV", "TREMOLO"),
-        (665, 220, "VOLUME CV", "AMPLITUDE"),
+        (465, 150, "NOTE CV", "1V / OCT"),
+        (515, 150, "GATE CV", "TRIGGER"),
+        (565, 150, "MALLET", "HARDNESS"),
+        (615, 150, "POSITION", "STRIKE"),
+        (665, 150, "COUPLING", "RESONATOR"),
+        (465, 250, "SYMPATHETIC", "BODY MESH"),
+        (565, 250, "ROLL CV", "TREMOLO"),
+        (665, 250, "VOLUME CV", "AMPLITUDE"),
     ]
     for sx, sy, name, desc in cv_sockets:
-        cx = sx * Q + 41
-        cy = sy * Q + 47
+        cx = sx * Q + 38
+        cy = sy * Q + 42
         draw_socket_bezel(draw, cx, cy, is_audio=False)
-        draw.text((cx, (sy + 24) * Q), name, fill=(225, 205, 120), font=font_lbl, anchor="mm")
-        draw.text((cx, (sy + 31) * Q), desc, fill=(130, 135, 140), font=font_sm, anchor="mm")
+        draw.text((cx, (sy + 26) * Q), name, fill=(235, 215, 130), font=font_lbl, anchor="mm")
+        draw.text((cx, (sy + 34) * Q), desc, fill=(140, 145, 150), font=font_sm, anchor="mm")
         
-    # Placeholder Bay: Clean recessed mounting bay at [55*Q, 225*Q, 355*Q, 325*Q]
+    # Placeholder Bay: Clean recessed mounting bay at [55*Q, 245*Q, 355*Q, 345*Q]
     # Reason Acceptance Testing Guideline: ZERO text or graphics underneath placeholder widget!
-    draw_recessed_bay(draw, 53 * Q, 223 * Q, 304 * Q, 104 * Q, fill_color=(14, 15, 17), outline_color=(40, 44, 48), bevel_width=2, gold_accent=False)
+    draw_recessed_bay(draw, 53 * Q, 243 * Q, 304 * Q, 104 * Q, fill_color=(14, 15, 17), outline_color=(40, 44, 48), bevel_width=2, gold_accent=False)
 
-    # Vertical tape recess for device_name at [20*Q, 130*Q, 33*Q, 210*Q]
-    draw.rectangle([19 * Q, 129 * Q, 34 * Q, 211 * Q], fill=(14, 15, 17), outline=(42, 46, 50), width=1)
+    # Vertical tape recess for device_name at [20*Q, 150*Q, 33*Q, 230*Q]
+    draw.rectangle([19 * Q, 149 * Q, 34 * Q, 231 * Q], fill=(14, 15, 17), outline=(42, 46, 50), width=1)
 
     # Manufacturer & Certification Badge: Cleanly placed beneath CV modulation inputs
-    draw.rectangle([452 * Q, 268 * Q, 708 * Q, 318 * Q], fill=(12, 13, 14), outline=gold, width=1)
-    draw_african_crest(draw, 474 * Q, 293 * Q, 13 * Q, gold=gold, dark_fill=(20, 16, 12))
-    draw.text((495 * Q, 279 * Q), "cz.protocodus.Maremba  |  PHYSICAL MODELING SYNTHESIZER", fill=(215, 215, 220), font=font_sm, anchor="lm")
-    draw.text((495 * Q, 293 * Q), "MADE IN REASON STUDIOS RACK EXTENSION  |  PRO-AUDIO CLASS A", fill=(140, 145, 150), font=font_sm, anchor="lm")
-    draw.text((495 * Q, 307 * Q), "CE / RoHS COMPLIANT - 100% REAL-TIME DSP SYNTHESIS ENGINE", fill=gold, font=font_sm, anchor="lm")
+    draw.rectangle([452 * Q, 315 * Q, 708 * Q, 375 * Q], fill=(12, 13, 14), outline=gold, width=1)
+    draw_african_crest(draw, 474 * Q, 345 * Q, 15 * Q, gold=gold, dark_fill=(20, 16, 12))
+    draw.text((500 * Q, 330 * Q), "cz.protocodus.Maremba  |  PHYSICAL MODELING SYNTHESIZER", fill=(225, 225, 230), font=font_sm, anchor="lm")
+    draw.text((500 * Q, 345 * Q), "MADE IN REASON STUDIOS RACK EXTENSION  |  PRO-AUDIO CLASS A", fill=(155, 160, 165), font=font_sm, anchor="lm")
+    draw.text((500 * Q, 360 * Q), "CE / RoHS COMPLIANT - 100% REAL-TIME DSP SYNTHESIS ENGINE", fill=gold, font=font_sm, anchor="lm")
     
     panel.save(HD / "Reason_GUI_back_root_Panel.png")
     panel_1x = panel.resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
     panel_1x.save(GUI2D / "Reason_GUI_back_root_Panel.png")
-    print("Rendered Reason_GUI_back_root_Panel.png (3770x1725 & 754x345) successfully!")
+    print("Rendered Reason_GUI_back_root_Panel.png (3770x2070 & 754x414) successfully!")
 
 # -------------------------------------------------------------------------
 # Folded Panels (3770x150 HD / 754x30 1x)
@@ -1364,14 +1369,14 @@ def composite_front(panel=None):
     
     # 1. Model Art Display (Frame 0: Concert Grand Rosewood Marimba)
     model_art = Image.open(HD / "ModelArt.png").convert("RGBA")
-    image.alpha_composite(copy_frame(model_art, 4, 0), (30 * Q, 76 * Q))
+    image.alpha_composite(copy_frame(model_art, 4, 0), (30 * Q, 84 * Q))
     
     # 2. Model Selection Radio Toggles (Frame 1 on first, Frame 0 on others)
     toggle = Image.open(HD / "Toggle.png").convert("RGBA")
-    image.alpha_composite(copy_frame(toggle, 2, 1), (34 * Q, 178 * Q))
-    image.alpha_composite(copy_frame(toggle, 2, 0), (94 * Q, 178 * Q))
-    image.alpha_composite(copy_frame(toggle, 2, 0), (154 * Q, 178 * Q))
-    image.alpha_composite(copy_frame(toggle, 2, 0), (214 * Q, 178 * Q))
+    image.alpha_composite(copy_frame(toggle, 2, 1), (34 * Q, 192 * Q))
+    image.alpha_composite(copy_frame(toggle, 2, 0), (94 * Q, 192 * Q))
+    image.alpha_composite(copy_frame(toggle, 2, 0), (154 * Q, 192 * Q))
+    image.alpha_composite(copy_frame(toggle, 2, 0), (214 * Q, 192 * Q))
     
     # 3. Patch Browse Group
     pbg = Image.open(HD / "PatchBrowseGroup.png").convert("RGBA")
@@ -1391,42 +1396,42 @@ def composite_front(panel=None):
     image.alpha_composite(copy_frame(lamp, 2, 0), (692 * Q, 16 * Q))
     
     # 6. Patch Display Text
-    font_patch = get_font(FONT_ARIAL, 10.5)
-    draw.text((380 * Q + 475, 14 * Q + 45), "Concert Grand Rosewood", fill=(245, 235, 215), font=font_patch, anchor="mm")
+    font_patch = get_font(FONT_ARIAL, 11)
+    draw.text((380 * Q + 475, 14 * Q + 50), "Concert Grand Rosewood", fill=(245, 235, 215), font=font_patch, anchor="mm")
     
     # 7. Knobs: 26 knobs at exact coordinates with musical positions
     knob = Image.open(HD / "Knob.png").convert("RGBA")
     knob_settings = [
         # Section 1: Resonant Body & Character
-        (42, 200, 32),   # sympathetic (50%)
-        (124, 200, 26),  # bodyBloom (42%)
-        (206, 200, 0),   # pitchGlide (0%)
-        (42, 262, 22),   # rollSpeed (35%)
-        (124, 262, 15),  # buzzAmount (24%)
-        (206, 262, 18),  # artifacts (28%)
+        (42, 230, 32),   # sympathetic (50%)
+        (124, 230, 26),  # bodyBloom (42%)
+        (206, 230, 0),   # pitchGlide (0%)
+        (42, 310, 22),   # rollSpeed (35%)
+        (124, 310, 15),  # buzzAmount (24%)
+        (206, 310, 18),  # artifacts (28%)
         # Section 2: Bar Excitation & Resonator Matrix
-        (294, 80, 12),   # malletType (Hard Felt)
-        (347, 80, 35),   # malletHardness (55%)
-        (400, 80, 25),   # strikePosition (40%)
-        (453, 80, 16),   # strikeJitter (25%)
-        (298, 160, 31),  # resonatorTune (0 cents)
-        (369, 160, 42),  # resonatorCoupling (67%)
-        (440, 160, 38),  # decay (60%)
-        (298, 246, 48),  # polyphony (16 voices)
-        (369, 246, 20),  # oversampling (2x)
-        (440, 246, 31),  # velocityCurve (Linear)
+        (290, 86, 12),   # malletType (Hard Felt)
+        (345, 86, 35),   # malletHardness (55%)
+        (400, 86, 25),   # strikePosition (40%)
+        (455, 86, 16),   # strikeJitter (25%)
+        (296, 194, 31),  # resonatorTune (0 cents)
+        (370, 194, 42),  # resonatorCoupling (67%)
+        (444, 194, 38),  # decay (60%)
+        (296, 298, 48),  # polyphony (16 voices)
+        (370, 298, 20),  # oversampling (2x)
+        (444, 298, 31),  # velocityCurve (Linear)
         # Section 3: Microphones, Studio Preamps & Dynamics
-        (522, 80, 45),   # closeLevel (72%)
-        (576, 80, 32),   # farLevel (50%)
-        (630, 80, 20),   # piezoLevel (32%)
-        (682, 80, 48),   # stereoWidth (76%)
-        (522, 160, 18),  # preampDrive (28%)
-        (576, 160, 36),  # warmth (58%)
-        (630, 160, 25),  # compAmount (40%)
-        (682, 160, 30),  # compRelease (48%)
-        (522, 246, 14),  # detune (22%)
-        (576, 246, 31),  # masterTune (440 Hz)
-        (642, 246, 50),  # volume (80%)
+        (522, 86, 45),   # closeLevel (72%)
+        (574, 86, 32),   # farLevel (50%)
+        (626, 86, 20),   # piezoLevel (32%)
+        (678, 86, 48),   # stereoWidth (76%)
+        (522, 194, 18),  # preampDrive (28%)
+        (574, 194, 36),  # warmth (58%)
+        (626, 194, 25),  # compAmount (40%)
+        (678, 194, 30),  # compRelease (48%)
+        (522, 298, 14),  # detune (22%)
+        (574, 298, 31),  # masterTune (440 Hz)
+        (636, 298, 50),  # volume (80%)
     ]
     for kx, ky, frame in knob_settings:
         image.alpha_composite(copy_frame(knob, 63, frame), (kx * Q, ky * Q))
@@ -1444,8 +1449,8 @@ def composite_back(panel=None):
     image = panel.convert("RGBA")
     
     # 1. Reason Studios Placeholder Badge
-    # Official 300x100 1x / 1500x500 HD mounting area at [55*Q, 225*Q]
-    ph_x, ph_y = 55 * Q, 225 * Q
+    # Official 300x100 1x / 1500x500 HD mounting area at [55*Q, 245*Q]
+    ph_x, ph_y = 55 * Q, 245 * Q
     ph_w, ph_h = 1500, 500
     ph_card = Image.new("RGBA", (ph_w, ph_h), (18, 20, 23, 240))
     d_ph = ImageDraw.Draw(ph_card)
@@ -1454,31 +1459,31 @@ def composite_back(panel=None):
     
     gold = (218, 175, 55)
     draw_african_crest(d_ph, 140, ph_h // 2, 18 * Q, gold=gold, dark_fill=(26, 22, 16))
-    d_ph.text((260, ph_h // 2 - 50), "REASON STUDIOS LICENSED RACK EXTENSION", fill=gold, font=get_font(FONT_DIN_COND, 13), anchor="lm")
-    d_ph.text((260, ph_h // 2 - 5), "REGISTERED TO: PRO-AUDIO PRODUCTION WORKSTATION", fill=(220, 225, 230), font=get_font(FONT_DIN_ALT, 9.5), anchor="lm")
-    d_ph.text((260, ph_h // 2 + 40), "DEVICE ID: cz.protocodus.Maremba  |  LICENSE: RS-RE-MAR-2026-7741", fill=(140, 145, 155), font=get_font(FONT_DIN_ALT, 8), anchor="lm")
+    d_ph.text((260, ph_h // 2 - 50), "REASON STUDIOS LICENSED RACK EXTENSION", fill=gold, font=get_font(FONT_DIN_COND, 14), anchor="lm")
+    d_ph.text((260, ph_h // 2 - 5), "REGISTERED TO: PRO-AUDIO PRODUCTION WORKSTATION", fill=(220, 225, 230), font=get_font(FONT_DIN_ALT, 10), anchor="lm")
+    d_ph.text((260, ph_h // 2 + 40), "DEVICE ID: cz.protocodus.Maremba  |  LICENSE: RS-RE-MAR-2026-7741", fill=(140, 145, 155), font=get_font(FONT_DIN_ALT, 8.5), anchor="lm")
     image.alpha_composite(ph_card, (ph_x, ph_y))
     
-    # 2. Vertical Tape for Device Name at [20*Q, 130*Q]
+    # 2. Vertical Tape for Device Name at [20*Q, 150*Q]
     tape_v = Image.open(HD / "TapeVert.png").convert("RGBA")
-    image.alpha_composite(tape_v, (20 * Q, 130 * Q))
+    image.alpha_composite(tape_v, (20 * Q, 150 * Q))
     
     tape_txt = Image.new("RGBA", (400, 65), (0, 0, 0, 0))
     d_tv = ImageDraw.Draw(tape_txt)
     d_tv.text((200, 32), "Maremba", fill=(32, 34, 38), font=get_font(FONT_DIN_ALT, 8.5), anchor="mm")
     tape_rot = tape_txt.transpose(Image.Transpose.ROTATE_270)
-    image.alpha_composite(tape_rot, (20 * Q, 130 * Q))
+    image.alpha_composite(tape_rot, (20 * Q, 150 * Q))
     
     # 3. Balanced Audio Output Sockets (Unplugged Frame 0)
     audio_jack = Image.open(HD / "AudioJack.png").convert("RGBA")
     audio_sockets = [
-        (60, 140),
-        (115, 140),
-        (185, 140),
-        (240, 140),
-        (305, 140),
-        (355, 140),
-        (385, 220),
+        (60, 150),
+        (115, 150),
+        (185, 150),
+        (240, 150),
+        (305, 150),
+        (355, 150),
+        (385, 250),
     ]
     for sx, sy in audio_sockets:
         image.alpha_composite(copy_frame(audio_jack, 3, 0), (sx * Q, sy * Q))
@@ -1486,14 +1491,14 @@ def composite_back(panel=None):
     # 4. CV Modulation Input Sockets (Unplugged Frame 0)
     cv_jack = Image.open(HD / "CVJack.png").convert("RGBA")
     cv_sockets = [
-        (465, 140),
-        (515, 140),
-        (565, 140),
-        (615, 140),
-        (665, 140),
-        (465, 220),
-        (565, 220),
-        (665, 220),
+        (465, 150),
+        (515, 150),
+        (565, 150),
+        (615, 150),
+        (665, 150),
+        (465, 250),
+        (565, 250),
+        (665, 250),
     ]
     for sx, sy in cv_sockets:
         image.alpha_composite(copy_frame(cv_jack, 3, 0), (sx * Q, sy * Q))
@@ -1543,14 +1548,14 @@ def composite_folded_back(panel=None):
 
 def generate_docs_previews(preview_front=None, preview_back=None):
     """
-    Generate front/rear presentation preview images and save them into the docs/ directory.
+    Generate front/rear presentation preview images and save them into docs/ and artifacts.
     Output:
-    - docs/front.png (Crisp 2x 1508x690 Retina presentation image)
-    - docs/rear.png (Crisp 2x 1508x690 Retina presentation image)
-    - docs/front_preview.png (1x 754x345 native Reason rack size)
-    - docs/rear_preview.png (1x 754x345 native Reason rack size)
-    - docs/front_hd.png (5x 3770x1725 full HD authoring resolution)
-    - docs/rear_hd.png (5x 3770x1725 full HD authoring resolution)
+    - docs/front.png (Crisp 2x 1508x828 Retina presentation image)
+    - docs/rear.png (Crisp 2x 1508x828 Retina presentation image)
+    - docs/front_preview.png (1x 754x414 native Reason rack size)
+    - docs/rear_preview.png (1x 754x414 native Reason rack size)
+    - docs/front_hd.png (5x 3770x2070 full HD authoring resolution)
+    - docs/rear_hd.png (5x 3770x2070 full HD authoring resolution)
     """
     docs_dir = PROJECT / "docs"
     docs_dir.mkdir(parents=True, exist_ok=True)
@@ -1576,42 +1581,102 @@ def generate_docs_previews(preview_front=None, preview_back=None):
     front_1x.save(docs_dir / "front_preview.png")
     rear_1x.save(docs_dir / "rear_preview.png")
     
-    print("Generated all docs previews (front.png, rear.png, etc.) in docs/ successfully!")
+    # Also save to conversation artifacts for instant UI inspection
+    artifacts_dir = Path("/Users/vojta/.gemini/antigravity/brain/57115581-b1fd-4366-a6f4-3ecaf5a71e3a")
+    if artifacts_dir.exists():
+        front_1x.save(artifacts_dir / "front_preview.png")
+        rear_1x.save(artifacts_dir / "rear_preview.png")
+        front_2x.save(artifacts_dir / "front_2x.png")
+        rear_2x.save(artifacts_dir / "rear_2x.png")
+    
+    print("Generated all docs previews (front.png, rear.png, etc.) in docs/ and artifacts successfully!")
 
 
 def render_device_icons(preview_front=None, preview_back=None, preview_ff=None, preview_fb=None):
     """Render high-resolution African native art & luxury icons, palette, and navigators."""
-    base_icon = Image.new("RGBA", (512, 384), (20, 22, 25, 255))
+    base_icon = Image.new("RGBA", (512, 384), (16, 18, 20, 255))
     draw = ImageDraw.Draw(base_icon)
     gold = (218, 175, 55)
+    gold_bright = (245, 205, 75)
     bronze = (145, 105, 40)
     
-    draw.rectangle([4, 4, 507, 379], fill=(24, 26, 30), outline=gold, width=4)
-    draw.rectangle([12, 12, 499, 371], outline=(45, 48, 52), width=2)
+    # Outer luxury gold frame
+    draw.rectangle([4, 4, 507, 379], fill=(22, 24, 27), outline=gold, width=3)
+    draw.rectangle([10, 10, 501, 373], outline=(55, 60, 68), width=1)
     
-    draw_kuba_band(draw, 16, 16, 480, 20, gold=gold, bronze=bronze)
-    draw_african_crest(draw, 256, 105, 34, gold=gold, dark_fill=(30, 22, 14))
+    # Corner chevron accents
+    for cx, cy in [(14, 14), (497, 14), (14, 369), (497, 369)]:
+        draw.ellipse([cx - 4, cy - 4, cx + 4, cy + 4], fill=gold_bright)
+        
+    # Top and bottom Kuba geometric friezes
+    draw_kuba_band(draw, 14, 12, 484, 16, gold=gold, bronze=bronze)
+    draw_kuba_band(draw, 14, 355, 484, 16, gold=gold, bronze=bronze)
     
-    bar_w = 34
-    cx, cy = 256, 240
-    for i in range(7):
-        bx = 75 + i * 52
-        h_bar = int(120 - i * 10)
-        top_y = cy - h_bar // 2
-        bot_y = cy + h_bar // 2
+    # Upper crest medallion
+    draw_african_crest(draw, 256, 72, 28, gold=gold_bright, dark_fill=(26, 18, 12))
+    
+    # Subtitle above bars
+    font_sub_brand = get_font(FONT_DIN_COND, 12)
+    draw.text((256, 114), "PROTOCODUS ACOUSTICS", fill=gold, font=font_sub_brand, anchor="mm")
+    
+    # Tone Bars & Resonator Matrix
+    bar_count = 7
+    bar_w = 38
+    spacing = 54
+    start_x = 76
+    cy = 210
+    
+    # Resonator pipes behind bars
+    for i in range(bar_count):
+        bx = start_x + i * spacing
+        pipe_h = int(120 * (1.0 - 0.42 * (i / float(bar_count))))
+        py0 = cy + 15
+        py1 = py0 + pipe_h
         
-        pipe_len = int(105 * (1.0 - 0.45 * (i / 7.0)))
-        draw.rectangle([bx + 6, bot_y + 8, bx + bar_w - 6, bot_y + 8 + pipe_len], fill=(190, 150, 48), outline=gold, width=2)
-        draw.arc([bx + 6, bot_y + 8 + pipe_len - 8, bx + bar_w - 6, bot_y + 8 + pipe_len + 8], 0, 180, fill=gold, width=2)
+        draw.rectangle([bx + 7, py0, bx + bar_w - 7, py1], fill=(180, 140, 42), outline=(100, 75, 20), width=2)
+        draw.line([(bx + 11, py0 + 2), (bx + 11, py1 - 2)], fill=(240, 210, 110), width=2)
+        draw.arc([bx + 7, py1 - 8, bx + bar_w - 7, py1 + 8], 0, 180, fill=(100, 75, 20), width=2)
+        draw.line([(bx + 6, py0 + 8), (bx + bar_w - 6, py0 + 8)], fill=gold_bright, width=2)
         
-        draw.rectangle([bx, top_y, bx + bar_w, bot_y], fill=(185, 60, 22), outline=(80, 20, 10), width=2)
-        draw.rectangle([bx + 3, top_y + 4, bx + bar_w - 3, bot_y - 4], fill=(215, 82, 32))
-        draw.ellipse([bx + bar_w // 2 - 3, top_y + 12, bx + bar_w // 2 + 3, top_y + 18], fill=gold)
-        draw.ellipse([bx + bar_w // 2 - 3, bot_y - 18, bx + bar_w // 2 + 3, bot_y - 12], fill=gold)
+    # Tone bars
+    for i in range(bar_count):
+        bx = start_x + i * spacing
+        bar_len = int(136 * (1.0 - 0.36 * (i / float(bar_count))))
+        top_y = cy - bar_len // 2
+        bot_y = cy + bar_len // 2
         
-    draw.rectangle([50, 325, 462, 365], fill=(14, 15, 17), outline=gold, width=2)
-    font_icon = get_font(FONT_DIN_COND, 13)
-    draw.text((256, 345), "PROTOCODUS - MAREMBA", fill=gold, font=font_icon, anchor="mm")
+        draw.rectangle([bx + 4, top_y + 4, bx + bar_w + 4, bot_y + 4], fill=(10, 11, 12))
+        
+        is_padauk = (i % 2 == 1)
+        bar_fill = (165, 52, 22) if is_padauk else (88, 32, 20)
+        bar_hi = (205, 75, 34) if is_padauk else (125, 48, 28)
+        bar_outline = (55, 18, 10)
+        
+        draw.rectangle([bx, top_y, bx + bar_w, bot_y], fill=bar_fill, outline=bar_outline, width=2)
+        draw.rectangle([bx + 2, top_y + 3, bx + bar_w - 2, bot_y - 3], fill=bar_hi)
+        draw.line([(bx + bar_w // 2, top_y + 2), (bx + bar_w // 2, bot_y - 2)], fill=bar_fill, width=1)
+        
+        arch_cy = bot_y - 3
+        draw.arc([bx + 4, arch_cy - 12, bx + bar_w - 4, arch_cy + 12], 180, 360, fill=(35, 10, 6), width=2)
+        
+        node1 = top_y + int(bar_len * 0.224)
+        node2 = bot_y - int(bar_len * 0.224)
+        for ny in [node1, node2]:
+            draw.ellipse([bx + bar_w // 2 - 3, ny - 3, bx + bar_w // 2 + 3, ny + 3], fill=gold_bright, outline=(30, 15, 8), width=1)
+            
+    draw.line([(start_x, cy - 36), (start_x + (bar_count - 1) * spacing + bar_w, cy - 20)], fill=(235, 215, 130), width=1)
+    draw.line([(start_x, cy + 36), (start_x + (bar_count - 1) * spacing + bar_w, cy + 20)], fill=(235, 215, 130), width=1)
+    
+    # Plaque at bottom
+    pl_y0 = 300
+    pl_y1 = 345
+    draw.rectangle([40, pl_y0, 472, pl_y1], fill=(12, 13, 15), outline=gold, width=2)
+    draw.rectangle([43, pl_y0 + 2, 469, pl_y1 - 2], outline=bronze, width=1)
+    
+    font_icon_title = get_font(FONT_DIN_COND, 22)
+    font_icon_sub = get_font(FONT_DIN_ALT, 8.5)
+    draw.text((256, pl_y0 + 15), "MAREMBA", fill=gold_bright, font=font_icon_title, anchor="mm")
+    draw.text((256, pl_y0 + 32), "ACOUSTIC MODAL SYNTHESIZER", fill=(210, 215, 220), font=font_icon_sub, anchor="mm")
     
     # 1. Reason HD Atlas (779x518)
     atlas = Image.new("RGBA", (779, 518), (0, 0, 0, 0))
@@ -1639,18 +1704,19 @@ def render_device_icons(preview_front=None, preview_back=None, preview_ff=None, 
     icon_128.paste(scaled_cell, (4, 19))
     icon_128.save(GUI2D / "DeviceIcon.png")
     
-    # 2. DevicePaletteImage.png (650x300 in HD, 130x60 in 1x)
-    pal_hd = Image.new("RGBA", (650, 300), (22, 24, 26, 255))
+    # 2. DevicePaletteImage.png (650x360 in HD, 130x72 in 1x)
+    pal_hd = Image.new("RGBA", (650, 360), (22, 24, 26, 255))
     pal_draw = ImageDraw.Draw(pal_hd)
-    pal_draw.rectangle([2, 2, 647, 297], outline=gold, width=2)
+    pal_draw.rectangle([2, 2, 647, 357], outline=gold, width=2)
     draw_kuba_band(pal_draw, 10, 10, 630, 16, gold=gold, bronze=bronze)
-    pal_draw.text((220, 130), "PROTOCODUS - MAREMBA", fill=gold, font=get_font(FONT_DIN_COND, 22), anchor="lm")
-    pal_draw.text((220, 165), "PHYSICAL-MODELED MARIMBA & KALIMBA", fill=(180, 185, 190), font=get_font(FONT_DIN_ALT, 10), anchor="lm")
+    pal_draw.text((220, 140), "PROTOCODUS - MAREMBA", fill=gold, font=get_font(FONT_DIN_COND, 26), anchor="lm")
+    pal_draw.text((220, 180), "PHYSICAL-MODELED MARIMBA & KALIMBA", fill=(210, 215, 220), font=get_font(FONT_DIN_ALT, 11), anchor="lm")
+    pal_draw.text((220, 215), "ACOUSTIC MODAL SYNTHESIS ENGINE", fill=gold_bright, font=get_font(FONT_DIN_ALT, 9), anchor="lm")
     pal_icon = base_icon.resize((180, 135), Image.Resampling.LANCZOS)
-    pal_hd.paste(pal_icon, (25, 82))
+    pal_hd.paste(pal_icon, (25, 100))
     pal_hd.save(HD / "DevicePaletteImage.png")
     
-    pal_2d = pal_hd.resize((130, 60), Image.Resampling.LANCZOS)
+    pal_2d = pal_hd.resize((130, 72), Image.Resampling.LANCZOS)
     pal_2d.save(GUI2D / "DevicePaletteImage.png")
     
     # 3. DeviceNavigator.png & Folded
@@ -1663,30 +1729,30 @@ def render_device_icons(preview_front=None, preview_back=None, preview_ff=None, 
     if preview_fb is None:
         preview_fb = composite_folded_back()
         
-    nav_hd = preview_front.resize((630, 290), Image.Resampling.LANCZOS)
+    nav_hd = preview_front.resize((630, 345), Image.Resampling.LANCZOS)
     nav_hd.save(HD / "DeviceNavigator.png")
     
     nav_f_hd = preview_ff.resize((630, 25), Image.Resampling.LANCZOS)
     nav_f_hd.save(HD / "DeviceNavigatorFolded.png")
     
-    nav_2d = preview_front.resize((126, 58), Image.Resampling.LANCZOS)
+    nav_2d = preview_front.resize((126, 69), Image.Resampling.LANCZOS)
     nav_2d.save(GUI2D / "DeviceNavigator.png")
     
     nav_f_2d = preview_ff.resize((126, 5), Image.Resampling.LANCZOS)
     nav_f_2d.save(GUI2D / "DeviceNavigatorFolded.png")
     
-    # 4. DeviceTrackListThumbnail.png (270x125 in HD, 54x25 in 2D)
-    track_thumb_hd = preview_front.resize((270, 125), Image.Resampling.LANCZOS)
+    # 4. DeviceTrackListThumbnail.png (270x150 in HD, 54x30 in 2D)
+    track_thumb_hd = preview_front.resize((270, 150), Image.Resampling.LANCZOS)
     track_thumb_hd.save(HD / "DeviceTrackListThumbnail.png")
-    track_thumb_2d = preview_front.resize((54, 25), Image.Resampling.LANCZOS)
+    track_thumb_2d = preview_front.resize((54, 30), Image.Resampling.LANCZOS)
     track_thumb_2d.save(GUI2D / "DeviceTrackListThumbnail.png")
     
     # 5. Reason Browser & Rack Preview Suite
     previews = [
-        ("Reason_Icon128x128", 128, 58, 6),
-        ("Reason_Navigator", 126, 58, 5),
-        ("Reason_Palette", 130, 59, 6),
-        ("Reason_TrackListIcon", 54, 25, 3),
+        ("Reason_Icon128x128", 128, 72, 6),
+        ("Reason_Navigator", 126, 69, 5),
+        ("Reason_Palette", 130, 72, 6),
+        ("Reason_TrackListIcon", 54, 30, 3),
     ]
     for prefix, pw, ph, pfh in previews:
         preview_front.resize((pw, ph), Image.Resampling.LANCZOS).save(GUI2D / f"{prefix}_front_root_Panel.png")

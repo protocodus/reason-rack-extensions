@@ -15,5 +15,5 @@ accepts_notes = true
 auto_create_track = true
 auto_create_note_lane = true
 supports_performance_automation = true
-device_height_ru = 5
+device_height_ru = 6
 automation_highlight_color = { r = 214, g = 148, b = 64 }
