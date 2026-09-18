@@ -1,4 +1,4 @@
-format_version = "1.0"
+format_version = "4.0"
 
 custom_properties = jbox.property_set{
     document_owner = {
