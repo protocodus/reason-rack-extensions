@@ -6,9 +6,9 @@
             <Value property="model" type="number">2</Value>
             <Value property="malletHardness" type="number">0.4500</Value>
             <Value property="strikePosition" type="number">0.4500</Value>
-            <Value property="resonatorTune" type="number">15.0000</Value>
+            <Value property="resonatorTune" type="number">0.6500</Value>
             <Value property="resonatorCoupling" type="number">0.9000</Value>
-            <Value property="decay" type="number">1.3000</Value>
+            <Value property="decay" type="number">0.1519</Value>
             <Value property="buzzAmount" type="number">0.7500</Value>
             <Value property="artifacts" type="number">0.7000</Value>
             <Value property="sympathetic" type="number">0.7000</Value>
@@ -18,12 +18,12 @@
             <Value property="closeLevel" type="number">0.7500</Value>
             <Value property="farLevel" type="number">0.7000</Value>
             <Value property="piezoLevel" type="number">0.2000</Value>
-            <Value property="stereoWidth" type="number">1.5000</Value>
+            <Value property="stereoWidth" type="number">0.7500</Value>
             <Value property="preampDrive" type="number">0.4000</Value>
-            <Value property="warmth" type="number">-0.2500</Value>
+            <Value property="warmth" type="number">0.3750</Value>
             <Value property="compAmount" type="number">0.4500</Value>
-            <Value property="compAttack" type="number">10.0000</Value>
-            <Value property="compRelease" type="number">150.0000</Value>
+            <Value property="compAttack" type="number">0.1837</Value>
+            <Value property="compRelease" type="number">0.2708</Value>
             <Value property="volume" type="number">0.8200</Value>
             <Value property="oversampling" type="number">0</Value>
             <Value property="velocityCurve" type="number">1</Value>
