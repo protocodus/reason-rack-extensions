@@ -20,6 +20,9 @@ global_rtc = {
     end,
 }
 
+-- The C++ replays these diffs at their frame (polling the MOM alone would
+-- lose several changes within one render batch). Output cable state picks the
+-- mono fold of the main pair and skips direct outputs that have no cable.
 rt_input_setup = {
     notify = {
         "/note_states/*",
@@ -38,8 +41,13 @@ rt_input_setup = {
         "/cv_inputs/volume_cv/connected",
         "/cv_inputs/sympathetic_cv/value",
         "/cv_inputs/sympathetic_cv/connected",
-        "/cv_inputs/roll_cv/value",
-        "/cv_inputs/roll_cv/connected",
+        "/audio_outputs/left/connected",
+        "/audio_outputs/right/connected",
+        "/audio_outputs/close_left/connected",
+        "/audio_outputs/close_right/connected",
+        "/audio_outputs/far_left/connected",
+        "/audio_outputs/far_right/connected",
+        "/audio_outputs/piezo/connected",
     },
 }
 

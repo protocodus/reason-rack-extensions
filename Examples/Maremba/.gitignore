@@ -12,3 +12,4 @@ __pycache__/
 /Demos/maremba_renderer
 /Tests/test_dsp
 /Tests/all_patch_render_test
+/Tests/wrapper_host_test

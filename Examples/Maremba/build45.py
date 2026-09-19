@@ -27,7 +27,8 @@ import subprocess
 test_runner = os.path.join(PROJECT_DIR, "Tests", "run_all_tests.sh")
 if os.path.exists(test_runner):
     print(">>> Running pre-build verification test suite <<<")
-    res = subprocess.run([test_runner], cwd=PROJECT_DIR)
+    # A hung test (e.g. a voice that never frees) must fail the build, not stall it.
+    res = subprocess.run([test_runner], cwd=PROJECT_DIR, timeout=1800)
     if res.returncode != 0:
         raise RuntimeError(f"Pre-build verification failed with exit code {res.returncode}")
 

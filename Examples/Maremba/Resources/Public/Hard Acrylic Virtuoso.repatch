@@ -4,8 +4,10 @@
     <Properties deviceProductID="cz.protocodus.Maremba" deviceVersion="1.0.0f1">
         <Object name="custom_properties">
             <Value property="model" type="number">0</Value>
+            <Value property="malletType" type="number">2</Value>
             <Value property="malletHardness" type="number">0.8500</Value>
             <Value property="strikePosition" type="number">0.6200</Value>
+            <Value property="strikeJitter" type="number">0.1000</Value>
             <Value property="resonatorTune" type="number">0.5500</Value>
             <Value property="resonatorCoupling" type="number">0.6000</Value>
             <Value property="decay" type="number">0.0823</Value>
@@ -14,7 +16,6 @@
             <Value property="sympathetic" type="number">0.3000</Value>
             <Value property="pitchGlide" type="number">0.5000</Value>
             <Value property="bodyBloom" type="number">0.4000</Value>
-            <Value property="rollSpeed" type="number">0.0000</Value>
             <Value property="closeLevel" type="number">0.9500</Value>
             <Value property="farLevel" type="number">0.3000</Value>
             <Value property="piezoLevel" type="number">0.4500</Value>
@@ -26,9 +27,10 @@
             <Value property="compRelease" type="number">0.1250</Value>
             <Value property="volume" type="number">0.7800</Value>
             <Value property="oversampling" type="number">0</Value>
-            <Value property="velocityCurve" type="number">2</Value>
+            <Value property="velocityCurve" type="number">0</Value>
             <Value property="polyphony" type="number">1</Value>
             <Value property="masterTune" type="number">0.5000</Value>
+            <Value property="detune" type="number">0.0000</Value>
         </Object>
     </Properties>
 </JukeboxPatch>

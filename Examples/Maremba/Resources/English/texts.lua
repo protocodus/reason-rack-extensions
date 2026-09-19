@@ -21,7 +21,8 @@ texts = {
     ["propertyname Resonator Tune"] = "Resonator Tune",
     ["cents template"] = "^0 Cents",
     ["propertyname Resonator Coupling"] = "Resonator Coupling",
-    ["propertyname Bar Decay"] = "Bar Decay",
+    ["propertyname Bar Decay Scale"] = "Bar Decay Scale",
+    ["multiplier template"] = "x^0",
     ["propertyname Mirliton Buzz"] = "Mirliton Buzz",
     ["propertyname Acoustic Artifacts"] = "Acoustic Artifacts",
 
@@ -29,8 +30,6 @@ texts = {
     ["propertyname Sympathetic Halo"] = "Sympathetic Halo",
     ["propertyname Attack Pitch Glide"] = "Attack Pitch Glide",
     ["propertyname Frame Body Bloom"] = "Frame Body Bloom",
-    ["propertyname Mallet Roll Speed"] = "Mallet Roll Speed",
-    ["hz template"] = "^0 Hz",
 
     -- Mic Mixer
     ["propertyname Close Mic"] = "Close Mic Level",
@@ -45,7 +44,6 @@ texts = {
     ["propertyname Comp Attack"] = "Compressor Attack",
     ["propertyname Comp Release"] = "Compressor Release",
     ["ms template"] = "^0 ms",
-    ["s template"] = "^0 s",
 
     -- Master
     ["propertyname Master Volume"] = "Master Volume",
@@ -64,9 +62,15 @@ texts = {
     ["poly 24 Voices"] = "24 Voices",
     ["propertyname Master Tune"] = "Master Tune",
     ["propertyname Detune"] = "Key Detune Drift",
-    ["detune template"] = "^0",
-    ["propertyname Sustain Pedal"] = "Sustain Pedal",
+    ["detune cents template"] = "+/-^0 Cents",
     ["propertyname NoteOn Lamp"] = "Note-On Lamp",
+
+    -- Automation / Remote Parameter Groups
+    ["group instrument"] = "Instrument & Mallet",
+    ["group bar"] = "Bar & Resonator",
+    ["group mics"] = "Microphones",
+    ["group dynamics"] = "Preamp & Compressor",
+    ["group master"] = "Master & Engine",
 
     -- Remote Control UI Names
     ["rem_model"] = "Model",
@@ -95,8 +99,6 @@ texts = {
     ["rem_gld"] = "Gld",
     ["rem_body"] = "Body",
     ["rem_bdy"] = "Bdy",
-    ["rem_roll"] = "Roll",
-    ["rem_rol"] = "Rol",
     ["rem_close"] = "Close",
     ["rem_cls"] = "Cls",
     ["rem_far"] = "Far",
@@ -135,10 +137,9 @@ texts = {
     ["cv_coupling"] = "Resonator Coupling CV Input",
     ["cv_volume"] = "Master Volume CV Input",
     ["cv_sympathetic"] = "Sympathetic Halo CV Input",
-    ["cv_roll"] = "Mallet Roll CV Input",
 
     -- Audio Outputs (Master Mix & Raw Direct Tap Outs)
-    ["out_left"] = "Master Output Left",
+    ["out_left"] = "Master Output Left (Mono)",
     ["out_right"] = "Master Output Right",
     ["out_close_l"] = "Close Mic Left (Raw Direct)",
     ["out_close_r"] = "Close Mic Right (Raw Direct)",

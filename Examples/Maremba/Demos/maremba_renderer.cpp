@@ -196,6 +196,8 @@ int main(int argc, char* argv[]) {
             eventIdx++;
         }
 
+        // Same call pattern as the device wrapper: parameters are pushed every batch
+        engine.SetParameters(params);
         engine.RenderBatch(batchL, batchR, nullptr, nullptr, nullptr, nullptr, nullptr, curBatch);
 
         for (int i = 0; i < curBatch; ++i) {

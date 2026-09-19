@@ -55,10 +55,11 @@ custom_properties = jbox.property_set{
                 ui_name = jbox.ui_text("propertyname Resonator Coupling"),
                 ui_type = jbox.ui_linear{ min = 0.0, max = 1.0, units = { { decimals = 2 } } },
             },
+            -- Scales each model's register-dependent ring time (x1.00 = the model's natural T60), so it is shown as a multiplier, not seconds
             decay = jbox.number{
                 default = 0.1139,
-                ui_name = jbox.ui_text("propertyname Bar Decay"),
-                ui_type = jbox.ui_linear{ min = 0.10, max = 8.0, units = { { decimals = 2, unit = { template = jbox.ui_text("s template") } } } },
+                ui_name = jbox.ui_text("propertyname Bar Decay Scale"),
+                ui_type = jbox.ui_linear{ min = 0.10, max = 8.0, units = { { decimals = 2, unit = { template = jbox.ui_text("multiplier template") } } } },
             },
             buzzAmount = jbox.number{
                 default = 0.15,
@@ -86,11 +87,6 @@ custom_properties = jbox.property_set{
                 default = 0.50,
                 ui_name = jbox.ui_text("propertyname Frame Body Bloom"),
                 ui_type = jbox.ui_linear{ min = 0.0, max = 1.0, units = { { decimals = 2 } } },
-            },
-            rollSpeed = jbox.number{
-                default = 0.0,
-                ui_name = jbox.ui_text("propertyname Mallet Roll Speed"),
-                ui_type = jbox.ui_linear{ min = 0.0, max = 20.0, units = { { decimals = 1, unit = { template = jbox.ui_text("hz template") } } } },
             },
 
             -- 3-Microphone Mixer
@@ -179,21 +175,22 @@ custom_properties = jbox.property_set{
                     jbox.ui_text("poly 24 Voices")
                 },
             },
+            -- Device tuning: -100..+100 cents (the stored 0..1 value maps linearly, 0.50 = concert pitch)
             masterTune = jbox.number{
                 default = 0.50,
                 ui_name = jbox.ui_text("propertyname Master Tune"),
-                ui_type = jbox.ui_linear{ min = 0.0, max = 1.0, units = { { decimals = 2 } } },
+                ui_type = jbox.ui_linear{ min = -100.0, max = 100.0, units = { { decimals = 1, unit = { template = jbox.ui_text("cents template") } } } },
             },
+            -- Maximum per-key tuning deviation in cents (each key gets a fixed offset within +/- this amount)
             detune = jbox.number{
                 default = 0.0,
                 ui_name = jbox.ui_text("propertyname Detune"),
-                ui_type = jbox.ui_linear{ min = 0.0, max = 100.0, units = { { decimals = 0, unit = { template = jbox.ui_text("detune template") } } } },
+                ui_type = jbox.ui_linear{ min = 0.0, max = 100.0, units = { { decimals = 1, unit = { template = jbox.ui_text("detune cents template") } } } },
             },
 
             -- Performance Controllers
             modWheel = jbox.performance_modwheel{},
             pitchBend = jbox.performance_pitchbend{},
-            sustainPedal = jbox.performance_sustainpedal{},
         }
     },
 
@@ -217,10 +214,10 @@ custom_properties = jbox.property_set{
 midi_implementation_chart = {
     -- IDs above the physical MIDI-CC range expose stable Reason automation
     -- lanes without claiming hardware CCs or conflicting with reserved performance properties.
+    -- 258 (the removed Mallet Roll Speed) is retired: never reassign an id.
     midi_cc_chart = {
         [256] = "/custom_properties/volume",
         [257] = "/custom_properties/stereoWidth",
-        [258] = "/custom_properties/rollSpeed",
         [259] = "/custom_properties/sympathetic",
         [260] = "/custom_properties/bodyBloom",
         [261] = "/custom_properties/model",
@@ -246,6 +243,7 @@ midi_implementation_chart = {
         [281] = "/custom_properties/velocityCurve",
         [282] = "/custom_properties/polyphony",
         [283] = "/custom_properties/masterTune",
+        [284] = "/custom_properties/oversampling",
     }
 }
 
@@ -263,7 +261,6 @@ remote_implementation_chart = {
     ["/custom_properties/sympathetic"] = { internal_name = "Sympathetic Halo", short_ui_name = jbox.ui_text("rem_symp"), shortest_ui_name = jbox.ui_text("rem_sym") },
     ["/custom_properties/pitchGlide"] = { internal_name = "Attack Pitch Glide", short_ui_name = jbox.ui_text("rem_glide"), shortest_ui_name = jbox.ui_text("rem_gld") },
     ["/custom_properties/bodyBloom"] = { internal_name = "Frame Body Bloom", short_ui_name = jbox.ui_text("rem_body"), shortest_ui_name = jbox.ui_text("rem_bdy") },
-    ["/custom_properties/rollSpeed"] = { internal_name = "Mallet Roll Speed", short_ui_name = jbox.ui_text("rem_roll"), shortest_ui_name = jbox.ui_text("rem_rol") },
     ["/custom_properties/closeLevel"] = { internal_name = "Close Mic", short_ui_name = jbox.ui_text("rem_close"), shortest_ui_name = jbox.ui_text("rem_cls") },
     ["/custom_properties/farLevel"] = { internal_name = "Far Mic", short_ui_name = jbox.ui_text("rem_far"), shortest_ui_name = jbox.ui_text("rem_far") },
     ["/custom_properties/piezoLevel"] = { internal_name = "Piezo Pickup", short_ui_name = jbox.ui_text("rem_piezo"), shortest_ui_name = jbox.ui_text("rem_pzo") },
@@ -281,6 +278,52 @@ remote_implementation_chart = {
     ["/custom_properties/detune"] = { internal_name = "Detune Drift", short_ui_name = jbox.ui_text("rem_detune"), shortest_ui_name = jbox.ui_text("rem_dtn") },
 }
 
+-- Automation / Combinator / Remote menu groups: every automatable custom property sits in
+-- exactly one group of 2..20 entries. The performance controllers (modWheel, pitchBend) stay
+-- ungrouped, as in YouKnow and SimpleInstrument.
+ui_groups = {
+    {
+        ui_name = jbox.ui_text("group instrument"),
+        properties = {
+            "/custom_properties/model", "/custom_properties/malletType",
+            "/custom_properties/malletHardness", "/custom_properties/strikePosition",
+            "/custom_properties/strikeJitter", "/custom_properties/velocityCurve",
+        },
+    },
+    {
+        ui_name = jbox.ui_text("group bar"),
+        properties = {
+            "/custom_properties/resonatorTune", "/custom_properties/resonatorCoupling",
+            "/custom_properties/decay", "/custom_properties/buzzAmount",
+            "/custom_properties/artifacts", "/custom_properties/sympathetic",
+            "/custom_properties/pitchGlide", "/custom_properties/bodyBloom",
+        },
+    },
+    {
+        ui_name = jbox.ui_text("group mics"),
+        properties = {
+            "/custom_properties/closeLevel", "/custom_properties/farLevel",
+            "/custom_properties/piezoLevel", "/custom_properties/stereoWidth",
+        },
+    },
+    {
+        ui_name = jbox.ui_text("group dynamics"),
+        properties = {
+            "/custom_properties/preampDrive", "/custom_properties/warmth",
+            "/custom_properties/compAmount", "/custom_properties/compAttack",
+            "/custom_properties/compRelease",
+        },
+    },
+    {
+        ui_name = jbox.ui_text("group master"),
+        properties = {
+            "/custom_properties/volume", "/custom_properties/masterTune",
+            "/custom_properties/detune", "/custom_properties/polyphony",
+            "/custom_properties/oversampling",
+        },
+    },
+}
+
 cv_inputs = {
     note_cv = jbox.cv_input{ ui_name = jbox.ui_text("cv_note") },
     gate_cv = jbox.cv_input{ ui_name = jbox.ui_text("cv_gate") },
@@ -289,7 +332,6 @@ cv_inputs = {
     coupling_cv = jbox.cv_input{ ui_name = jbox.ui_text("cv_coupling") },
     volume_cv = jbox.cv_input{ ui_name = jbox.ui_text("cv_volume") },
     sympathetic_cv = jbox.cv_input{ ui_name = jbox.ui_text("cv_sympathetic") },
-    roll_cv = jbox.cv_input{ ui_name = jbox.ui_text("cv_roll") },
 }
 
 audio_outputs = {

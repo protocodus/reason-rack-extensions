@@ -1,6 +1,9 @@
 format_version = "2.0"
 Q = 5
 
+-- Offsets are logical (1x) units; the GUI2D art is authored at Reason's 5x
+-- (HD) resolution. Design/render_panels.py paints the captions from the same
+-- positions and checks them against this file.
 local function widget(x, y, path, frames)
     return {
         offset = { x * Q, y * Q },
@@ -58,12 +61,13 @@ front = {
         S_knob_strikePosition = knob(390, 86),
         S_knob_strikeJitter = knob(442, 86),
 
-        S_knob_resonatorTune = knob(300, 194),
-        S_knob_resonatorCoupling = knob(364, 194),
+        S_knob_resonatorTune = knob(292, 194),
+        S_knob_resonatorCoupling = knob(356, 194),
         S_knob_decay = knob(428, 194),
 
-        S_knob_polyphony = knob(300, 298),
-        S_knob_oversampling = knob(364, 298),
+        -- Stepped selectors: their position legends are painted on the panel
+        S_knob_polyphony = knob(292, 298),
+        S_knob_oversampling = knob(356, 298),
         S_knob_velocityCurve = knob(428, 298),
 
         -- Section 3 Knobs
@@ -72,14 +76,17 @@ front = {
         S_knob_piezoLevel = knob(619, 86),
         S_knob_stereoWidth = knob(671, 86),
 
+        -- Preamp drive, then the compressor
         S_knob_preampDrive = knob(515, 194),
-        S_knob_warmth = knob(567, 194),
-        S_knob_compAmount = knob(619, 194),
+        S_knob_compAmount = knob(567, 194),
+        S_knob_compAttack = knob(619, 194),
         S_knob_compRelease = knob(671, 194),
 
-        S_knob_detune = knob(515, 298),
-        S_knob_masterTune = knob(567, 298),
-        S_knob_volume = knob(626, 298),
+        -- Tone, then the master controls
+        S_knob_warmth = knob(515, 298),
+        S_knob_detune = knob(567, 298),
+        S_knob_masterTune = knob(619, 298),
+        S_knob_volume = knob(671, 298),
     },
 }
 
@@ -89,6 +96,10 @@ folded_front = {
         S_patch_name = {
             offset = { 235 * Q, 6 * Q },
             { size = { 190 * Q, 18 * Q } },
+        },
+        S_patch_browse_group = {
+            offset = { 435 * Q, 4 * Q },
+            { path = "PatchBrowseGroup" },
         },
         S_device_name = {
             offset = { 505 * Q, 8 * Q },
@@ -118,14 +129,22 @@ back = {
         S_out_far_r = { offset = { 352 * Q, 150 * Q }, { path = "AudioJack", frames = 3 } },
         S_out_piezo = { offset = { 382 * Q, 250 * Q }, { path = "AudioJack", frames = 3 } },
 
+        -- Reason Studios' stock routing symbols (RE2D_Stock_Graphics_1_1,
+        -- Decorations/, byte for byte; see docs/ASSET_PROVENANCE.md). The voice
+        -- bus is mono and leaves as stereo on the main, close and far pairs
+        -- (02: mono in, stereo out) and as mono on the piezo jack (01).
+        S_routing_main = widget(89, 127, "Routing_Icon_White_02_1frames", 1),
+        S_routing_close = widget(211, 127, "Routing_Icon_White_02_1frames", 1),
+        S_routing_far = widget(329, 127, "Routing_Icon_White_02_1frames", 1),
+        S_routing_piezo = widget(385, 227, "Routing_Icon_White_01_1frames", 1),
+
         S_cv_note = { offset = { 460 * Q, 150 * Q }, { path = "CVJack", frames = 3 } },
         S_cv_gate = { offset = { 512 * Q, 150 * Q }, { path = "CVJack", frames = 3 } },
         S_cv_mallet = { offset = { 564 * Q, 150 * Q }, { path = "CVJack", frames = 3 } },
         S_cv_pos = { offset = { 616 * Q, 150 * Q }, { path = "CVJack", frames = 3 } },
         S_cv_coup = { offset = { 668 * Q, 150 * Q }, { path = "CVJack", frames = 3 } },
-        S_cv_symp = { offset = { 460 * Q, 250 * Q }, { path = "CVJack", frames = 3 } },
-        S_cv_roll = { offset = { 564 * Q, 250 * Q }, { path = "CVJack", frames = 3 } },
-        S_cv_vol = { offset = { 668 * Q, 250 * Q }, { path = "CVJack", frames = 3 } },
+        S_cv_symp = { offset = { 512 * Q, 250 * Q }, { path = "CVJack", frames = 3 } },
+        S_cv_vol = { offset = { 616 * Q, 250 * Q }, { path = "CVJack", frames = 3 } },
     },
 }
 

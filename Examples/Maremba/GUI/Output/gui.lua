@@ -19,7 +19,7 @@ local function radio(x, y, propName, index)
     return jbox.radio_button{
         transform = { x, y },
         background = jbox.image_sequence{ path = "Toggle", frames = 2 },
-        margins = { left = 1, top = 1, right = 1, bottom = 1 },
+        margins = { left = 2, top = 1, right = 2, bottom = 1 },
         value = property(propName),
         index = index,
         show_remote_box = true,
@@ -82,13 +82,13 @@ front = jbox.panel{
         knob(442, 86, "strikeJitter"),
 
         -- Row 2: Resonator Tune, Resonator Coupling, Bar Decay
-        knob(300, 194, "resonatorTune"),
-        knob(364, 194, "resonatorCoupling"),
+        knob(292, 194, "resonatorTune"),
+        knob(356, 194, "resonatorCoupling"),
         knob(428, 194, "decay"),
 
-        -- Row 3: Polyphony, Oversampling, Velocity Curve
-        knob(300, 298, "polyphony"),
-        knob(364, 298, "oversampling"),
+        -- Row 3: Polyphony, Oversampling, Velocity Curve (stepped; legends painted)
+        knob(292, 298, "polyphony"),
+        knob(356, 298, "oversampling"),
         knob(428, 298, "velocityCurve"),
 
         -- Section 3: Microphones & Dynamics
@@ -98,16 +98,17 @@ front = jbox.panel{
         knob(619, 86, "piezoLevel"),
         knob(671, 86, "stereoWidth"),
 
-        -- Row 2: Preamp Drive, Warmth, Comp Amount, Release
+        -- Row 2: Preamp Drive, Comp Amount, Attack, Release
         knob(515, 194, "preampDrive"),
-        knob(567, 194, "warmth"),
-        knob(619, 194, "compAmount"),
+        knob(567, 194, "compAmount"),
+        knob(619, 194, "compAttack"),
         knob(671, 194, "compRelease"),
 
-        -- Row 3: Detune Drift, Master Tune, Master Volume
-        knob(515, 298, "detune"),
-        knob(567, 298, "masterTune"),
-        knob(626, 298, "volume"),
+        -- Row 3: Warmth, Detune Drift, Master Tune, Master Volume
+        knob(515, 298, "warmth"),
+        knob(567, 298, "detune"),
+        knob(619, 298, "masterTune"),
+        knob(671, 298, "volume"),
     }
 }
 
@@ -118,9 +119,13 @@ folded_front = jbox.panel{
             transform = { 235, 6 },
             width = 190,
             height = 18,
+            center = true,
             text_style = "Bold LCD font",
             fg_color = { 245, 235, 215 },
             loader_alt_color = { 200, 160, 90 },
+        },
+        jbox.patch_browse_group{
+            transform = { 435, 4 },
         },
         jbox.device_name{
             transform = { 505, 8 },
@@ -196,16 +201,30 @@ back = jbox.panel{
             socket = "/cv_inputs/coupling_cv",
         },
         jbox.cv_input_socket{
-            transform = { 460, 250 },
+            transform = { 512, 250 },
             socket = "/cv_inputs/sympathetic_cv",
         },
         jbox.cv_input_socket{
-            transform = { 564, 250 },
-            socket = "/cv_inputs/roll_cv",
-        },
-        jbox.cv_input_socket{
-            transform = { 668, 250 },
+            transform = { 616, 250 },
             socket = "/cv_inputs/volume_cv",
+        },
+
+        -- Stock routing symbols: stereo pairs (02) and the mono piezo jack (01)
+        jbox.static_decoration{
+            transform = { 89, 127 },
+            image = jbox.image{ path = "Routing_Icon_White_02_1frames" },
+        },
+        jbox.static_decoration{
+            transform = { 211, 127 },
+            image = jbox.image{ path = "Routing_Icon_White_02_1frames" },
+        },
+        jbox.static_decoration{
+            transform = { 329, 127 },
+            image = jbox.image{ path = "Routing_Icon_White_02_1frames" },
+        },
+        jbox.static_decoration{
+            transform = { 385, 227 },
+            image = jbox.image{ path = "Routing_Icon_White_01_1frames" },
         },
     }
 }

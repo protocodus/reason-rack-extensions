@@ -5,10 +5,11 @@
 void* JBox_Export_CreateNativeObject(const char iOperation[], const TJBox_Value iParams[], TJBox_UInt32 iCount) {
     if (std::strcmp(iOperation, "Instance") == 0) {
         double sampleRate = 44100.0;
-        if (iCount >= 1) {
+        if (iCount >= 1 && JBox_GetType(iParams[0]) == kJBox_Number) {
             sampleRate = JBox_GetNumber(iParams[0]);
         }
-        return new CMaremba(sampleRate);
+        // Nonfinite or unsupported rates fall back to a rate the engine was sized for.
+        return new CMaremba(CMaremba::SanitizeSampleRate(sampleRate));
     }
     return nullptr;
 }

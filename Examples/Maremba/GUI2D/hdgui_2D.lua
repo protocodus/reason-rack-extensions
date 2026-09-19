@@ -41,10 +41,11 @@ local function radio(node, name, index)
 end
 
 front = jbox.panel{
-    graphics = { node = "front" },
+    graphics = { node = "S_backdrop" },
     widgets = {
         jbox.patch_name{
             graphics = { node = "S_patch_name" },
+            center = true,
             text_style = "Arial medium font",
             fg_color = { 245, 235, 215 },
             loader_alt_color = { 200, 160, 90 },
@@ -95,10 +96,11 @@ front = jbox.panel{
         knob("S_knob_stereoWidth", "stereoWidth"),
 
         knob("S_knob_preampDrive", "preampDrive"),
-        knob("S_knob_warmth", "warmth"),
         knob("S_knob_compAmount", "compAmount"),
+        knob("S_knob_compAttack", "compAttack"),
         knob("S_knob_compRelease", "compRelease"),
 
+        knob("S_knob_warmth", "warmth"),
         knob("S_knob_detune", "detune"),
         knob("S_knob_masterTune", "masterTune"),
         knob("S_knob_volume", "volume"),
@@ -106,13 +108,17 @@ front = jbox.panel{
 }
 
 folded_front = jbox.panel{
-    graphics = { node = "folded_front" },
+    graphics = { node = "S_backdrop" },
     widgets = {
         jbox.patch_name{
             graphics = { node = "S_patch_name" },
+            center = true,
             text_style = "Bold LCD font",
             fg_color = { 245, 235, 215 },
             loader_alt_color = { 200, 160, 90 },
+        },
+        jbox.patch_browse_group{
+            graphics = { node = "S_patch_browse_group" },
         },
         jbox.device_name{
             graphics = { node = "S_device_name" },
@@ -125,7 +131,7 @@ folded_front = jbox.panel{
 }
 
 back = jbox.panel{
-    graphics = { node = "back" },
+    graphics = { node = "S_backdrop" },
     widgets = {
         jbox.placeholder{
             graphics = { node = "S_placeholder" },
@@ -148,13 +154,18 @@ back = jbox.panel{
         jbox.cv_input_socket{ graphics = { node = "S_cv_pos" }, socket = "/cv_inputs/position_cv" },
         jbox.cv_input_socket{ graphics = { node = "S_cv_coup" }, socket = "/cv_inputs/coupling_cv" },
         jbox.cv_input_socket{ graphics = { node = "S_cv_symp" }, socket = "/cv_inputs/sympathetic_cv" },
-        jbox.cv_input_socket{ graphics = { node = "S_cv_roll" }, socket = "/cv_inputs/roll_cv" },
         jbox.cv_input_socket{ graphics = { node = "S_cv_vol" }, socket = "/cv_inputs/volume_cv" },
+
+        -- Stock routing symbols: stereo pairs (02) and the mono piezo jack (01)
+        jbox.static_decoration{ graphics = { node = "S_routing_main" } },
+        jbox.static_decoration{ graphics = { node = "S_routing_close" } },
+        jbox.static_decoration{ graphics = { node = "S_routing_far" } },
+        jbox.static_decoration{ graphics = { node = "S_routing_piezo" } },
     }
 }
 
 folded_back = jbox.panel{
-    graphics = { node = "folded_back" },
+    graphics = { node = "S_backdrop" },
     cable_origin = { node = "S_cable_origin" },
     widgets = {
         jbox.device_name{

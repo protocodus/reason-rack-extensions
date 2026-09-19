@@ -4,9 +4,9 @@ render_knob.py
 Renders authentic primitive hand-carved African hardwood / volcanic stone analog knobs
 for Maremba Rack Extension.
 
-Output:
+Output (the same 5x strip in both places; RE2D reads GUI2D at authoring resolution):
 - GUI/Output/HD/Knob.png: 260 x 16380 (63 frames of 260x260, strictly divisible by 5)
-- GUI2D/Knob.png: 52 x 3276 (63 frames of 52x52, scaled for 1x standard resolution)
+- GUI2D/Knob.png: identical copy for the universal45 package
 """
 
 import math
@@ -22,7 +22,6 @@ GUI2D_DIR = os.path.join(PROJECT_DIR, "GUI2D")
 
 TOTAL_FRAMES = 63
 FRAME_SIZE_HD = 260
-FRAME_SIZE_2D = 52
 
 
 def render_primitive_knob_frame(frame_idx, total_frames=TOTAL_FRAMES, size=FRAME_SIZE_HD):
@@ -195,13 +194,12 @@ def generate_knob_filmstrip():
     filmstrip_hd.save(hd_path, "PNG", optimize=True)
     print(f"  Saved HD filmstrip: {hd_path} ({filmstrip_hd.size[0]}x{filmstrip_hd.size[1]})")
 
-    # Downsample for 2D standard resolution (52 x 3276) using high-quality Lanczos filter
+    # GUI2D carries the same 5x strip: device_2D places it at 52 logical units
+    # (260 HD px) per frame, so a downscaled copy would render at 1/5 size.
     os.makedirs(GUI2D_DIR, exist_ok=True)
-    total_height_2d = FRAME_SIZE_2D * TOTAL_FRAMES
-    filmstrip_2d = filmstrip_hd.resize((FRAME_SIZE_2D, total_height_2d), Image.LANCZOS)
     gui2d_path = os.path.join(GUI2D_DIR, "Knob.png")
-    filmstrip_2d.save(gui2d_path, "PNG", optimize=True)
-    print(f"  Saved 2D filmstrip: {gui2d_path} ({filmstrip_2d.size[0]}x{filmstrip_2d.size[1]})")
+    filmstrip_hd.save(gui2d_path, "PNG", optimize=True)
+    print(f"  Saved GUI2D filmstrip: {gui2d_path} ({filmstrip_hd.size[0]}x{filmstrip_hd.size[1]})")
 
     print(">>> Primitive Wood/Stone Knob Filmstrip Generation Complete! <<<")
 
